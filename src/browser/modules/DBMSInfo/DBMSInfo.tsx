@@ -46,6 +46,7 @@ import {
 } from 'shared/modules/dbMeta/dbMetaDuck'
 import { getGraphStyleData } from 'shared/modules/grass/grassDuck'
 import { Button } from '@neo4j-ndl/react'
+import { DrawerCompanyLogo } from '../../components/drawer/drawer-styled'
 
 export function DBMSInfo(props: any): JSX.Element {
   const moreStep = 50
@@ -77,6 +78,22 @@ export function DBMSInfo(props: any): JSX.Element {
 
   return (
     <Drawer id="db-drawer">
+      <DrawerCompanyLogo>
+        <div className="details">
+          <img
+            src="./assets/images/monific/monific-inverted.svg"
+            className="img-responsive"
+            alt="Monific"
+            style={{
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none',
+              MozWindowDragging: 'no-drag'
+            }}
+          />
+        </div>
+      </DrawerCompanyLogo>
       <DrawerHeader>Database Information</DrawerHeader>
       <DrawerBody>
         <DatabaseSelector

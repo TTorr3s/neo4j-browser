@@ -24,7 +24,7 @@ export const baseArcTheme = {
   name: 'base',
   // Text colors
   primaryText: '#333',
-  link: '#428BCA',
+  link: '#195754',
 
   // Backgrounds
   primaryBackground: '#D2D5DA',

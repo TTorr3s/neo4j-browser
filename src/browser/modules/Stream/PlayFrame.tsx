@@ -52,23 +52,7 @@ const AuraPromotion = () => {
   const theme = useContext(ThemeContext)
   const isDarkTheme = theme.name === DARK_THEME
 
-  return (
-    <PromotionContainer>
-      <AuraPromoLink
-        href="https://neo4j.com/cloud/aura/pricing/?utm_medium=browser&utm_source=ce&utm_campaign=wl_v1"
-        rel="noreferrer"
-        target="_blank"
-      >
-        Sign up
-      </AuraPromoLink>
-      for a free Neo4j cloud instance with
-      <img
-        src={`./assets/images/aura-logo${isDarkTheme ? '-inverted' : ''}.svg`}
-        alt="Neo4j"
-        style={{ marginLeft: '5px', width: '100%', maxWidth: '140px' }}
-      />
-    </PromotionContainer>
-  )
+  return <div></div>
 }
 
 const {

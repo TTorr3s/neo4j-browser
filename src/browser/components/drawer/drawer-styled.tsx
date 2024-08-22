@@ -27,9 +27,17 @@ export const Drawer = styled.div`
   height: 100vh;
 `
 
+export const DrawerCompanyLogo = styled.div`
+  width: 100px;
+  height: 130px;
+  margin: 10px auto;
+  display: block;
+  padding-top: 20px;
+`
+
 export const DrawerHeader = styled.h4`
   color: ${props => props.theme.primaryHeaderText};
-  background-color: ${props => props.theme.drawerBackground};
+  background-color: ${props => props.theme.frameCommandBackground};
   font-size: 18px;
   height: 73px;
   padding: 25px 0 0 18px;

@@ -7,7 +7,7 @@ const chip = styled.div`
   font-weight: bold;
   font-size: 12px;
   background-color: #9195a0;
-  color: #30333a;
+  color: #1b1e21;
   margin: 4px;
   padding: 3px 7px 3px 7px;
   span {

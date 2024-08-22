@@ -19,7 +19,6 @@
  */
 import styled from 'styled-components'
 
-import { LARGE_DRAWER_WIDTH } from 'browser-components/TabNavigation/Navigation'
 import {
   DrawerBody,
   DrawerBrowserCommand
@@ -235,7 +234,7 @@ export const StyledGuideDrawer = styled.div`
 
 export const StyledGuideDrawerHeader = styled.h4`
   color: ${props => props.theme.primaryHeaderText};
-  background-color: ${props => props.theme.drawerBackground};
+  background-color: ${props => props.theme.frameCommandBackground};
   font-size: 18px;
   padding: 25px 0 0 18px;
   font-weight: bold;
