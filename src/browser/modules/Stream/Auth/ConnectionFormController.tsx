@@ -39,6 +39,7 @@ import { CLOUD_SCHEMES } from 'shared/modules/app/appDuck'
 import { executeSystemCommand } from 'shared/modules/commands/commandsDuck'
 import {
   CONNECT,
+  ConnectionProfile,
   VERIFY_CREDENTIALS,
   getActiveConnection,
   getActiveConnectionData,
@@ -63,7 +64,10 @@ import {
   stripQueryString,
   stripScheme
 } from 'shared/services/boltscheme.utils'
-import { isCloudHost } from 'shared/services/utils'
+import {
+  AUTH_STORAGE_CONNECTION_PROFILES,
+  isCloudHost
+} from 'shared/services/utils'
 import { Neo4jError } from 'neo4j-driver'
 import { GlobalState } from 'shared/globalState'
 
@@ -102,7 +106,8 @@ export class ConnectionFormController extends Component<any, any> {
       passwordChangeNeeded: props.passwordChangeNeeded || false,
       forcePasswordChange: props.forcePasswordChange || false,
       successCallback: props.onSuccess || (() => {}),
-      used: props.isConnected
+      used: props.isConnected,
+      profiles: []
     }
   }
 
@@ -112,10 +117,37 @@ export class ConnectionFormController extends Component<any, any> {
       this.connect(() => this.setState({ connecting: false }))
       this.setState({ connecting: true })
     }
+    this.loadProfiles()
   }
 
   getConnection() {
     return this.props.discoveredData || this.props.frame.connectionData || {}
+  }
+
+  loadProfiles = () => {
+    const savedProfiles = localStorage.getItem(AUTH_STORAGE_CONNECTION_PROFILES)
+    if (savedProfiles) {
+      this.setState({ profiles: JSON.parse(savedProfiles) })
+    }
+  }
+
+  onProfileSave = (profile: ConnectionProfile) => {
+    const { profiles } = this.state
+    const updatedProfiles = [...profiles, profile]
+    this.setState({ profiles: updatedProfiles })
+    localStorage.setItem(
+      AUTH_STORAGE_CONNECTION_PROFILES,
+      JSON.stringify(updatedProfiles)
+    )
+  }
+
+  onProfileSelect = (profile: ConnectionProfile) => {
+    this.setState({
+      host: profile.host,
+      username: profile.username,
+      password: profile.password,
+      authenticationMethod: profile.authenticationMethod
+    })
   }
 
   tryConnect = (password: any, doneFn: any) => {
@@ -436,6 +468,9 @@ export class ConnectionFormController extends Component<any, any> {
           )}
           authenticationMethod={this.state.authenticationMethod}
           onSSOProviderClicked={this.onSSOProviderClicked}
+          onProfileSave={this.onProfileSave}
+          onProfileSelect={this.onProfileSelect}
+          profiles={this.state.profiles}
         />
       )
     }

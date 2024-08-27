@@ -70,7 +70,7 @@ export const base = {
   topicBackground: '#f8f8f8',
   preBackground: '#f5f5f5',
   alteringTableRowBackground: '#f5f5f5',
-  frameCommandBackground: '#F8F9FB',
+  frameCommandBackground: '#101212',
   runnableBackground: '#f5f5f5',
   teaserCardBackground: '#fff',
   hoverBackground: '#40444e',
@@ -209,7 +209,7 @@ export const dark = {
   frameButtonActiveBackground: NDLColors.neutral['70'].opacity50,
   frameNodePropertiesPanelIconTextColor: '#f4f4f4',
   streamBackgroundColor: '#0d0e0e',
-  frameBackground: '#0a1216',
+  frameBackground: '#021a19',
   accordionContentBackground: '#101212',
   currentEditIconColor: '#6B6B6B',
 

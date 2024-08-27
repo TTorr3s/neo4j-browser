@@ -394,7 +394,8 @@ export const getMonacoThemes = (
       'editorCursor.foreground': '#585a61',
       'editorLineNumber.foreground': cypherColor.white,
       'editorLineNumber.activeForeground': cypherColor.white,
-      foreground: cypherColor.white
+      foreground: cypherColor.white,
+      'editorWidget.background': '#01130ef2'
     }
   }
 
@@ -407,7 +408,8 @@ export const getMonacoThemes = (
       'editorCursor.foreground': '#d6d7db',
       'editorLineNumber.foreground': cypherColor.light_grey,
       'editorLineNumber.activeForeground': cypherColor.light_grey,
-      foreground: cypherColor.black
+      foreground: cypherColor.black,
+      'suggestWidget.background': '#f0f0f0'
     }
   }
 

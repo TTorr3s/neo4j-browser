@@ -69,6 +69,13 @@ export const CONNECTED_STATE = 1
 export const PENDING_STATE = 2
 export const CONNECTING_STATE = 3
 
+export interface ConnectionProfile {
+  name: string
+  host: string
+  username: string
+  password: string
+  authenticationMethod: string
+}
 export type ConnectionReduxState = {
   allConnectionIds: string[]
   connectionsById: Record<string, Connection>

@@ -42,9 +42,13 @@ import { NATIVE, NO_AUTH, SSO } from 'services/bolt/boltHelpers'
 import { getScheme, stripScheme } from 'services/boltscheme.utils'
 import {
   AuthenticationMethod,
+  ConnectionProfile,
   SSOProvider
 } from 'shared/modules/connections/connectionsDuck'
-import { AUTH_STORAGE_CONNECT_HOST } from 'shared/services/utils'
+import {
+  AUTH_STORAGE_CONNECT_HOST,
+  AUTH_STORAGE_CONNECTION_PROFILES
+} from 'shared/services/utils'
 import { hasReachableServer, Neo4jError } from 'neo4j-driver'
 import AutoExecButton from '../auto-exec-button'
 import { SmallSpinnerIcon } from 'browser-components/icons/LegacyIcons'
@@ -77,8 +81,10 @@ interface ConnectFormProps {
   onSSOProviderClicked: () => void
   connecting: boolean
   setIsConnecting: (c: boolean) => void
+  onProfileSave: (profile: ConnectionProfile) => void
+  onProfileSelect: (profile: ConnectionProfile) => void
+  profiles: ConnectionProfile[]
 }
-
 export type HttpReachablity =
   | { status: 'noRequest' }
   | { status: 'loading' }
@@ -150,6 +156,44 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
   const [scheme, setScheme] = useState(
     props.allowedSchemes ? `${getScheme(props.host)}://` : ''
   )
+
+  const [profiles, setProfiles] = useState<ConnectionProfile[]>([])
+  const [selectedProfile, setSelectedProfile] = useState<string>('')
+  const [profileName, setProfileName] = useState<string>('')
+
+  useEffect(() => {
+    const savedProfiles = localStorage.getItem(AUTH_STORAGE_CONNECTION_PROFILES)
+    if (savedProfiles) {
+      setProfiles(JSON.parse(savedProfiles))
+    }
+  }, [])
+
+  const saveProfile = () => {
+    const newProfile: ConnectionProfile = {
+      name: profileName,
+      host: props.host,
+      password: props.password,
+      username: props.username,
+      authenticationMethod: props.authenticationMethod
+    }
+
+    const updatedProfiles = [...profiles, newProfile]
+    setProfiles(updatedProfiles)
+    localStorage.setItem(
+      AUTH_STORAGE_CONNECTION_PROFILES,
+      JSON.stringify(updatedProfiles)
+    )
+    props.onProfileSave(newProfile)
+    setProfileName('')
+  }
+
+  const loadProfile = (profileName: string) => {
+    const profile = profiles.find(profile => profile.name === profileName)
+    if (profile) {
+      setSelectedProfile(profileName)
+      props.onProfileSelect(profile)
+    }
+  }
 
   useEffect(() => {
     if (props.allowedSchemes) {
@@ -308,6 +352,41 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
               onBlur={() => reachabilityCheck(props.host)}
             />
           )}
+        </StyledConnectionFormEntry>
+
+        <StyledConnectionFormEntry>
+          <StyledConnectionLabel>
+            Connection Profiles
+            <StyledConnectionSelect
+              value={selectedProfile}
+              onChange={e => loadProfile(e.target.value)}
+            >
+              <option value="">Select a profile</option>
+              {profiles.map(profile => (
+                <option key={profile.name} value={profile.name}>
+                  {profile.name}
+                </option>
+              ))}
+            </StyledConnectionSelect>
+          </StyledConnectionLabel>
+        </StyledConnectionFormEntry>
+
+        <StyledConnectionFormEntry>
+          <StyledConnectionLabel>
+            Profile
+            <StyledConnectionTextInput
+              value={profileName}
+              onChange={e => setProfileName(e.target.value)}
+              placeholder="Profile name"
+            />
+          </StyledConnectionLabel>
+          <FormButton
+            onClick={saveProfile}
+            type="button"
+            style={{ marginTop: '10px' }}
+          >
+            Save Profile
+          </FormButton>
         </StyledConnectionFormEntry>
 
         {props.supportsMultiDb && (
