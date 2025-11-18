@@ -147,24 +147,6 @@ export class BrowserSync extends Component<any, BrowserSyncState> {
     let consentAlertContent = null
     let onlineContent = null
     let clearLocalDataContent = null
-    let headerContent = null
-
-    if (this.props.authStatus === SIGNED_IN) {
-      headerContent = (
-        <DrawerToppedHeader>
-          {this.props.userData.name}
-          <br />
-          <SmallHeaderText>Connected</SmallHeaderText>
-          <br />
-          <SmallHeaderText>
-            Synced{' '}
-            <TimeAgo date={new Date(this.props.lastSyncedAt)} minPeriod="5" />
-          </SmallHeaderText>
-        </DrawerToppedHeader>
-      )
-    } else {
-      headerContent = <DrawerHeader>Neo4j Browser Sync</DrawerHeader>
-    }
 
     if (this.state.clearLocalRequested === true) {
       clearLocalDataContent = (
@@ -264,7 +246,6 @@ export class BrowserSync extends Component<any, BrowserSyncState> {
 
     return (
       <Drawer id="sync-drawer">
-        {headerContent}
         {offlineContent}
         {onlineContent}
       </Drawer>

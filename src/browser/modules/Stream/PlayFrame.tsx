@@ -80,8 +80,7 @@ export function PlayFrame({
   bus,
   showPromotion,
   isFullscreen,
-  isCollapsed,
-  inDesktop
+  isCollapsed
 }: PlayFrameProps): JSX.Element {
   const [stackIndex, setStackIndex] = useState(0)
   const [atSlideStart, setAtSlideStart] = useState<boolean | null>(null)
@@ -109,9 +108,7 @@ export function PlayFrame({
         currentFrame,
         bus,
         onSlide,
-        initialPlay,
-        showPromotion,
-        inDesktop
+        initialPlay
       )
       if (stillMounted) {
         setInitialPlay(false)
@@ -193,9 +190,7 @@ function generateContent(
   stackFrame: any,
   bus: Bus,
   onSlide: any,
-  shouldUseSlidePointer: boolean,
-  showPromotion = false,
-  inDesktop = false
+  shouldUseSlidePointer: boolean
 ): Content | Promise<Content> {
   // Not found
   if (stackFrame.response && stackFrame.response.status === 404) {
@@ -279,17 +274,6 @@ function generateContent(
     const { content, title, subtitle, slides = null } = chapters[guideName]
 
     const isPlayStart = stackFrame.cmd.trim() === ':play start'
-    const updatedContent =
-      isPlayStart && showPromotion ? (
-        <>
-          {!inDesktop ? <PreviewFrame /> : content}
-          <AuraPromotion />
-        </>
-      ) : !inDesktop ? (
-        <PreviewFrame />
-      ) : (
-        content
-      )
 
     return {
       guide: (
@@ -297,7 +281,6 @@ function generateContent(
           lastUpdate={stackFrame.ts}
           originFrameId={stackFrame.id}
           withDirectives
-          content={slides ? null : updatedContent}
           slides={slides ? slides : null}
           initialSlide={initialSlide}
           onSlide={onSlide}

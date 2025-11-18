@@ -341,15 +341,18 @@ const StyledFrameControlButton = styled.button<{
   color: ${props => props.theme.frameControlButtonTextColor};
   background-color: ${props =>
     props.pressed ? props.theme.frameButtonActiveBackground : 'transparent'};
-
+  margin: 5px;
   outline: none;
   border: none;
   border-left: transparent;
   height: 20px;
   width: 20px;
   margin-left: 12px;
+  transition: all 0.2s ease-out;
   &:hover {
     background-color: ${props => props.theme.frameButtonHoverBackground};
+    height: 35px;
+    width: 35px;
   }
   &:active {
     background-color: ${props => props.theme.frameButtonActiveBackground};

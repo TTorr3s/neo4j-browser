@@ -27,7 +27,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const BundleAnalyzerPlugin =
   require('webpack-bundle-analyzer').BundleAnalyzerPlugin
-const ForkTsCheckerNotifierWebpackPlugin = require('fork-ts-checker-notifier-webpack-plugin')
+// const ForkTsCheckerNotifierWebpackPlugin = require('fork-ts-checker-notifier-webpack-plugin')
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin')
 const manifestGeneration = require('./generate-manifest-helpers')
@@ -108,9 +108,12 @@ module.exports = () => {
       },
       issue: { exclude: { severity: 'warning' } }
     }),
-    new ForkTsCheckerNotifierWebpackPlugin({
-      title: 'TypeScript'
-    }),
+    // Comentado debido a error -86 en macOS con notificaciones del sistema
+    // new ForkTsCheckerNotifierWebpackPlugin({
+    //   title: 'TypeScript',
+    //   excludeWarnings: false,
+    //   silent: true
+    // }),
     new MonacoWebpackPlugin({
       features: [
         '!accessibilityHelp',

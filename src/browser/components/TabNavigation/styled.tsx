@@ -21,7 +21,7 @@ import styled from 'styled-components'
 
 export const StyledSidebar = styled.div`
   flex: 0 0 auto;
-  background-color: #101212;
+  background-color: #000000;
   display: flex;
   flex-direction: row;
   color: #fff;
@@ -29,7 +29,7 @@ export const StyledSidebar = styled.div`
 export const StyledDrawer = styled.div`
   height: 100%;
   flex: 0 0 auto;
-  background-color: #101212;
+  background-color: #000000;
   overflow-x: hidden;
   overflow-y: auto;
   transition: 0.2s ease-out;

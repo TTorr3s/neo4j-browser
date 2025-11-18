@@ -123,20 +123,20 @@ export const getTelemetrySettings = (state: GlobalState): TelemetrySettings => {
       allowUserStats: false
     },
     DESKTOP_SETTING: {
-      allowCrashReporting: getAllowCrashReportsInDesktop(state),
-      allowUserStats: getAllowUserStatsInDesktop(state)
+      allowCrashReporting: false,
+      allowUserStats: false
     },
     AURA: {
-      allowCrashReporting: auraAllowsUdc,
-      allowUserStats: auraAllowsUdc
+      allowCrashReporting: false,
+      allowUserStats: false
     },
     BROWSER_SETTING: {
-      allowCrashReporting: getAllowCrashReports(state),
-      allowUserStats: getAllowUserStats(state)
+      allowCrashReporting: false,
+      allowUserStats: false
     },
     NEO4J_CONF: {
-      allowCrashReporting: confAllowsUdc,
-      allowUserStats: confAllowsUdc
+      allowCrashReporting: false,
+      allowUserStats: false
     }
   }
 

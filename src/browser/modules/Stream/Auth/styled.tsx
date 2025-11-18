@@ -135,7 +135,7 @@ export const StyledConnectionFooter = styled.span`
   font-weight: 200;
 `
 export const StyledCode = styled.code`
-  color: #fd766e;
+  color: #e29b49ff;
   background-color: ${props => props.theme.frameSidebarBackground};
   border-radius: 2px;
   cursor: auto;
@@ -143,7 +143,7 @@ export const StyledCode = styled.code`
   padding: 2px 4px;
 
   a {
-    color: #c7254e !important;
+    color: #e29b49ff !important;
   }
 `
 

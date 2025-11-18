@@ -58,8 +58,8 @@ export const base = {
   neo4jBlue: '#128b9f',
   darkBlue: '#128b9f',
 
-  // Design system colors
-  primary: '#128b9f',
+  // Design system colors 38517d
+  primary: '#5762d9ff',
   primary50: '#0070d9',
 
   // Backgrounds
@@ -70,7 +70,7 @@ export const base = {
   topicBackground: '#f8f8f8',
   preBackground: '#f5f5f5',
   alteringTableRowBackground: '#f5f5f5',
-  frameCommandBackground: '#101212',
+  frameCommandBackground: '#050614ff',
   runnableBackground: '#f5f5f5',
   teaserCardBackground: '#fff',
   hoverBackground: '#40444e',
@@ -95,8 +95,8 @@ export const base = {
   success: '#65B144',
   error: '#E74C3C',
   warning: '#ffaf00',
-  auth: '#195754',
-  info: '#195754',
+  auth: '#182844bf',
+  info: '#1d232dbf',
 
   // Buttons
   primaryButtonText: '#fff',
@@ -170,20 +170,20 @@ export const dark = {
   link: '#5CA6D9',
   linkHover: '#1e70bf',
   topicText: '#fff',
-  preText: '#fff',
+  preText: '#e8e7ecff',
   asideText: 'rgb(255, 255, 255, 0.87)',
 
   // Backgrounds
   primaryBackground: '#525865',
   secondaryBackground: '#292C33',
-  editorBackground: '#040a0c',
+  editorBackground: '#070818ff',
   drawerBackground: '#1b1e21',
   topicBackground: 'transparent',
-  preBackground: '#282c32',
-  alteringTableRowBackground: '#101212',
-  frameCommandBackground: '#101212',
+  preBackground: '#14161e',
+  alteringTableRowBackground: '#050614ff',
+  frameCommandBackground: '#050614ff',
   runnableBackground: '#202226',
-  teaserCardBackground: '#101212',
+  teaserCardBackground: '#050614ff',
 
   // Buttons
   primaryButtonText: '#fff',
@@ -197,10 +197,10 @@ export const dark = {
 
   // Borders
   inFrameBorder: '1px solid rgba(255,255,255,0.12)',
-  monacoEditorBorder: '1px solid #374754',
+  monacoEditorBorder: '1px solid #38517d',
 
   // Frame
-  frameSidebarBackground: '#040a0c',
+  frameSidebarBackground: '#070818ff',
   frameTitlebarText: '#717172',
   frameControlButtonTextColor: '#D7E5F1',
   frameButtonTextColorLegacy: '#FFF',
@@ -208,9 +208,9 @@ export const dark = {
   frameButtonHoverBackground: NDLColors.neutral['70'].opacity60,
   frameButtonActiveBackground: NDLColors.neutral['70'].opacity50,
   frameNodePropertiesPanelIconTextColor: '#f4f4f4',
-  streamBackgroundColor: '#0d0e0e',
-  frameBackground: '#021a19',
-  accordionContentBackground: '#101212',
+  streamBackgroundColor: '#000000',
+  frameBackground: '#080c13',
+  accordionContentBackground: '#050614ff',
   currentEditIconColor: '#6B6B6B',
 
   // Info message

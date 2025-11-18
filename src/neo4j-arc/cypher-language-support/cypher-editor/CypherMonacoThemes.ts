@@ -21,18 +21,18 @@ import { editor } from 'monaco-editor/esm/vs/editor/editor.api'
 
 // colors from cypher-editor/cypher-codemirror/src/css/_solarized.css
 const cypherColorFallback = {
-  black: '#333333',
+  black: '#000000',
   blue: '#268bd2',
   cyan: '#83acf7',
   cyan_grey: '#586e75',
-  green: '#48c3bd',
+  green: '#48b2d8',
   light_grey: '#93a1a1',
   magenta: '#d33682',
   orange: '#cb4b16',
   red: '#dc322f',
   violet: '#6c71c4',
   white: '#efebde',
-  yellow: '#edd787'
+  yellow: '#35af38'
 }
 
 export type CypherColorFallback = typeof cypherColorFallback
@@ -390,7 +390,7 @@ export const getMonacoThemes = (
     inherit: true,
     rules: darkThemeRules,
     colors: {
-      'editor.background': '#040a0c',
+      'editor.background': '#070818ff',
       'editorCursor.foreground': '#585a61',
       'editorLineNumber.foreground': cypherColor.white,
       'editorLineNumber.activeForeground': cypherColor.white,
