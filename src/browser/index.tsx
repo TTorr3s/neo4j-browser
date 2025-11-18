@@ -24,4 +24,5 @@ import AppInit, { setupSentry } from './AppInit'
 import './init'
 
 setupSentry()
+
 ReactDOM.render(<AppInit />, document.getElementById('mount'))

@@ -28,13 +28,6 @@ import {
   StackPreviousIcon
 } from 'browser-components/icons/LegacyIcons'
 
-import docs, { DocItem, isPlayChapter } from '../../documentation'
-import Docs from '../Docs/Docs'
-import { splitMdSlides } from '../Docs/MD/splitMd'
-import FrameAside from '../Frame/FrameAside'
-import FrameBodyTemplate from '../Frame/FrameBodyTemplate'
-import { ErrorsView } from './CypherFrame/ErrorsView/ErrorsView'
-import { AuraPromoLink, PromotionContainer } from './styled'
 import { CarouselButton } from 'browser-components/buttons'
 import {
   splitStringOnFirst,
@@ -47,6 +40,14 @@ import { isConnectedAuraHost } from 'shared/modules/connections/connectionsDuck'
 import { getEdition, isEnterprise } from 'shared/modules/dbMeta/dbMetaDuck'
 import { DARK_THEME } from 'shared/modules/settings/settingsDuck'
 import { LAST_GUIDE_SLIDE } from 'shared/modules/udc/udcDuck'
+import docs, { DocItem, isPlayChapter } from '../../documentation'
+import Docs from '../Docs/Docs'
+import { splitMdSlides } from '../Docs/MD/splitMd'
+import FrameAside from '../Frame/FrameAside'
+import FrameBodyTemplate from '../Frame/FrameBodyTemplate'
+import { ErrorsView } from './CypherFrame/ErrorsView/ErrorsView'
+import PreviewFrame from './StartPreviewFrame'
+import { AuraPromoLink, PromotionContainer } from './styled'
 
 const AuraPromotion = () => {
   const theme = useContext(ThemeContext)
@@ -72,13 +73,15 @@ type PlayFrameProps = {
   showPromotion: boolean
   isFullscreen: boolean
   isCollapsed: boolean
+  inDesktop: boolean
 }
 export function PlayFrame({
   stack,
   bus,
   showPromotion,
   isFullscreen,
-  isCollapsed
+  isCollapsed,
+  inDesktop
 }: PlayFrameProps): JSX.Element {
   const [stackIndex, setStackIndex] = useState(0)
   const [atSlideStart, setAtSlideStart] = useState<boolean | null>(null)
@@ -107,7 +110,8 @@ export function PlayFrame({
         bus,
         onSlide,
         initialPlay,
-        showPromotion
+        showPromotion,
+        inDesktop
       )
       if (stillMounted) {
         setInitialPlay(false)
@@ -190,7 +194,8 @@ function generateContent(
   bus: Bus,
   onSlide: any,
   shouldUseSlidePointer: boolean,
-  showPromotion = false
+  showPromotion = false,
+  inDesktop = false
 ): Content | Promise<Content> {
   // Not found
   if (stackFrame.response && stackFrame.response.status === 404) {
@@ -277,9 +282,11 @@ function generateContent(
     const updatedContent =
       isPlayStart && showPromotion ? (
         <>
-          {content}
+          {!inDesktop ? <PreviewFrame /> : content}
           <AuraPromotion />
         </>
+      ) : !inDesktop ? (
+        <PreviewFrame />
       ) : (
         content
       )
@@ -362,7 +369,8 @@ const mapStateToProps = (state: GlobalState) => ({
     (getEdition(state) !== null &&
       !isEnterprise(state) &&
       !isConnectedAuraHost(state)) ||
-    inDesktop(state)
+    inDesktop(state),
+  inDesktop: inDesktop(state)
 })
 
 export default connect(mapStateToProps)(withBus(PlayFrame))
