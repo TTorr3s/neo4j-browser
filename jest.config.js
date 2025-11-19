@@ -13,11 +13,15 @@ module.exports = {
       'ts-jest',
       {
         tsconfig: {
-          jsx: 'react'
+          jsx: 'react',
+          module: 'es2020',
+          target: 'es2020',
+          skipLibCheck: true,
+          isolatedModules: true
         }
       }
     ],
-    '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './.babelrc' }]
+    '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './babel.config.js' }]
   },
   setupFiles: [
     'raf/polyfill.js',
@@ -62,5 +66,7 @@ module.exports = {
   },
   globals: {
     SEGMENT_KEY: 'a-segment-key'
-  }
+  },
+  // Disable prettier for inline snapshots (Prettier 3.0 not supported)
+  prettierPath: null
 }

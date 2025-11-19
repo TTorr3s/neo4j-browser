@@ -1,27 +1,27 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`hydrating state can CLEAR to reset state 1`] = `
-Object {
-  "countAutomaticRefresh": Object {
+{
+  "countAutomaticRefresh": {
     "enabled": true,
     "loading": false,
   },
-  "databases": Array [],
-  "functions": Array [],
-  "labels": Array [],
+  "databases": [],
+  "functions": [],
+  "labels": [],
   "nodes": 0,
-  "procedures": Array [],
-  "properties": Array [],
-  "relationshipTypes": Array [],
+  "procedures": [],
+  "properties": [],
+  "relationshipTypes": [],
   "relationships": 0,
   "role": null,
-  "server": Object {
+  "server": {
     "edition": null,
     "storeSize": null,
     "version": null,
   },
   "serverConfigDone": false,
-  "settings": Object {
+  "settings": {
     "allowOutgoingConnections": false,
     "allowTelemetry": true,
     "authEnabled": true,
@@ -33,14 +33,14 @@ Object {
     "retainConnectionCredentials": false,
     "retainEditorHistory": false,
   },
-  "trialStatus": Object {
+  "trialStatus": {
     "status": "unknown",
   },
 }
 `;
 
 exports[`hydrating state can update meta values with UPDATE 1`] = `
-Object {
+{
   "myKey": "yo",
   "noKey": true,
   "secondKey": true,
@@ -48,8 +48,8 @@ Object {
 `;
 
 exports[`hydrating state can update server info 1`] = `
-Object {
-  "server": Object {
+{
+  "server": {
     "edition": "enterprise",
     "storeId": "xxxx",
     "version": "3.2.0-RC2",
@@ -59,8 +59,8 @@ Object {
 `;
 
 exports[`hydrating state can update server settings 1`] = `
-Object {
-  "settings": Object {
+{
+  "settings": {
     "browser.test": 1,
   },
   "shouldKeep": true,
@@ -68,28 +68,28 @@ Object {
 `;
 
 exports[`hydrating state should merge inital state and state on load 1`] = `
-Object {
-  "countAutomaticRefresh": Object {
+{
+  "countAutomaticRefresh": {
     "enabled": true,
     "loading": false,
   },
-  "databases": Array [],
+  "databases": [],
   "foo": "bar",
-  "functions": Array [],
-  "labels": Array [],
+  "functions": [],
+  "labels": [],
   "nodes": 0,
-  "procedures": Array [],
-  "properties": Array [],
-  "relationshipTypes": Array [],
+  "procedures": [],
+  "properties": [],
+  "relationshipTypes": [],
   "relationships": 0,
   "role": null,
-  "server": Object {
+  "server": {
     "edition": null,
     "storeSize": null,
     "version": null,
   },
   "serverConfigDone": false,
-  "settings": Object {
+  "settings": {
     "allowOutgoingConnections": false,
     "allowTelemetry": true,
     "authEnabled": true,
@@ -101,7 +101,7 @@ Object {
     "retainConnectionCredentials": false,
     "retainEditorHistory": false,
   },
-  "trialStatus": Object {
+  "trialStatus": {
     "status": "unknown",
   },
 }

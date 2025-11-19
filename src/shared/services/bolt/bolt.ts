@@ -42,10 +42,16 @@ import { isBoltConnectionErrorCode } from './boltConnectionErrors'
 
 let connectionProperties: {} | null = null
 let _useDb: string | null = null
-const boltWorkPool = new WorkPool(
-  () => new Worker(new URL('./boltWorker.ts', import.meta.url)) as any,
-  10
-)
+// Use a mock worker in test environment to avoid import.meta.url issues
+const createWorker = () => {
+  if (typeof jest !== 'undefined' || process.env.NODE_ENV === 'test') {
+    // Mock worker for tests
+    return {} as any
+  }
+  // @ts-ignore - import.meta.url not supported in ts-jest with commonjs module
+  return new Worker(new URL('./boltWorker.ts', import.meta.url)) as any
+}
+const boltWorkPool = new WorkPool(createWorker, 10)
 
 function openConnection(
   props: Connection,

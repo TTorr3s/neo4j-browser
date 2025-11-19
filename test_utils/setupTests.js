@@ -62,3 +62,16 @@ nock.disableNetConnect()
 import { TextEncoder, TextDecoder } from 'util'
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
+
+// Polyfill for setImmediate (not available in jsdom/browser environment)
+if (typeof global.setImmediate === 'undefined') {
+  global.setImmediate = (callback, ...args) => {
+    return setTimeout(callback, 0, ...args)
+  }
+  global.clearImmediate = id => {
+    return clearTimeout(id)
+  }
+}
+
+// Mock bolt module to avoid import.meta.url issues
+jest.mock('services/bolt/bolt')
