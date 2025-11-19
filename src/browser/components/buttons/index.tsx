@@ -190,11 +190,11 @@ export const StyledErrorBoundaryButton = styled(StyledFormButton)`
   }
 `
 const StyledDestructiveButton = styled(StyledFormButton)`
-  color: #fff;
+  color: #ffffff;
   border: 1px solid #da4433;
   background-color: #da4433;
   &:hover {
-    color: #fff;
+    color: #ffffff;
     border: 1px solid #da4433;
     background-color: #da4433;
   }

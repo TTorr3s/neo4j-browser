@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { version } from 'project-root/package.json'
+import packageJson from 'project-root/package.json'
 
 // Application info
 export const NEO4J_BROWSER_BACKGROUND_QUERY = 'system'
 export const NEO4J_BROWSER_USER_QUERY = 'user-direct'
 export const NEO4J_BROWSER_USER_ACTION_QUERY = 'user-action'
 export const DEFAULT_QUERY_METADATA_TYPE = NEO4J_BROWSER_USER_ACTION_QUERY
-export const NEO4J_BROWSER_APP_ID = `neo4j-browser_v${version}`
+export const NEO4J_BROWSER_APP_ID = `neo4j-browser_v${packageJson.version}`
 
 export const backgroundTxMetadata = {
   txMetadata: {

@@ -82,7 +82,7 @@ export const StyledVisContainer = styled.div<{ isFullscreen: boolean }>`
   }
 
   > text.context-menu-item {
-    fill: #fff;
+    fill: #ffffff;
     text-anchor: middle;
     pointer-events: none;
     font-size: 14px;

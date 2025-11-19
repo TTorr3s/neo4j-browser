@@ -37,7 +37,7 @@ export function handleGetConfigCommand(_action: any, store: any) {
 }
 
 export function handleUpdateConfigCommand(action: any, put: any, store: any) {
-  const strippedCmd = action.cmd.substr(1)
+  const strippedCmd = action.cmd.substring(1)
   const parts = splitStringOnFirst(strippedCmd, ' ')
   const p = new Promise((resolve, reject) => {
     if (parts[1] === undefined || parts[1] === '') return resolve(true) // Nothing to do

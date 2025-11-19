@@ -25,13 +25,10 @@ const helpers = require('./webpack-helpers')
 
 module.exports = {
   mode: helpers.isProduction ? 'production' : 'development',
-  node: {
-    fs: 'empty'
-  },
   entry: [path.resolve(helpers.browserPath, 'index.tsx')],
   output: {
-    filename: 'app-[hash].js',
-    chunkFilename: '[name]-[hash].bundle.js',
+    filename: 'app-[contenthash].js',
+    chunkFilename: '[name]-[contenthash].bundle.js',
     publicPath: '',
     path: helpers.buildPath,
     globalObject: 'this'
@@ -59,7 +56,12 @@ module.exports = {
         'neo4j-arc/cypher-language-support'
       )
     },
-    extensions: ['.tsx', '.ts', '.js']
+    extensions: ['.tsx', '.ts', '.js'],
+    fallback: {
+      fs: false,
+      path: false,
+      crypto: false
+    }
   },
   module: {
     rules
@@ -98,7 +100,10 @@ module.exports = {
   devServer: {
     host: '0.0.0.0',
     port: 8080,
-    disableHostCheck: true,
-    hot: !helpers.isProduction
+    allowedHosts: 'all',
+    hot: !helpers.isProduction,
+    client: {
+      overlay: true
+    }
   }
 }

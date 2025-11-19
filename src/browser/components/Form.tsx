@@ -21,7 +21,7 @@ import React, { Component } from 'react'
 import styled from 'styled-components'
 
 export const StyledSelect = styled.select`
-  background-color: #fff;
+  background-color: #ffffff;
   border: ${props => props.theme.formButtonBorder};
   border-radius: 4px;
   color: ${props => props.theme.inputText};
@@ -33,7 +33,7 @@ export const StyledSelect = styled.select`
   width: 100%;
 `
 export const StyledInput = styled.input`
-  background-color: #fff;
+  background-color: #ffffff;
   border: ${props => props.theme.formButtonBorder};
   border-radius: 4px;
   color: ${props => props.theme.inputText};
@@ -74,7 +74,7 @@ const StyledSettingTextInput = styled(StyledInput)`
   color: #555;
   font-size: 14px;
   padding: 6px 12px;
-  background-color: #fff;
+  background-color: #ffffff;
   border: 1px solid #ccc;
   border-radius: 4px;
   width: 192px;

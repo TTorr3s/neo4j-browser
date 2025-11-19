@@ -33,8 +33,10 @@ import 'browser-styles/relate-by-ui/relate-by-PARTS.css'
 import '@neo4j-ndl/base/lib/neo4j-ds-styles.css'
 
 // Make sure the bolt worker module is fetched early
-import BoltWorkerModule from 'shared/services/bolt/boltWorker'
-new BoltWorkerModule()
+// Webpack 5 native worker support will handle this
+if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
+  new Worker(new URL('../shared/services/bolt/boltWorker.ts', import.meta.url))
+}
 
 // non web env (just for tests)
 if (typeof btoa === 'undefined') {

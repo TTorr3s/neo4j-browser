@@ -47,28 +47,51 @@ module.exports = [
       path.resolve('node_modules/@neo4j/browser-lambda-parser'),
       path.resolve('node_modules/@neo4j-devtools/word-color')
     ],
-    use: 'babel-loader'
+    use: 'babel-loader',
+    resolve: {
+      fullySpecified: false
+    }
   },
   {
     test: /\.(png|gif|jpg|svg)$/,
     include: [path.resolve(helpers.browserPath, 'modules')],
-    use: 'file-loader?limit=20480&name=assets/[name]-[hash].[ext]'
+    type: 'asset',
+    parser: {
+      dataUrlCondition: {
+        maxSize: 20480
+      }
+    },
+    generator: {
+      filename: 'assets/[name]-[contenthash][ext]'
+    }
   },
   {
     test: /\.woff$/,
-    use: 'file-loader?limit=65000&mimetype=application/font-woff&name=assets/fonts/[name].[ext]'
+    type: 'asset/resource',
+    generator: {
+      filename: 'assets/fonts/[name][ext]'
+    }
   },
   {
     test: /\.woff2$/,
-    use: 'file-loader?limit=65000&mimetype=application/font-woff2&name=assets/fonts/[name].[ext]'
+    type: 'asset/resource',
+    generator: {
+      filename: 'assets/fonts/[name][ext]'
+    }
   },
   {
     test: /\.[ot]tf$/,
-    use: 'file-loader?limit=65000&mimetype=application/octet-stream&name=assets/fonts/[name].[ext]'
+    type: 'asset/resource',
+    generator: {
+      filename: 'assets/fonts/[name][ext]'
+    }
   },
   {
     test: /\.eot$/,
-    use: 'file-loader?limit=65000&mimetype=application/vnd.ms-fontobject&name=assets/fonts/[name].[ext]'
+    type: 'asset/resource',
+    generator: {
+      filename: 'assets/fonts/[name][ext]'
+    }
   },
   {
     test: /\.less$/, // Carousel
@@ -78,10 +101,11 @@ module.exports = [
       {
         loader: 'css-loader',
         options: {
-          modules: true,
-          importLoaders: 1,
-          camelCase: true,
-          localIdentName: '[local]'
+          modules: {
+            localIdentName: '[local]',
+            exportLocalsConvention: 'camelCase'
+          },
+          importLoaders: 1
         }
       },
       'postcss-loader'
@@ -99,10 +123,11 @@ module.exports = [
       {
         loader: 'css-loader',
         options: {
-          modules: true,
-          importLoaders: 1,
-          camelCase: 1,
-          localIdentName: '[name]__[local]___[hash:base64:5]'
+          modules: {
+            localIdentName: '[name]__[local]___[hash:base64:5]',
+            exportLocalsConvention: 'camelCase'
+          },
+          importLoaders: 1
         }
       },
       'postcss-loader'
@@ -118,31 +143,19 @@ module.exports = [
   },
   {
     test: /\.svg$/,
-    use: 'file-loader?limit=65000&mimetype=image/svg+xml&name=assets/fonts/[name].[ext]',
+    type: 'asset/resource',
+    generator: {
+      filename: 'assets/fonts/[name][ext]'
+    },
     exclude: [path.resolve(helpers.browserPath, 'components/icons/svgs')]
   },
   {
     test: /\.svg$/,
-    loader: 'raw-loader',
+    type: 'asset/source',
     include: [path.resolve(helpers.browserPath, 'components/icons/svgs')]
   },
   {
     test: /\.html?$/,
     use: ['html-loader']
-  },
-  {
-    test: /boltWorker\.ts/,
-    use: [
-      {
-        loader: 'worker-loader',
-        options: {
-          name: 'bolt-worker-[hash].js'
-        }
-      },
-      {
-        loader: 'ts-loader',
-        options: tsLoaderOptions
-      }
-    ]
   }
 ]

@@ -30,7 +30,7 @@ import {
   DrawerSectionBody,
   DrawerSubHeader
 } from 'browser-components/drawer/drawer-styled'
-import { version as browserVersion } from 'project-root/package.json'
+import packageJson from 'project-root/package.json'
 import { getEdition, getRawVersion } from 'shared/modules/dbMeta/dbMetaDuck'
 import { copyToClipboard } from 'neo4j-arc/common'
 import { GlobalState } from 'shared/globalState'
@@ -79,9 +79,9 @@ const About = ({ serverVersion, serverEdition }: AboutProps) => (
           <p>
             Neo4j Browser version:{' '}
             <DrawerExternalLink
-              href={`https://github.com/neo4j/neo4j-browser/releases/tag/${browserVersion}`}
+              href={`https://github.com/neo4j/neo4j-browser/releases/tag/${packageJson.version}`}
             >
-              {browserVersion}
+              {packageJson.version}
             </DrawerExternalLink>
           </p>
           {serverVersion && serverEdition && (

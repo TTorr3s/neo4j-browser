@@ -87,7 +87,7 @@ export const StyledSvgWrapper = styled.div`
     text {
       line-height: normal;
       &.context-menu-item {
-        fill: #fff;
+        fill: #ffffff;
         text-anchor: middle;
         pointer-events: none;
         font-size: 14px;

@@ -25,11 +25,11 @@ import { USER_CLEAR } from '../app/appDuck'
 import { CONNECT, CONNECTION_SUCCESS } from '../connections/connectionsDuck'
 import { isBuiltInGuide, isPlayChapter } from 'browser/documentation'
 import { GlobalState } from 'shared/globalState'
+import { COMMAND_QUEUED } from 'shared/modules/commands/commandsDuck'
 import {
-  COMMAND_QUEUED,
   CYPHER_FAILED,
   CYPHER_SUCCEEDED
-} from 'shared/modules/commands/commandsDuck'
+} from 'shared/modules/commands/actionTypes'
 import {
   ADD_FAVORITE,
   LOAD_FAVORITES,
@@ -258,10 +258,10 @@ export const trackCommandUsageEpic: Epic<Action, GlobalState> = action$ =>
     const extraData: Record<string, string | number> = {}
 
     if (type === 'play') {
-      const guideName = action.cmd.substr(':play'.length).trim()
+      const guideName = action.cmd.substring(':play'.length).trim()
       extraData.content = isPlayChapter(guideName) ? 'built-in' : 'non-built-in'
     } else if (type === 'guide') {
-      const guideName = action.cmd.substr(':guide'.length).trim()
+      const guideName = action.cmd.substring(':guide'.length).trim()
       extraData.content = isBuiltInGuide(guideName)
         ? 'built-in'
         : 'non-built-in'

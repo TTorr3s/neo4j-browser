@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -18,12 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module.exports = {
-  plugins: [
-    require('precss'),
-    require('autoprefixer'),
-    require('postcss-preset-env')({
-      browsers: 'last 1 version, not ie > 0'
-    })
-  ]
-}
+// Cypher action types (used across multiple modules)
+export const CYPHER_SUCCEEDED = `cypher/CYPHER_SUCCEEDED`
+export const CYPHER_FAILED = `cypher/CYPHER_FAILED`

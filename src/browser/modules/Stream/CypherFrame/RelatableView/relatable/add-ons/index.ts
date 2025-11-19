@@ -14,38 +14,43 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-export {
-  default as withPagination,
+export { default as withPagination } from './with-pagination.add-on'
+export type {
   IWithPaginationOptions,
   IWithPaginationInstance,
   IWithPaginationState
 } from './with-pagination.add-on'
-export {
-  default as withSorting,
+
+export { default as withSorting } from './with-sorting.add-on'
+export type {
   IWithSortingOptions,
   IWithSortingInstance,
   IWithSortingState
 } from './with-sorting.add-on'
-export {
-  default as withFilters,
+
+export { default as withFilters } from './with-filters.add-on'
+export type {
   IWithFiltersOptions,
   IWithFiltersInstance,
   IWithFiltersState
 } from './with-filters.add-on'
-export {
-  default as withGrouping,
+
+export { default as withGrouping } from './with-grouping.add-on'
+export type {
   IWithGroupingOptions,
   IWithGroupingInstance,
   IWithGroupingState
 } from './with-grouping.add-on'
-export {
-  default as withExpanded,
+
+export { default as withExpanded } from './with-expanded.add-on'
+export type {
   IWithExpandedOptions,
   IWithExpandedInstance,
   IWithExpandedState
 } from './with-expanded.add-on'
-export {
-  default as withSelection,
+
+export { default as withSelection } from './with-selection.add-on'
+export type {
   IWithSelectionOptions,
   IWithSelectionInstance,
   IWithSelectionState

@@ -18,12 +18,5 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module.exports = {
-  plugins: [
-    require('precss'),
-    require('autoprefixer'),
-    require('postcss-preset-env')({
-      browsers: 'last 1 version, not ie > 0'
-    })
-  ]
-}
+// Import @testing-library/jest-dom matchers for TypeScript
+import '@testing-library/jest-dom'

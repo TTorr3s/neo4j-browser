@@ -19,7 +19,7 @@ const chip = styled.div`
 export const StyledLabelChip = styled(chip)`
   border-radius: 20px;
   &:hover {
-    background-color: #fff;
+    background-color: #ffffff;
   }
 `
 export const StyledRelationshipChip = styled(chip)`
@@ -27,7 +27,7 @@ export const StyledRelationshipChip = styled(chip)`
   &:hover,
   &:focus,
   &:visited {
-    background-color: #fff;
+    background-color: #ffffff;
   }
 `
 export const StyledPropertyChip = styled(chip)`
@@ -39,7 +39,7 @@ export const StyledPropertyChip = styled(chip)`
     color: #ccc;
   }
   &:hover {
-    color: #fff;
-    border-color: #fff;
+    color: #ffffff;
+    border-color: #ffffff;
   }
 `

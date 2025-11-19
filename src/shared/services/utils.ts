@@ -338,7 +338,7 @@ export const stringifyMod = (
   }
   const escFunc = function (m: any) {
     return (
-      escMap[m] || `\\u${(m.charCodeAt(0) + 0x10000).toString(16).substr(1)}`
+      escMap[m] || `\\u${(m.charCodeAt(0) + 0x10000).toString(16).substring(1)}`
     )
   }
   const escRE = /[\\"\u0000-\u001F\u2028\u2029]/g
@@ -441,7 +441,7 @@ export const unEscapeReservedProps = (obj: any, prop: any) => {
 
 const getEscapedObjectProp = (prop: any) => `\\${prop}`
 const getUnescapedObjectProp = (prop: any) =>
-  prop.indexOf('\\') === 0 ? prop.substr(1) : prop // A bit weird because of escape chars
+  prop.indexOf('\\') === 0 ? prop.substring(1) : prop // A bit weird because of escape chars
 
 const hasReservedProp = (obj: any, propName: any) =>
   Object.prototype.hasOwnProperty.call(obj, propName)

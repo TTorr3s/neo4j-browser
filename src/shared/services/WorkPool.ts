@@ -20,8 +20,6 @@
 import { QueryResult } from 'neo4j-driver'
 import { v4 as uuid } from 'uuid'
 
-import BoltWorkerModule from 'shared/services/bolt/boltWorker'
-
 export type WorkerMessageHandler = (message: {
   data: {
     type: string
@@ -46,11 +44,11 @@ class Work {
   ) {}
 }
 
-class Worker {
+class WorkerWrapper {
   public work?: Work
   public state = WORKER_STATE.BUSY
 
-  constructor(public readonly worker: BoltWorkerModule) {}
+  constructor(public readonly worker: Worker) {}
 
   executeInitial = () => {
     if (!this.work) {
@@ -79,10 +77,10 @@ class Worker {
 
 class WorkPool {
   private readonly queue: Array<Work> = []
-  private readonly register: Array<Worker> = []
+  private readonly register: Array<WorkerWrapper> = []
 
   constructor(
-    private readonly createWorker: () => BoltWorkerModule,
+    private readonly createWorker: () => Worker,
     private readonly maxPoolSize = 15
   ) {}
 
@@ -161,7 +159,7 @@ class WorkPool {
 
     const poolSize = this.getPoolSize()
     if (poolSize < this.maxPoolSize) {
-      const workerObj = new Worker(this.createWorker())
+      const workerObj = new WorkerWrapper(this.createWorker())
       this.register.push(workerObj)
       return workerObj
     }

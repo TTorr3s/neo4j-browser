@@ -130,7 +130,7 @@ const DumpButton = styled.button`
 const Overlay = styled.div`
   width: 23em;
   background-color: rgba(28, 28, 28, 0.8);
-  color: #fff;
+  color: #ffffff;
   position: absolute;
   bottom: 10px;
   right: 10px;

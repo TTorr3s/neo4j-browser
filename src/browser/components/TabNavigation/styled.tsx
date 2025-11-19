@@ -24,7 +24,7 @@ export const StyledSidebar = styled.div`
   background-color: #000000;
   display: flex;
   flex-direction: row;
-  color: #fff;
+  color: #ffffff;
 `
 export const StyledDrawer = styled.div`
   height: 100%;

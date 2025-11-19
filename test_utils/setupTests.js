@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import '@testing-library/jest-dom/extend-expect'
+import '@testing-library/jest-dom'
 import nock from 'nock'
 
 // Add extra expect functions to be used in tests

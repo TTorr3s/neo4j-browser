@@ -60,19 +60,19 @@ export const base = {
 
   // Design system colors 38517d
   primary: '#5762d9ff',
-  primary50: '#0070d9',
+  primary50: '#363f9dff',
 
   // Backgrounds
   primaryBackground: '#D2D5DA',
-  secondaryBackground: '#fff',
-  editorBackground: '#fff',
+  secondaryBackground: '#ffffff',
+  editorBackground: '#ffffff',
   drawerBackground: '#30333a',
   topicBackground: '#f8f8f8',
   preBackground: '#f5f5f5',
   alteringTableRowBackground: '#f5f5f5',
   frameCommandBackground: '#050614ff',
   runnableBackground: '#f5f5f5',
-  teaserCardBackground: '#fff',
+  teaserCardBackground: '#ffffff',
   hoverBackground: '#40444e',
 
   // Fonts
@@ -89,7 +89,7 @@ export const base = {
     '0px 0px 2px rgba(52, 58, 67, 0.1), 0px 1px 2px rgba(52, 58, 67, 0.08), 0px 1px 4px rgba(52, 58, 67, 0.08);',
 
   // Headers
-  primaryHeaderText: '#fff',
+  primaryHeaderText: '#ffffff',
 
   // User feedback colors
   success: '#65B144',
@@ -99,12 +99,12 @@ export const base = {
   info: '#1d232dbf',
 
   // Buttons
-  primaryButtonText: '#fff',
+  primaryButtonText: '#ffffff',
   primaryButtonBackground: '#428BCA',
   secondaryButtonText: '#888',
   secondaryButtonBorder: '1px solid #888',
   secondaryButtonBackground: 'transparent',
-  secondaryButtonTextHover: '#fff',
+  secondaryButtonTextHover: '#ffffff',
   secondaryButtonBorderHover: '1px solid #888',
   secondaryButtonBackgroundHover: '#888',
   formButtonBorder: '1px solid #ccc',
@@ -169,7 +169,7 @@ export const dark = {
   primaryHeaderText: '#f4f4f4',
   link: '#5CA6D9',
   linkHover: '#1e70bf',
-  topicText: '#fff',
+  topicText: '#ffffff',
   preText: '#e8e7ecff',
   asideText: 'rgb(255, 255, 255, 0.87)',
 
@@ -186,7 +186,7 @@ export const dark = {
   teaserCardBackground: '#050614ff',
 
   // Buttons
-  primaryButtonText: '#fff',
+  primaryButtonText: '#ffffff',
   primaryButtonBackground: '#195754',
   secondaryButtonText: '#f4f4f4',
   secondaryButtonBorder: '1px solid #888',

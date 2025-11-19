@@ -196,50 +196,50 @@
 .slide-content .btn--blue {
   border-color: #2791d9;
   background-color: #3498db;
-  color: #fff;
+  color: #ffffff;
 }
 
 .slide-content .btn--blue:hover,
 .slide-content .btn--blue:focus,
 .slide-content .btn--blue:active {
-  color: #fff;
+  color: #ffffff;
   background-color: #217dbb;
 }
 
 .slide-content .btn--green {
   border-color: #22a978;
   background-color: #25ba84;
-  color: #fff;
+  color: #ffffff;
 }
 .slide-content .btn--green:hover,
 .slide-content .btn--green:focus,
 .slide-content .btn--green:active {
-  color: #fff;
+  color: #ffffff;
   background-color: #1d8f66;
 }
 
 .slide-content .btn--gray {
   border-color: rgba(59, 59, 59, 0.99);
   background-color: rgba(72, 72, 72, 0.99);
-  color: #fff;
+  color: #ffffff;
 }
 
 .slide-content .btn--gray:hover,
 .slide-content .btn--gray:focus,
 .slide-content .btn--gray:active {
-  color: #fff;
+  color: #ffffff;
   background-color: rgba(47, 47, 47, 0.99);
 }
 
 .slide-content .btn--red {
   border-color: #e43725;
   background-color: #e74c3c;
-  color: #fff;
+  color: #ffffff;
 }
 .slide-content .btn--red:hover,
 .slide-content .btn--red:focus,
 .slide-content .btn--red:active {
-  color: #fff;
+  color: #ffffff;
   background-color: #d62c1a;
 }
 

@@ -69,7 +69,7 @@ export const buildCommandObject = (action: any, interpret: any) => {
 export const getInterpreter = (interpret: any, cmd: string, ignore = false) => {
   if (ignore) return interpret('noop')
   if (isCypherCommand(cmd)) return interpret('cypher')
-  return interpret(cleanCommand(cmd).substr(1))
+  return interpret(cleanCommand(cmd).substring(1))
 }
 
 export const extractPostConnectCommandsFromServerConfig = (
@@ -129,8 +129,8 @@ export const mapParamToCypherStatement = (key: any, param: any): string => {
   const cleanKey = quotedKey
     ? `\`${quotedKey[1]}\``
     : typeof key !== 'string'
-    ? `\`${key}\``
-    : key
+      ? `\`${key}\``
+      : key
   const returnAs = (value: any) => `RETURN ${value} as ${cleanKey}`
 
   const matchParamFunction = param.toString().match(arrowFunctionRegex)

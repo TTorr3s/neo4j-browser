@@ -69,7 +69,7 @@ const resolveAndStoreJsonValue = (param: any, put: any) => {
 }
 
 export const getParamName = (input: any) => {
-  const strippedCmd = input.cmd.substr(1)
+  const strippedCmd = input.cmd.substring(1)
   const parts = splitStringOnFirst(strippedCmd, ' ')
 
   return parts[0].trim()
@@ -86,7 +86,7 @@ export const handleParamsCommand = async (
   if (onSystemDatabase) {
     throw new Error('Parameters cannot be declared when using system database.')
   }
-  const strippedCmd = action.cmd.substr(1)
+  const strippedCmd = action.cmd.substring(1)
   const parts = splitStringOnFirst(strippedCmd, /\s/)
   const param = parts[1].trim()
 

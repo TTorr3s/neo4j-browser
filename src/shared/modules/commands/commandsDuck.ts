@@ -51,6 +51,7 @@ import {
 import { APP_START, USER_CLEAR } from 'shared/modules/app/appDuck'
 import { add as addFrame } from 'shared/modules/frames/framesDuck'
 import { update as updateQueryResult } from 'shared/modules/requests/requestsDuck'
+import { CYPHER_FAILED, CYPHER_SUCCEEDED } from './actionTypes'
 
 export const NAME = 'commands'
 export const SINGLE_COMMAND_QUEUED = `${NAME}/SINGLE_COMMAND_QUEUED`
@@ -60,8 +61,8 @@ export const UNKNOWN_COMMAND = `${NAME}/UNKNOWN_COMMAND`
 export const SHOW_ERROR_MESSAGE = `${NAME}/SHOW_ERROR_MESSAGE`
 export const CLEAR_ERROR_MESSAGE = `${NAME}/CLEAR_ERROR_MESSAGE`
 export const FETCH_GUIDE_FROM_ALLOWLIST = `${NAME}FETCH_GUIDE_FROM_ALLOWLIST`
-export const CYPHER_SUCCEEDED = `cypher/CYPHER_SUCCEEDED`
-export const CYPHER_FAILED = `cypher/CYPHER_FAILED`
+// Re-export for backward compatibility
+export { CYPHER_SUCCEEDED, CYPHER_FAILED }
 
 export const useDbCommand = 'use'
 export const listDbsCommand = 'dbs'

@@ -404,7 +404,7 @@ export const getMonacoThemes = (
     inherit: true,
     rules: lightThemeRules,
     colors: {
-      'editor.background': '#fff',
+      'editor.background': '#ffffff',
       'editorCursor.foreground': '#d6d7db',
       'editorLineNumber.foreground': cypherColor.light_grey,
       'editorLineNumber.activeForeground': cypherColor.light_grey,

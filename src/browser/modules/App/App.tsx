@@ -48,7 +48,7 @@ import {
 import useDerivedTheme from 'browser-hooks/useDerivedTheme'
 import { CannyLoader } from 'browser-services/canny'
 import * as themes from 'browser/styles/themes'
-import { version } from 'project-root/package.json'
+import packageJson from 'project-root/package.json'
 import { isRunningE2ETest } from 'services/utils'
 import { GlobalState } from 'shared/globalState'
 import { URL_ARGUMENTS_CHANGE, inWebEnv } from 'shared/modules/app/appDuck'
@@ -127,7 +127,7 @@ export function App(props: any) {
         ({ category, label, data: originalData }: MetricsData) => {
           if (!isRunningE2ETest() && props.telemetrySettings.allowUserStats) {
             const data = {
-              browserVersion: version,
+              browserVersion: packageJson.version,
               neo4jEdition: props.edition,
               connectedTo: props.connectedTo,
               ...originalData

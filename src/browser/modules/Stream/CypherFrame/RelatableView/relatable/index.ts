@@ -14,21 +14,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import {
-  IRelatableBasicProps,
-  IRelatableChildrenProps,
-  IRelatableProps,
-  default as Relatable
-} from './components/relatable/relatable'
+import { default as Relatable } from './components/relatable/relatable'
 
 // base components
 export default Relatable
-export { IRelatableBasicProps, IRelatableChildrenProps, IRelatableProps }
-export { default as Table, ITableProps } from './components/table'
-export {
-  default as Pagination,
-  IPaginationProps
-} from './components/pagination'
+export { default as Table } from './components/table'
+export { default as Pagination } from './components/pagination'
 
 // toolbar components
 export * from './components/toolbar'

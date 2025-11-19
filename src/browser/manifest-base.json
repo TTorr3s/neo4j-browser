@@ -3,7 +3,7 @@
   "short_name": "Neo4j Browser",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#fff",
+  "background_color": "#ffffff",
   "icons": [
     {
       "src": "./assets/images/device-icons/neo4j-browser.svg",

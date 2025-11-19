@@ -26,7 +26,7 @@ import { shouldRetainConnectionCredentials } from 'shared/modules/dbMeta/dbMetaD
 import { add as addFrameAction } from 'shared/modules/frames/framesDuck'
 
 export function handleServerCommand(action: any, put: any, store: any) {
-  const [serverCmd, props] = getCommandAndParam(action.cmd.substr(1))
+  const [serverCmd, props] = getCommandAndParam(action.cmd.substring(1))
 
   if (serverCmd === 'connect') {
     return connect(action, put, store)

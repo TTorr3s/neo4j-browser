@@ -35,7 +35,6 @@ import {
   Connection,
   onLostConnection
 } from 'shared/modules/connections/connectionsDuck'
-import BoltWorkerModule from 'shared/services/bolt/boltWorker'
 import { backgroundTxMetadata } from './txMetadata'
 import { getGlobalDrivers } from './globalDrivers'
 import { BoltConnectionError } from 'services/exceptions'
@@ -43,7 +42,10 @@ import { isBoltConnectionErrorCode } from './boltConnectionErrors'
 
 let connectionProperties: {} | null = null
 let _useDb: string | null = null
-const boltWorkPool = new WorkPool(() => new BoltWorkerModule(), 10)
+const boltWorkPool = new WorkPool(
+  () => new Worker(new URL('./boltWorker.ts', import.meta.url)) as any,
+  10
+)
 
 function openConnection(
   props: Connection,

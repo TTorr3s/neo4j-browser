@@ -216,7 +216,7 @@ const availableCommands = [
     name: 'use-db',
     match: (cmd: any) => new RegExp(`^${useDbCommand}\\s[^$]+$`).test(cmd),
     async exec(action: any, put: any, store: any): Promise<any> {
-      const [dbName] = getCommandAndParam(action.cmd.substr(1))
+      const [dbName] = getCommandAndParam(action.cmd.substring(1))
       try {
         const currentDbName = getUseDb(store.getState())
         const normalizedName = dbName.toLowerCase()
@@ -525,7 +525,7 @@ const availableCommands = [
     name: 'guide',
     match: (cmd: string) => /^guide(\s|$)/.test(cmd),
     exec(action: ExecuteSingleCommandAction, dispatch: Dispatch<Action>) {
-      const guideIdentifier = action.cmd.substr(':guide'.length).trim()
+      const guideIdentifier = action.cmd.substring(':guide'.length).trim()
       if (!guideIdentifier) {
         dispatch(resetGuide())
         dispatch(open('guides'))
@@ -558,7 +558,7 @@ const availableCommands = [
         }
       }
 
-      const url = action.cmd.substr(':play '.length)
+      const url = action.cmd.substring(':play '.length)
       const urlObject = new URL(url)
       urlObject.href = url
       const filenameExtension = urlObject.pathname.includes('.')

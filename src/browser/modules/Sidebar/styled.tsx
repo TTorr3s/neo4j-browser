@@ -44,7 +44,7 @@ export const StyledSettingTextInput = styled.input`
   color: #555;
   font-size: 14px;
   padding: 6px 12px;
-  background-color: #fff;
+  background-color: #ffffff;
   border: 1px solid #ccc;
   border-radius: 4px;
   width: 192px;
@@ -176,7 +176,7 @@ export const StyledCarousel = styled.div`
   }
 
   img {
-    background-color: #fff;
+    background-color: #ffffff;
   }
 
   ul {

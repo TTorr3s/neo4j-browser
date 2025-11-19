@@ -28,7 +28,7 @@ const StyledInputField = styled.input`
 `
 
 const StyledSubmitButton = styled.button`
-  color: #fff;
+  color: #ffffff;
   background-color: #428bca;
   border: none;
   border-radius: 3px;
@@ -40,7 +40,7 @@ const StyledSubmitButton = styled.button`
 `
 
 const StyledCancelButton = styled.button`
-  color: #fff;
+  color: #ffffff;
   background-color: #e74c3c;
   border: none;
   border-radius: 3px;

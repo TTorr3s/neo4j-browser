@@ -38,7 +38,7 @@ export const StyledFileDropInner = styled.div`
   pointer-events: none;
 
   .has-file-hovering & {
-    color: #fff;
+    color: #ffffff;
     background-color: rgba(0, 0, 0, 0.6);
     opacity: 1;
     transition: opacity 0.2s ease-in-out;
@@ -75,7 +75,7 @@ export const StyledFileDropActionButton = styled.button`
   border: 0;
   border-radius: 5px;
   color: #000;
-  background-color: #fff;
+  background-color: #ffffff;
   padding: 5px 10px;
   font-weight: 600;
   margin: 0 5px;

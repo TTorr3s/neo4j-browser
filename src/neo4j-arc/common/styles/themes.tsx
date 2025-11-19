@@ -28,7 +28,7 @@ export const baseArcTheme = {
 
   // Backgrounds
   primaryBackground: '#D2D5DA',
-  editorBackground: '#fff',
+  editorBackground: '#ffffff',
   alteringTableRowBackground: '#f5f5f5',
 
   // Fonts

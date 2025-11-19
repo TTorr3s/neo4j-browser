@@ -26,7 +26,7 @@ import {
   executeSystemCommand,
   handleSingleCommandEpic
 } from './commandsDuck'
-import { version } from 'project-root/package.json'
+import packageJson from 'project-root/package.json'
 import { flushPromises } from 'services/utils'
 
 jest.mock('services/bolt/bolt', () => {
@@ -88,7 +88,10 @@ describe('tx metadata with cypher', () => {
         'RETURN 1',
         {},
         expect.objectContaining({
-          txMetadata: { app: `neo4j-browser_v${version}`, type: 'user-direct' }
+          txMetadata: {
+            app: `neo4j-browser_v${packageJson.version}`,
+            type: 'user-direct'
+          }
         })
       )
       done()
@@ -110,7 +113,10 @@ describe('tx metadata with cypher', () => {
         'RETURN 1',
         {},
         expect.objectContaining({
-          txMetadata: { app: `neo4j-browser_v${version}`, type: 'system' }
+          txMetadata: {
+            app: `neo4j-browser_v${packageJson.version}`,
+            type: 'system'
+          }
         })
       )
       done()

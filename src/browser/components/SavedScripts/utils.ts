@@ -6,5 +6,5 @@ export function getScriptDisplayName(script: Favorite): string {
 
 export function defaultNameFromDisplayContent(content: string): string {
   const nameLine = content.split('\n')[0]
-  return nameLine.startsWith('//') ? nameLine.substr(2).trimLeft() : nameLine
+  return nameLine.startsWith('//') ? nameLine.substring(2).trimLeft() : nameLine
 }

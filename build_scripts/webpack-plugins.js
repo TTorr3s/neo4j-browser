@@ -97,16 +97,17 @@ module.exports = () => {
       path: helpers.buildPath,
       filename: 'index.html'
     }),
-    new BundleAnalyzerPlugin({
-      analyzerMode: 'static',
-      openAnalyzer: false,
-      reportFilename: './../bundle-report.html'
-    }),
     new ForkTsCheckerWebpackPlugin({
-      eslint: {
-        files: './src/**/*.{ts,tsx,js,jsx}'
+      typescript: {
+        configFile: path.resolve(helpers.projectPath, 'tsconfig.json'),
+        diagnosticOptions: {
+          semantic: true,
+          syntactic: true
+        }
       },
-      issue: { exclude: { severity: 'warning' } }
+      issue: {
+        exclude: [{ severity: 'warning' }]
+      }
     }),
     // Comentado debido a error -86 en macOS con notificaciones del sistema
     // new ForkTsCheckerNotifierWebpackPlugin({
@@ -145,7 +146,7 @@ module.exports = () => {
         '!viewportSemanticTokens'
       ],
       languages: [],
-      filename: '[name]-[hash].worker.js'
+      filename: '[name]-[contenthash].worker.js'
     })
   ]
 
@@ -155,6 +156,13 @@ module.exports = () => {
   }
   if (helpers.isProduction) {
     plugins.unshift(new CleanWebpackPlugin())
+    plugins.push(
+      new BundleAnalyzerPlugin({
+        analyzerMode: 'static',
+        openAnalyzer: false,
+        reportFilename: './../bundle-report.html'
+      })
+    )
   }
   return plugins
 }

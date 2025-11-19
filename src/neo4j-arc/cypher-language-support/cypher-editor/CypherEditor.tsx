@@ -19,7 +19,6 @@
  */
 import { QueryOrCommand, parse } from '@neo4j-cypher/editor-support'
 import { debounce } from 'lodash-es'
-import { QuickInputList } from 'monaco-editor/esm/vs/base/parts/quickinput/browser/quickInputList'
 import 'monaco-editor/esm/vs/editor/editor.all.js'
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import { QueryResult } from 'neo4j-driver-core'
@@ -299,8 +298,9 @@ export class CypherEditor extends React.Component<
               ...monaco.editor.getModelMarkers({ owner: this.getMonacoId() }),
               ...result.summary.notifications.map(
                 ({ description, position, title }) => {
-                  const line = 'line' in position ? position.line ?? 0 : 0
-                  const column = 'column' in position ? position.column ?? 0 : 0
+                  const line = 'line' in position ? (position.line ?? 0) : 0
+                  const column =
+                    'column' in position ? (position.column ?? 0) : 0
                   return {
                     startLineNumber: statementLineNumber + line,
                     startColumn:
@@ -402,7 +402,7 @@ export class CypherEditor extends React.Component<
       this.viewHistoryNext
     )
     this.editor.addCommand(
-      KeyMod.CtrlCmd | KeyCode.US_DOT,
+      KeyMod.CtrlCmd | KeyCode.Period,
       this.props.onDisplayHelpKeys
     )
 
@@ -437,18 +437,39 @@ export class CypherEditor extends React.Component<
      * This solves the command palette being squashed when the cypher editor is only a few lines high.
      * The workaround is based on a suggestion found in the github issue: https://github.com/microsoft/monaco-editor/issues/70
      */
-    const quickInputDOMNode = this.editor.getContribution<
-      { widget: { domNode: HTMLElement } } & monaco.editor.IEditorContribution
-    >('editor.controller.quickInput').widget.domNode
-    // @ts-ignore since we use internal APIs
-    this.editor._modelData.view._contentWidgets.overflowingContentWidgetsDomNode.domNode.appendChild(
-      quickInputDOMNode.parentNode?.removeChild(quickInputDOMNode)
-    )
+    const quickInputContribution = this.editor.getContribution<
+      {
+        widget: { domNode: HTMLElement; quickInputList?: any }
+      } & monaco.editor.IEditorContribution
+    >('editor.controller.quickInput')
+    if (quickInputContribution) {
+      const quickInputDOMNode = quickInputContribution.widget.domNode
+      // @ts-ignore since we use internal APIs
+      this.editor._modelData.view._contentWidgets.overflowingContentWidgetsDomNode.domNode.appendChild(
+        quickInputDOMNode.parentNode?.removeChild(quickInputDOMNode)
+      )
 
-    QuickInputList.prototype.layout = function (maxHeight: number) {
-      this.list.getHTMLElement().style.maxHeight =
-        maxHeight < 200 ? '200px' : Math.floor(maxHeight) + 'px'
-      this.list.layout()
+      // Patch the QuickInputList layout method to ensure minimum height
+      // @ts-ignore accessing internal API
+      const quickInputList = quickInputContribution.widget.quickInputList
+      if (
+        quickInputList &&
+        quickInputList.constructor &&
+        quickInputList.constructor.prototype
+      ) {
+        const originalLayout = quickInputList.constructor.prototype.layout
+        quickInputList.constructor.prototype.layout = function (
+          maxHeight: number
+        ) {
+          if (this.list && this.list.getHTMLElement) {
+            this.list.getHTMLElement().style.maxHeight =
+              maxHeight < 200 ? '200px' : Math.floor(maxHeight) + 'px'
+            this.list.layout()
+          } else if (originalLayout) {
+            originalLayout.call(this, maxHeight)
+          }
+        }
+      }
     }
   }
 

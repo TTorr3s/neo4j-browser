@@ -113,12 +113,12 @@ export function initalizeCypherSupport(
         ['consoleCommand', 'label', 'relationshipType'].includes(type)
           ? { ...range, startColumn: range.startColumn - 1 }
           : ['function', 'procedure'].includes(type)
-          ? {
-              ...range,
-              startColumn:
-                range.startColumn - (text.lastIndexOf(word) + word.length + 1)
-            }
-          : range
+            ? {
+                ...range,
+                startColumn:
+                  range.startColumn - (text.lastIndexOf(word) + word.length + 1)
+              }
+            : range
 
       return {
         suggestions: items.map((item, index) => {
@@ -157,7 +157,7 @@ const editorSupport = new CypherEditorSupport('')
 // This function strips any surrounding backticks before we use the .content value in the completion item provider
 const stripSurroundingBackticks = (str: string) =>
   str.charAt(0) === '`' && str.charAt(str.length - 1) === '`'
-    ? str.substr(1, str.length - 2)
+    ? str.substring(1, str.length - 1)
     : str
 
 export const getText = (item: EditorSupportCompletionItem): string =>

@@ -57,10 +57,9 @@
       "files": ["*.ts", "**/*.ts", "**/*.tsx"],
       "extends": [
         "plugin:@typescript-eslint/recommended", // Uses the recommended rules from the @typescript-eslint/eslint-plugin
-        "prettier/@typescript-eslint", // Uses eslint-config-prettier to disable ESLint rules from @typescript-eslint/eslint-plugin that would conflict with prettier
         "plugin:react/recommended", // Uses the recommended rules from @eslint-plugin-react
-        "prettier/react", // disables react-specific linting rules that conflict with prettier
-        "plugin:react-hooks/recommended" // https://reactjs.org/docs/hooks-rules.html
+        "plugin:react-hooks/recommended", // https://reactjs.org/docs/hooks-rules.html
+        "prettier" // Uses eslint-config-prettier to disable ESLint rules that would conflict with prettier
       ],
       "plugins": [
         "@typescript-eslint/eslint-plugin",

@@ -14,7 +14,7 @@
   border-radius: 1em;
   width: 50px;
   height: 21px;
-  color: #fff;
+  color: #ffffff;
   cursor: pointer;
   transition: background-color 0.15s;
   line-height: initial;
@@ -22,14 +22,16 @@
 .toggle-check-text:after {
   content: ' ';
   display: block;
-  background: #fff;
+  background: #ffffff;
   width: 1.1em;
   height: 1.1em;
   border-radius: 1em;
   position: absolute;
   left: 0.3em;
   top: 0.25em;
-  transition: left 0.15s, margin-left 0.15s;
+  transition:
+    left 0.15s,
+    margin-left 0.15s;
 }
 .toggle-check-text:before {
   font-size: 90%;

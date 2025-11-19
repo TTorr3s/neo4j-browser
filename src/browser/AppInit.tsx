@@ -47,7 +47,7 @@ import {
 } from 'suber'
 
 import App from './modules/App/App'
-import { version } from 'project-root/package.json'
+import packageJson from 'project-root/package.json'
 import { applyKeys, createReduxMiddleware, getAll } from 'services/localstorage'
 import { detectRuntimeEnv, isRunningE2ETest } from 'services/utils'
 import { GlobalState } from 'shared/globalState'
@@ -155,7 +155,7 @@ export function setupSentry(): void {
   if (process.env.NODE_ENV === 'production') {
     Sentry.init({
       dsn: 'https://1ea9f7ebd51441cc95906afb2d31d841@o110884.ingest.sentry.io/1232865',
-      release: `neo4j-browser@${version}`,
+      release: `neo4j-browser@${packageJson.version}`,
       integrations: [
         new Integrations.BrowserTracing(),
         new CaptureConsole({ levels: ['error'] })

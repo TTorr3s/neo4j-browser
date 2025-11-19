@@ -89,7 +89,7 @@ const lightBlue = `
 const neo4jPulse = keyframes`
   0%,
   100% {
-    fill: #FFF;
+    fill: #ffffff;
   }
   50% {
     fill: #018bff;
