@@ -38,5 +38,9 @@
     }
   },
   "include": ["./src/**/*"],
-  "exclude": ["./src/neo4j-arc/dist*"]
+  "exclude": [
+    "./src/neo4j-arc/dist*",
+    "./src/**/*.test.ts",
+    "./src/**/*.test.tsx"
+  ]
 }

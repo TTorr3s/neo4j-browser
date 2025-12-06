@@ -18,7 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import '@testing-library/jest-dom'
-import nock from 'nock'
+import fetchMock from 'jest-fetch-mock'
+
+// Enable fetch mocking globally
+fetchMock.enableMocks()
 
 // Add extra expect functions to be used in tests
 
@@ -54,8 +57,6 @@ window.SVGElement.prototype.getBBox = () => ({
   x: 0,
   y: 0
 })
-
-nock.disableNetConnect()
 
 // Workaround to get whatwg-url to not fail in tests.
 // https://github.com/jsdom/whatwg-url/issues/209

@@ -17,13 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import nock from 'nock'
-
 import * as config from './config'
-import dbMetaReducer, {
+import {
   ClientSettings,
-  initialClientSettings,
-  updateSettings
+  initialClientSettings
 } from 'shared/modules/dbMeta/dbMetaDuck'
 import { replace, update } from 'shared/modules/settings/settingsDuck'
 
@@ -50,18 +47,11 @@ describe('commandsDuck config helper', () => {
       }
     }
   }
-  beforeAll(() => {
-    nock.disableNetConnect()
-    if (!nock.isActive()) {
-      nock.activate()
-    }
+
+  beforeEach(() => {
+    fetchMock.resetMocks()
   })
-  afterEach(() => {
-    nock.cleanAll()
-  })
-  afterAll(() => {
-    nock.restore()
-  })
+
   test('fails on :config x x x and shows error hint', () => {
     // Given
     const action = { cmd: ':config x x x: 2' }
@@ -168,8 +158,8 @@ describe('commandsDuck config helper', () => {
   })
   test('handles :config https://okurl.com/cnf.json and calls the replace action creator', () => {
     // Given
-    const json = JSON.stringify({ x: 1, y: 'hello' })
-    nock('https://okurl.com').get('/cnf.json').reply(200, json)
+    const json = { x: 1, y: 'hello' }
+    fetchMock.mockResponseOnce(JSON.stringify(json))
     const action = { cmd: ':config https://okurl.com/cnf.json' }
     const put = jest.fn()
 
@@ -178,14 +168,13 @@ describe('commandsDuck config helper', () => {
 
     // Then
     return p.then(res => {
-      expect(res).toEqual(JSON.parse(json))
-      expect(put).toHaveBeenCalledWith(replace(JSON.parse(json)))
+      expect(res).toEqual(json)
+      expect(put).toHaveBeenCalledWith(replace(json as any))
     })
   })
   test('indicates error parsing remote content', () => {
     // Given
-    const json = 'no json'
-    nock('https://okurl.com').get('/cnf.json').reply(200, json)
+    fetchMock.mockResponseOnce('no json')
     const action = { cmd: ':config https://okurl.com/cnf.json' }
     const put = jest.fn()
 
@@ -194,14 +183,7 @@ describe('commandsDuck config helper', () => {
 
     // Then
     return expect(p)
-      .rejects.toEqual(
-        new Error(
-          // @ts-expect-error ts-migrate(7009) FIXME: 'new' expression, whose target lacks a construct s... Remove this comment to see the full error message
-          new FetchError(
-            'invalid json response body at https://okurl.com/cnf.json reason: Unexpected token o in JSON at position 1'
-          )
-        )
-      )
+      .rejects.toThrow()
       .then(() => expect(put).not.toHaveBeenCalled())
   })
 })

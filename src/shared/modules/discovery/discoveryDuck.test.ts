@@ -17,14 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import nock from 'nock'
 import configureMockStore, { MockStoreEnhanced } from 'redux-mock-store'
 import { createEpicMiddleware } from 'redux-observable'
 import { createBus, createReduxMiddleware } from 'suber'
 
 import * as connections from '../connections/connectionsDuck'
 import * as discovery from './discoveryDuck'
-import { getDiscoveryEndpoint } from 'services/bolt/boltHelpers'
 import { APP_START, CLOUD, WEB } from 'shared/modules/app/appDuck'
 
 describe('discoveryOnStartupEpic', () => {
@@ -43,26 +41,21 @@ describe('discoveryOnStartupEpic', () => {
         env: WEB
       }
     })
-    nock.disableNetConnect()
-    if (!nock.isActive()) {
-      nock.activate()
-    }
+  })
+  beforeEach(() => {
+    fetchMock.resetMocks()
   })
   afterEach(() => {
-    nock.cleanAll()
     bus.reset()
     store.clearActions()
-  })
-  afterAll(() => {
-    nock.restore()
   })
 
   test('listens on APP_START and tries to find a bolt host and sets it to default when bolt discovery not found', done => {
     // Given
     const action = { type: APP_START }
-    nock(getDiscoveryEndpoint())
-      .get('/')
-      .reply(200, { http: 'http://localhost:7474' })
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ http: 'http://localhost:7474' })
+    )
 
     bus.take(discovery.DONE, () => {
       // Then
@@ -86,7 +79,7 @@ describe('discoveryOnStartupEpic', () => {
   test('listens on APP_START and tries to find a bolt host and sets it to default when fail on server error', done => {
     // Given
     const action = { type: APP_START }
-    nock(getDiscoveryEndpoint()).get('/').reply(500)
+    fetchMock.mockResponseOnce('', { status: 500 })
 
     bus.take(discovery.DONE, () => {
       // Then
@@ -111,7 +104,7 @@ describe('discoveryOnStartupEpic', () => {
     // Given
     const action = { type: APP_START, env: WEB }
     const expectedHost = 'bolt://myhost:7777'
-    nock(getDiscoveryEndpoint()).get('/').reply(200, { bolt: expectedHost })
+    fetchMock.mockResponseOnce(JSON.stringify({ bolt: expectedHost }))
     bus.take(discovery.DONE, () => {
       // Then
       expect(store.getActions()).toEqual([
@@ -137,9 +130,7 @@ describe('discoveryOnStartupEpic', () => {
     // Given
     const action = { type: APP_START, env: WEB }
     const expectedHost = 'bolt://myhost:7777'
-    nock(getDiscoveryEndpoint())
-      .get('/')
-      .reply(200, { bolt_direct: expectedHost })
+    fetchMock.mockResponseOnce(JSON.stringify({ bolt_direct: expectedHost }))
     bus.take(discovery.DONE, () => {
       // Then
       expect(store.getActions()).toEqual([
@@ -165,9 +156,9 @@ describe('discoveryOnStartupEpic', () => {
     // Given
     const action = { type: APP_START, env: WEB }
     const expectedHost = 'bolt://myhost:7777'
-    nock(getDiscoveryEndpoint())
-      .get('/')
-      .reply(200, { bolt_direct: expectedHost, bolt: 'very://bad:1337' })
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ bolt_direct: expectedHost, bolt: 'very://bad:1337' })
+    )
     bus.take(discovery.DONE, () => {
       // Then
       expect(store.getActions()).toEqual([
@@ -192,11 +183,13 @@ describe('discoveryOnStartupEpic', () => {
     // Given
     const action = { type: APP_START, env: WEB }
     const expectedHost = 'neo4j://myhost:7777'
-    nock(getDiscoveryEndpoint()).get('/').reply(200, {
-      bolt_routing: expectedHost,
-      bolt_direct: 'bolt://myhost:666',
-      bolt: 'very://bad:1337'
-    })
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        bolt_routing: expectedHost,
+        bolt_direct: 'bolt://myhost:666',
+        bolt: 'very://bad:1337'
+      })
+    )
     bus.take(discovery.DONE, () => {
       // Then
       expect(store.getActions()).toEqual([
@@ -381,25 +374,20 @@ describe('discoveryOnStartupEpic cloud env', () => {
         env: CLOUD
       }
     })
-    nock.disableNetConnect()
-    if (!nock.isActive()) {
-      nock.activate()
-    }
+  })
+  beforeEach(() => {
+    fetchMock.resetMocks()
   })
   afterEach(() => {
-    nock.cleanAll()
     bus.reset()
     store.clearActions()
-  })
-  afterAll(() => {
-    nock.restore()
   })
 
   test('listens on APP_START and finds a bolt host and passes on the found host in cloud env', done => {
     // Given
     const expectedHost = 'neo4j+s://myhost.neo4j.io:7777'
     const action = { type: APP_START, env: CLOUD }
-    nock(getDiscoveryEndpoint()).get('/').reply(200, { bolt: expectedHost })
+    fetchMock.mockResponseOnce(JSON.stringify({ bolt: expectedHost }))
     bus.take(discovery.DONE, () => {
       // Then
       expect(store.getActions()).toEqual([
@@ -434,18 +422,13 @@ describe('injectDiscoveryEpic', () => {
     store = mockStore({
       connections: {}
     })
-    nock.disableNetConnect()
-    if (!nock.isActive()) {
-      nock.activate()
-    }
+  })
+  beforeEach(() => {
+    fetchMock.resetMocks()
   })
   afterEach(() => {
-    nock.cleanAll()
     bus.reset()
     store.clearActions()
-  })
-  afterAll(() => {
-    nock.restore()
   })
   test('injectDiscoveryEpic takes passed properties and updates discovery endpoint', () => {
     // Given
