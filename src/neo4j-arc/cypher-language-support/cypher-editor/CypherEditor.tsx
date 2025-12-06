@@ -338,7 +338,7 @@ export class CypherEditor extends React.Component<
       fontWeight: '400',
       hideCursorInOverviewRuler: true,
       language: 'cypher',
-      lightbulb: { enabled: false },
+      lightbulb: { enabled: monaco.editor.ShowLightbulbIconMode.Off },
       lineHeight: 23,
       lineNumbers: (line: number) =>
         this.isMultiLine() ? line.toString() : `${this.props.useDb || ''}$`,

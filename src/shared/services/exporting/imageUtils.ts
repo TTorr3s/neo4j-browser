@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import canvg from 'canvg'
+import { Canvg } from 'canvg'
 import FileSaver from 'file-saver'
 
 import { prepareForExport } from './svgUtils'
@@ -40,7 +40,7 @@ export const downloadPNGFromSVG = (svg: any, graph: any, type: any) => {
   const ctx = canvas.getContext('2d')
 
   if (ctx) {
-    const v = canvg.fromString(ctx, svgData)
+    const v = Canvg.fromString(ctx, svgData)
     // Resize down to smaller canvas, but higher resolution
     v.resize(canvas.width / devicePixelRatio, canvas.height / devicePixelRatio)
     v.render()

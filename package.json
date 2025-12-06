@@ -169,7 +169,7 @@
     "@neo4j-ndl/react": "^0.9.2",
     "@neo4j/browser-lambda-parser": "1.0.5",
     "ascii-data-table": "^2.1.1",
-    "canvg": "^3.0.7",
+    "canvg": "^4.0.3",
     "core-js": "3",
     "d3-color": "^3.0.1",
     "d3-drag": "^3.0.0",
