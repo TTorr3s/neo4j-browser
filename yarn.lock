@@ -2264,10 +2264,10 @@
     react-use "^17.4.0"
     tinycolor2 "^1.4.2"
 
-"@neo4j/browser-lambda-parser@1.0.5":
-  version "1.0.5"
-  resolved "https://registry.npmjs.org/@neo4j/browser-lambda-parser/-/browser-lambda-parser-1.0.5.tgz"
-  integrity sha512-vHTMBB9BA/Tx2CMy3crDk2tmYsAc+9sgMEMkH0Np61WFa4Pdzx9+8+GWX2w+CPWbJ0EwrpzBj1Oh7nsysvvSAg==
+"@neo4j/browser-lambda-parser@1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@neo4j/browser-lambda-parser/-/browser-lambda-parser-1.0.6.tgz#139b159a643f64e717041ebd0769d13c54be0b71"
+  integrity sha512-TOYCiGqOzRjF10ilkXWcilPikMVLrHAniX9l4H2hZ+BL0KdBt7SRY7bigmptGZlBbA9JgH7lr3iFYKLtVgdfIw==
   dependencies:
     nearley "2.18.0"
 
