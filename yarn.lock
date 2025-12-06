@@ -2690,11 +2690,6 @@
     "@types/qs" "*"
     "@types/serve-static" "^1"
 
-"@types/file-saver@^2.0.1":
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/@types/file-saver/-/file-saver-2.0.1.tgz"
-  integrity "sha1-4Y64sGnkQve5VtMT9PrdPviHNU4= sha512-g1QUuhYVVAamfCifK7oB7G3aIl4BbOyzDOqVyUfEr4tfBKrXfeH+M+Tg7HKCXSrbzxYdhyCP7z9WbKo0R2hBCw=="
-
 "@types/glob@^7.1.1":
   version "7.1.3"
   resolved "https://registry.npmjs.org/@types/glob/-/glob-7.1.3.tgz"
@@ -6436,11 +6431,6 @@ file-entry-cache@^6.0.1:
   integrity "sha1-IRst2WWcsDlLBz5zI6w8kz1SICc= sha512-7Gps/XWymbLk2QLYK4NzpMOrYjMhdIxXuIvy2QBsLE6ljuodKvdkWs/cpyJJ3CVIVpH0Oi1Hvg1ovbMzLdFBBg=="
   dependencies:
     flat-cache "^3.0.4"
-
-file-saver@2.0.5:
-  version "2.0.5"
-  resolved "https://registry.npmjs.org/file-saver/-/file-saver-2.0.5.tgz"
-  integrity "sha1-1hz+LOBZ9BTYmendbUEH7iVnDDg= sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA=="
 
 file-selector@^0.6.0:
   version "0.6.0"

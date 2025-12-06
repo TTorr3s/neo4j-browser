@@ -17,11 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { saveAs } from 'file-saver'
 import JSZip from 'jszip'
 
-// Polyfill for FF
 import { getScriptDisplayName } from 'browser/components/SavedScripts'
+import { saveAs } from 'services/exporting/fileSaver'
 import { Favorite } from 'shared/modules/favorites/favoritesDuck'
 import { Folder } from 'shared/modules/favorites/foldersDuck'
 
@@ -29,20 +28,22 @@ export const CYPHER_FILE_EXTENSION = '.cypher'
 export type ExportFormat = 'CYPHERFILE' | 'ZIPFILE'
 export const exporters: Record<
   ExportFormat,
-  (favorites: Favorite[], folders: Folder[]) => void
+  (favorites: Favorite[], folders: Folder[]) => Promise<void>
 > = {
   ZIPFILE: exportFavoritesAsZip,
   CYPHERFILE: exportFavoritesAsBigCypherFile
 }
 
-export function exportFavoritesAsBigCypherFile(favorites: Favorite[]): void {
+export async function exportFavoritesAsBigCypherFile(
+  favorites: Favorite[]
+): Promise<void> {
   const fileContent = favorites
     .map(favorite => favorite.content)
     .join('\n\n')
     .trim()
 
-  saveAs(
-    new Blob([fileContent], { type: 'text/csv' }),
+  await saveAs(
+    new Blob([fileContent], { type: 'application/x-cypher-query' }),
     `saved-scripts-${new Date().toISOString().split('T')[0]}.cypher`
   )
 }
@@ -51,10 +52,10 @@ type WriteableFavorite = {
   content: string
   fullFilename: string
 }
-export function exportFavoritesAsZip(
+export async function exportFavoritesAsZip(
   favorites: Favorite[],
   folders: Folder[]
-): void {
+): Promise<void> {
   const zip = new JSZip()
   transformFavoriteAndFolders(favorites, folders).forEach(
     ({ content, fullFilename }) => {
@@ -62,14 +63,11 @@ export function exportFavoritesAsZip(
     }
   )
 
-  zip
-    .generateAsync({ type: 'blob' })
-    .then(blob =>
-      saveAs(
-        blob,
-        `saved-scripts-${new Date().toISOString().split('T')[0]}.zip`
-      )
-    )
+  const blob = await zip.generateAsync({ type: 'blob' })
+  await saveAs(
+    blob,
+    `saved-scripts-${new Date().toISOString().split('T')[0]}.zip`
+  )
 }
 
 function toSafefilename(name: string): string {

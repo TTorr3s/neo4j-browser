@@ -20,6 +20,8 @@
 import React, { useEffect } from 'react'
 import { withBus } from 'react-suber'
 
+import { saveAs } from 'services/exporting/fileSaver'
+
 import FrameBodyTemplate from '../Frame/FrameBodyTemplate'
 import HistoryRow from './HistoryRow'
 import { PaddedDiv, UnstyledList } from './styled'

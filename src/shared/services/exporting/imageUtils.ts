@@ -18,15 +18,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { Canvg } from 'canvg'
-import * as FileSaver from 'file-saver'
 
+import { saveAs } from './fileSaver'
 import { prepareForExport, ExportType, GraphElement } from './svgUtils'
 
-export const downloadPNGFromSVG = (
+export const downloadPNGFromSVG = async (
   svg: SVGElement,
   graph: GraphElement,
   type: ExportType
-): void => {
+): Promise<void> => {
   const svgObj = prepareForExport(svg, graph)
   const svgDefaultWidth = parseInt(svgObj.attr('width'), 10)
   const svgDefaultHeight = parseInt(svgObj.attr('height'), 10)
@@ -59,21 +59,20 @@ export const downloadPNGFromSVG = (
     canvas.width / window.devicePixelRatio,
     canvas.height / window.devicePixelRatio
   )
-  canvgInstance
-    .render()
-    .then(() => {
-      downloadWithDataURI(`${type}.png`, canvas.toDataURL('image/png'))
-    })
-    .catch(() => {
-      /* unhandled */
-    })
+
+  try {
+    await canvgInstance.render()
+    await downloadWithDataURI(`${type}.png`, canvas.toDataURL('image/png'))
+  } catch {
+    /* unhandled */
+  }
 }
 
-export const downloadSVG = (
+export const downloadSVG = async (
   svg: SVGElement,
   graph: GraphElement,
   type: ExportType
-): void => {
+): Promise<void> => {
   const svgObj = prepareForExport(svg, graph)
   const svgNode = svgObj.node()
 
@@ -82,7 +81,7 @@ export const downloadSVG = (
   }
 
   const svgData = htmlCharacterRefToNumericalRef(svgNode)
-  download(`${type}.svg`, 'image/svg+xml;charset=utf-8', svgData)
+  await download(`${type}.svg`, 'image/svg+xml;charset=utf-8', svgData)
 }
 
 const htmlCharacterRefToNumericalRef = (node: Node): string =>
@@ -90,12 +89,19 @@ const htmlCharacterRefToNumericalRef = (node: Node): string =>
     .serializeToString(node)
     .replace(/&nbsp;/g, '&#160;')
 
-const download = (filename: string, mime: string, data: BlobPart): void => {
+const download = async (
+  filename: string,
+  mime: string,
+  data: BlobPart
+): Promise<void> => {
   const blob = new Blob([data], { type: mime })
-  FileSaver.saveAs(blob, filename)
+  await saveAs(blob, filename)
 }
 
-const downloadWithDataURI = (filename: string, dataURI: string): void => {
+const downloadWithDataURI = async (
+  filename: string,
+  dataURI: string
+): Promise<void> => {
   const [header, encodedData] = dataURI.split(',')
   const isBase64 = header.includes('base64')
   const byteString = isBase64
@@ -109,5 +115,5 @@ const downloadWithDataURI = (filename: string, dataURI: string): void => {
     byteArray[i] = byteString.charCodeAt(i)
   }
 
-  download(filename, mimeString, byteArray)
+  await download(filename, mimeString, byteArray)
 }

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { saveAs } from 'file-saver'
+import { saveAs } from 'services/exporting/fileSaver'
 import { map } from 'lodash'
 import { QueryResult, Record as Neo4jRecord } from 'neo4j-driver'
 import React, { Component } from 'react'
@@ -434,7 +434,7 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
     )
   }
 
-  exportCSV = (): void => {
+  exportCSV = async (): Promise<void> => {
     const records = this.getRecords()
     const firstRecord = records[0]
     const keys = firstRecord?.length > 0 ? firstRecord.keys : []
@@ -447,19 +447,19 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
     const csv = CSVSerializer(data.shift())
     csv.appendRows(data)
     const blob = new Blob([csv.output()], {
-      type: 'text/plain;charset=utf-8'
+      type: 'text/csv;charset=utf-8'
     })
-    saveAs(blob, 'export.csv')
+    await saveAs(blob, 'export.csv')
   }
 
-  exportJSON = (): void => {
+  exportJSON = async (): Promise<void> => {
     const records = this.getRecords()
     const exportData = map(records, recordToJSONMapper)
     const data = stringifyMod(exportData, stringModifier, true)
     const blob = new Blob([data], {
-      type: 'text/plain;charset=utf-8'
+      type: 'application/json;charset=utf-8'
     })
-    saveAs(blob, 'records.json')
+    await saveAs(blob, 'records.json')
   }
 
   hasStringPlan = (): boolean => {
@@ -470,7 +470,7 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
     return !!plan.arguments?.['string-representation']
   }
 
-  exportStringPlan = (): void => {
+  exportStringPlan = async (): Promise<void> => {
     const result = this.props.request?.result
     if (!isQueryResult(result)) return
     const plan = result.summary?.plan
@@ -480,7 +480,7 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
       const blob = new Blob([data], {
         type: 'text/plain;charset=utf-8'
       })
-      saveAs(blob, 'plan.txt')
+      await saveAs(blob, 'plan.txt')
     }
   }
 
