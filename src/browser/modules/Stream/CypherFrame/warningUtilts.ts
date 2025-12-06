@@ -68,7 +68,7 @@ const mapNotificationsToFormattedNotifications = (
     title: notification.title,
     description: notification.description,
     position: notification.position,
-    severity: notification.severity,
+    severity: notification.severityLevel,
     code: notification.code
   }))
 }
@@ -80,7 +80,7 @@ export const formatSummaryFromNotifications = (
 ): FormattedNotification[] => {
   const filteredNotifications =
     resultSummary?.notifications?.filter(x =>
-      SEVERITY_LEVELS.includes(x.severity)
+      SEVERITY_LEVELS.includes(x.severityLevel)
     ) ?? []
   return mapNotificationsToFormattedNotifications(filteredNotifications)
 }
