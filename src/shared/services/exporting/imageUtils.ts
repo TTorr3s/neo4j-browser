@@ -22,6 +22,40 @@ import { Canvg } from 'canvg'
 import { saveAs } from './fileSaver'
 import { prepareForExport, ExportType, GraphElement } from './svgUtils'
 
+// Browser canvas limits (conservative estimates for cross-browser compatibility)
+const MAX_CANVAS_DIMENSION = 16000 // Max width or height in pixels
+const MAX_CANVAS_AREA = 200_000_000 // ~200 million pixels total
+
+const calculateOptimalScale = (
+  baseWidth: number,
+  baseHeight: number,
+  desiredScale: number
+): number => {
+  let scale = desiredScale
+
+  // Check dimension limits
+  const maxDimensionScale = Math.min(
+    MAX_CANVAS_DIMENSION / baseWidth,
+    MAX_CANVAS_DIMENSION / baseHeight
+  )
+
+  // Check area limit
+  const area = baseWidth * baseHeight
+  const maxAreaScale = Math.sqrt(MAX_CANVAS_AREA / area)
+
+  // Use the most restrictive limit
+  const maxAllowedScale = Math.min(maxDimensionScale, maxAreaScale)
+
+  if (scale > maxAllowedScale) {
+    console.warn(
+      `PNG export: Reducing quality from ${scale.toFixed(1)}x to ${maxAllowedScale.toFixed(1)}x due to browser canvas limits`
+    )
+    scale = maxAllowedScale
+  }
+
+  return Math.max(scale, 1) // At least 1x scale
+}
+
 export const downloadPNGFromSVG = async (
   svg: SVGElement,
   graph: GraphElement,
@@ -31,9 +65,15 @@ export const downloadPNGFromSVG = async (
   const svgDefaultWidth = parseInt(svgObj.attr('width'), 10)
   const svgDefaultHeight = parseInt(svgObj.attr('height'), 10)
 
-  const EXTRA_SIZE = 5.0
-  const scaledWidth = svgDefaultWidth * window.devicePixelRatio * EXTRA_SIZE
-  const scaledHeight = svgDefaultHeight * window.devicePixelRatio * EXTRA_SIZE
+  const DESIRED_SCALE = 4.0 * window.devicePixelRatio
+  const optimalScale = calculateOptimalScale(
+    svgDefaultWidth,
+    svgDefaultHeight,
+    DESIRED_SCALE
+  )
+
+  const scaledWidth = Math.floor(svgDefaultWidth * optimalScale)
+  const scaledHeight = Math.floor(svgDefaultHeight * optimalScale)
 
   svgObj.attr('width', scaledWidth)
   svgObj.attr('height', scaledHeight)
@@ -62,10 +102,33 @@ export const downloadPNGFromSVG = async (
 
   try {
     await canvgInstance.render()
-    await downloadWithDataURI(`${type}.png`, canvas.toDataURL('image/png'))
-  } catch {
-    /* unhandled */
+    await downloadPNGFromCanvas(canvas, `${type}.png`)
+  } catch (error) {
+    console.error('Failed to export PNG:', error)
   }
+}
+
+const downloadPNGFromCanvas = (
+  canvas: HTMLCanvasElement,
+  filename: string
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      blob => {
+        if (blob && blob.size > 0) {
+          saveAs(blob, filename)
+            .then(() => resolve())
+            .catch(reject)
+        } else {
+          reject(
+            new Error('Failed to create PNG blob - canvas may be too large')
+          )
+        }
+      },
+      'image/png',
+      1.0
+    )
+  })
 }
 
 export const downloadSVG = async (
@@ -96,24 +159,4 @@ const download = async (
 ): Promise<void> => {
   const blob = new Blob([data], { type: mime })
   await saveAs(blob, filename)
-}
-
-const downloadWithDataURI = async (
-  filename: string,
-  dataURI: string
-): Promise<void> => {
-  const [header, encodedData] = dataURI.split(',')
-  const isBase64 = header.includes('base64')
-  const byteString = isBase64
-    ? window.atob(encodedData)
-    : decodeURIComponent(encodedData)
-
-  const mimeString = header.split(':')[1].split(';')[0]
-  const byteArray = new Uint8Array(byteString.length)
-
-  for (let i = 0; i < byteString.length; i++) {
-    byteArray[i] = byteString.charCodeAt(i)
-  }
-
-  await download(filename, mimeString, byteArray)
 }
