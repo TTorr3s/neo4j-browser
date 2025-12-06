@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { ApolloClient, ApolloProvider, InMemoryCache } from '@apollo/client'
-import { createUploadLink } from 'apollo-upload-client'
 import {
   removeSearchParamsInBrowserHistory,
   restoreSearchAndHashParams,
@@ -150,23 +148,11 @@ const url = window.location.href
 
 const searchParams = new URL(url).searchParams
 
-// Desktop/Relate params
-const relateUrl = searchParams.get('relateUrl')
-const relateApiToken = searchParams.get('relateApiToken')
-const relateProjectId =
-  searchParams.get('relateProjectId') ||
-  searchParams.get('neo4jDesktopProjectId')
-const neo4jDesktopGraphAppId = searchParams.get('neo4jDesktopGraphAppId')
-
 // Signal app upstart (for epics)
 store.dispatch({
   type: APP_START,
   url,
-  env,
-  relateUrl,
-  relateApiToken,
-  relateProjectId,
-  neo4jDesktopGraphAppId
+  env
 })
 
 const auraNtId = searchParams.get('ntid') ?? undefined
@@ -175,49 +161,13 @@ if (auraNtId) {
 }
 store.dispatch(updateUdcData({ auraNtId }))
 
-// typePolicies allow apollo cache to use these fields as 'id'
-// for automated cache updates when updating a single existing entity
-// https://www.apollographql.com/docs/react/caching/cache-configuration/#customizing-identifier-generation-by-type
-const apolloCache = new InMemoryCache({
-  typePolicies: {
-    RelateFile: {
-      keyFields: ['name', 'directory']
-    },
-    Project: {
-      fields: {
-        files: {
-          merge: false // prefer incoming over existing data.
-        }
-      }
-    }
-  }
-})
-
-// https://www.apollographql.com/blog/file-uploads-with-apollo-server-2-0-5db2f3f60675/
-const uploadLink = createUploadLink({
-  uri: `${relateUrl || ''}/graphql`,
-  credentials: 'same-origin',
-  headers: {
-    'keep-alive': 'true',
-    'X-API-Token': relateApiToken,
-    'X-Client-Id': neo4jDesktopGraphAppId
-  }
-})
-
-const client = new ApolloClient({
-  cache: apolloCache,
-  link: uploadLink
-})
-
 const AppInit = (): JSX.Element => {
   return (
     <Provider store={store as any}>
       <BusProvider bus={bus}>
-        <ApolloProvider client={client}>
-          <DndProvider backend={HTML5Backend}>
-            <App />
-          </DndProvider>
-        </ApolloProvider>
+        <DndProvider backend={HTML5Backend}>
+          <App />
+        </DndProvider>
       </BusProvider>
     </Provider>
   )

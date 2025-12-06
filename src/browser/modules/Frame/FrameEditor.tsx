@@ -41,16 +41,12 @@ import {
 } from './styled'
 import { FrameButton, StyledEditorButton } from 'browser-components/buttons'
 import { GlobalState } from 'shared/globalState'
-import * as app from 'shared/modules/app/appDuck'
 import * as commands from 'shared/modules/commands/commandsDuck'
 import { applyParamGraphTypes } from 'shared/modules/commands/helpers/cypher'
 import { CYPHER_REQUEST } from 'shared/modules/cypher/cypherDuck'
 import * as editor from 'shared/modules/editor/editorDuck'
 import { addFavorite } from 'shared/modules/favorites/favoritesDuck'
-import {
-  Frame,
-  TRACK_SAVE_AS_PROJECT_FILE
-} from 'shared/modules/frames/framesDuck'
+import { Frame } from 'shared/modules/frames/framesDuck'
 import { getParams } from 'shared/modules/params/paramsDuck'
 import {
   BrowserRequest,
@@ -79,11 +75,9 @@ type FrameEditorBaseProps = {
 
 type FrameEditorProps = FrameEditorBaseProps & {
   request: BrowserRequest | null
-  isRelateAvailable: boolean
   codeFontLigatures: boolean
   enableMultiStatementMode: boolean
   newFavorite: (cmd: string) => void
-  newProjectFile: (cmd: string) => void
   cancelQuery: (requestId: string) => void
   reRun: (obj: Frame, cmd: string) => void
   onTitlebarCmdClick: (cmd: string) => void
@@ -91,11 +85,9 @@ type FrameEditorProps = FrameEditorBaseProps & {
 
 function FrameEditor({
   request,
-  isRelateAvailable,
   codeFontLigatures,
   enableMultiStatementMode,
   newFavorite,
-  newProjectFile,
   cancelQuery,
   reRun,
   frame,
@@ -265,12 +257,7 @@ function FrameEditor({
         >
           <SaveFavoriteIcon />
         </FrameButton>
-        <ExportButton
-          frame={frame}
-          exportItems={exportItems}
-          isRelateAvailable={isRelateAvailable}
-          newProjectFile={newProjectFile}
-        />
+        <ExportButton exportItems={exportItems} />
       </StyledFrameTitlebarButtonSection>
     </StyledFrameEditorContainer>
   )
@@ -286,7 +273,6 @@ const mapStateToProps = (
 
   return {
     request,
-    isRelateAvailable: app.isRelateAvailable(state),
     codeFontLigatures: codeFontLigatures(state),
     enableMultiStatementMode: shouldEnableMultiStatementMode(state),
     params: getParams(state)
@@ -298,10 +284,6 @@ const mapDispatchToProps = (dispatch: Dispatch<Action>) => {
     newFavorite: (cmd: string) => {
       dispatch(addFavorite(cmd))
       dispatch(sidebar.open('favorites'))
-    },
-    newProjectFile: (cmd: string) => {
-      dispatch(sidebar.setDraftScript(cmd, 'project files'))
-      dispatch({ type: TRACK_SAVE_AS_PROJECT_FILE })
     },
     cancelQuery: (requestId: string) => {
       dispatch(cancelRequest(requestId))

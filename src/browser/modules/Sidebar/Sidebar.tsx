@@ -25,14 +25,12 @@ import {
   DatabaseIcon,
   DocumentsIcon,
   FavoritesIcon,
-  ProjectFilesIcon,
   SettingsIcon
 } from 'browser-components/icons/LegacyIcons'
 
 import DatabaseDrawer from '../DBMSInfo/DBMSInfo'
 import AboutDrawer from './About'
 import DocumentsDrawer from './Documents'
-import ProjectFilesDrawer from './ProjectFiles'
 import UserSettingsDrawer from './UserSettings'
 import Favorites from './favorites'
 import StaticScripts from './static-scripts'
@@ -42,34 +40,27 @@ import TabNavigation, {
 } from 'browser-components/TabNavigation/Navigation'
 import { DrawerHeader } from 'browser-components/drawer/drawer-styled'
 import { GlobalState } from 'shared/globalState'
-import { isRelateAvailable } from 'shared/modules/app/appDuck'
 import {
   CONNECTED_STATE,
   DISCONNECTED_STATE,
   PENDING_STATE
 } from 'shared/modules/connections/connectionsDuck'
-import { getCurrentDraft } from 'shared/modules/sidebar/sidebarDuck'
 
 interface SidebarProps {
   selectedDrawerName: string
   onNavClick: () => void
   neo4jConnectionState: string
   showStaticScripts: boolean
-  isRelateAvailable: boolean
-  scriptDraft: string | null
 }
 
 const Sidebar = ({
   selectedDrawerName,
   onNavClick,
   neo4jConnectionState,
-  showStaticScripts,
-  isRelateAvailable,
-  scriptDraft
+  showStaticScripts
 }: SidebarProps) => {
   const topNavItems: NavItem[] = [
     {
-      // Consider use constant variable to store those keys
       name: 'DBMS',
       title: 'Database Information',
       icon: function dbIcon(isOpen: boolean): JSX.Element {
@@ -98,21 +89,7 @@ const Sidebar = ({
           </div>
         )
       }
-    },
-    ...(isRelateAvailable
-      ? [
-          {
-            name: 'Project Files',
-            title: 'Project Files',
-            icon: function projectFilesIcon(isOpen: boolean): JSX.Element {
-              return <ProjectFilesIcon isOpen={isOpen} title="Project Files" />
-            },
-            content: function ProjectDrawer(): JSX.Element {
-              return <ProjectFilesDrawer scriptDraft={scriptDraft || ''} />
-            }
-          }
-        ]
-      : [])
+    }
   ]
 
   const bottomNavItems: NavItem[] = [
@@ -169,9 +146,7 @@ const mapStateToProps = (state: GlobalState) => {
   }
   return {
     neo4jConnectionState: connectionState,
-    showStaticScripts: state.settings.showSampleScripts,
-    isRelateAvailable: isRelateAvailable(state),
-    scriptDraft: getCurrentDraft(state)
+    showStaticScripts: state.settings.showSampleScripts
   }
 }
 

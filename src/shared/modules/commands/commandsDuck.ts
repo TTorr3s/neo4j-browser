@@ -97,7 +97,6 @@ export const commandSources = {
   editor: 'EDITOR',
   rerunFrame: 'RERUN',
   favorite: 'FAVORITE',
-  projectFile: 'PROJECT-FILE',
   sidebar: 'SIDEBAR',
   url: 'URL'
 }

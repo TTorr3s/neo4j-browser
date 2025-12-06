@@ -29,7 +29,6 @@ import backArrow from './svgs/back-arrow.svg'
 import cog from './svgs/cog.svg'
 import databaseCheck from './svgs/database-check.svg'
 import saveFavorite from './svgs/favorite.svg'
-import file from './svgs/file.svg'
 import addFolder from './svgs/folder-add.svg'
 import folderEmpty from './svgs/folder-empty.svg'
 import close from './svgs/frame-close.svg'
@@ -52,7 +51,6 @@ import table from './svgs/table.svg'
 import fileDrop from './svgs/task-list-download.svg'
 import text from './svgs/text.svg'
 import updateFavorite from './svgs/update-favorite.svg'
-import updateFile from './svgs/update-file.svg'
 
 const inactive = `
   color: #797979;
@@ -151,20 +149,6 @@ export const FavoritesIcon = ({
     title={title}
   />
 )
-export const ProjectFilesIcon = ({
-  isOpen,
-  title
-}: SidebarIconProps): JSX.Element => (
-  <IconContainer
-    activeStyle={white}
-    inactiveStyle={inactive}
-    icon={file}
-    width={SIDEBAR_SIZE}
-    isOpen={isOpen}
-    title={title}
-  />
-)
-
 export const DocumentsIcon = ({
   isOpen,
   title
@@ -418,24 +402,6 @@ export const FavoriteIcon = ({
   title?: string
 }): JSX.Element => (
   <IconContainer icon={updateFavorite} width={width} title={title} />
-)
-
-export const FileIcon = ({
-  width,
-  title
-}: {
-  width?: number
-  title?: string
-}): JSX.Element => <IconContainer icon={file} width={width} title={title} />
-
-export const UpdateFileIcon = ({
-  width,
-  title
-}: {
-  width?: number
-  title?: string
-}): JSX.Element => (
-  <IconContainer icon={updateFile} width={width} title={title} />
 )
 
 export const RunIcon = ({

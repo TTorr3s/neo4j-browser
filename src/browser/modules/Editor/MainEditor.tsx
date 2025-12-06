@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { useMutation } from '@apollo/client'
 import { CypherEditor } from 'neo4j-arc/cypher-language-support'
 import { QueryResult } from 'neo4j-driver'
 import React, { Dispatch, useEffect, useRef, useState } from 'react'
@@ -31,8 +30,6 @@ import {
   ContractIcon,
   ExpandIcon,
   FavoriteIcon,
-  FileIcon,
-  UpdateFileIcon,
   RunIcon
 } from 'browser-components/icons/LegacyIcons'
 import { isMac } from 'neo4j-arc/common'
@@ -45,11 +42,6 @@ import {
   MainEditorWrapper,
   ScriptTitle
 } from './styled'
-import {
-  ADD_PROJECT_FILE,
-  REMOVE_PROJECT_FILE
-} from 'browser-components/ProjectFiles/projectFilesConstants'
-import { getProjectFileDefaultFileName } from 'browser-components/ProjectFiles/projectFilesUtils'
 import { defaultNameFromDisplayContent } from 'browser-components/SavedScripts'
 import {
   FrameButton,
@@ -58,7 +50,6 @@ import {
 } from 'browser-components/buttons'
 
 import { GlobalState } from 'shared/globalState'
-import { getProjectId } from 'shared/modules/app/appDuck'
 import {
   commandSources,
   executeCommand
@@ -97,7 +88,6 @@ type EditorFrameProps = {
   enableMultiStatementMode: boolean
   executeCommand: (cmd: string, source: string) => void
   history: string[]
-  projectId?: string
   updateFavorite: (id: string, value: string) => void
   useDb: null | string
   params: Record<string, unknown>
@@ -107,7 +97,6 @@ type SavedScript = {
   content: string
   directory?: string
   id: string
-  isProjectFile: boolean
   isStatic: boolean
   name?: string
 }
@@ -118,12 +107,10 @@ export function MainEditor({
   enableMultiStatementMode,
   executeCommand,
   history,
-  projectId,
   updateFavorite,
   useDb,
   params
 }: EditorFrameProps): JSX.Element {
-  const [addFile] = useMutation(ADD_PROJECT_FILE)
   const [unsaved, setUnsaved] = useState(false)
   const [isFullscreen, setFullscreen] = useState(false)
   const [currentlyEditing, setCurrentlyEditing] = useState<SavedScript | null>(
@@ -151,36 +138,21 @@ export function MainEditor({
       }),
     [bus, currentlyEditing]
   )
-  useEffect(
-    () =>
-      bus &&
-      bus.take(REMOVE_PROJECT_FILE, ({ name }) => {
-        if (name === currentlyEditing?.name) {
-          setCurrentlyEditing(null)
-          editorRef.current?.setValue('')
-        }
-      }),
-    [bus, currentlyEditing]
-  )
 
   useEffect(
     () =>
       bus &&
-      bus.take(
-        EDIT_CONTENT,
-        ({ message, id, isProjectFile, name, directory, isStatic }) => {
-          setUnsaved(false)
-          setCurrentlyEditing({
-            content: message,
-            id,
-            isProjectFile,
-            name,
-            directory,
-            isStatic
-          })
-          editorRef.current?.setValue(message)
-        }
-      ),
+      bus.take(EDIT_CONTENT, ({ message, id, name, directory, isStatic }) => {
+        setUnsaved(false)
+        setCurrentlyEditing({
+          content: message,
+          id,
+          name,
+          directory,
+          isStatic
+        })
+        editorRef.current?.setValue(message)
+      }),
     [bus]
   )
 
@@ -233,14 +205,10 @@ export function MainEditor({
     }
   }
 
-  function getName({ name, content, isProjectFile }: SavedScript) {
+  function getName({ name, content }: SavedScript) {
     if (name) {
       return name
     }
-    if (isProjectFile) {
-      return getProjectFileDefaultFileName(content)
-    }
-
     return defaultNameFromDisplayContent(content)
   }
 
@@ -254,16 +222,10 @@ export function MainEditor({
     <MainEditorWrapper isFullscreen={isFullscreen} data-testid="activeEditor">
       {currentlyEditing && (
         <ScriptTitle data-testid="currentlyEditing" unsaved={showUnsaved}>
-          {currentlyEditing.isProjectFile ? (
-            <CurrentEditIconContainer>
-              <FileIcon width={12} />
-            </CurrentEditIconContainer>
-          ) : (
-            <CurrentEditIconContainer>
-              <FavoriteIcon width={12} />
-            </CurrentEditIconContainer>
-          )}
-          {currentlyEditing.isProjectFile ? ' Project file: ' : ' Favorite: '}
+          <CurrentEditIconContainer>
+            <FavoriteIcon width={12} />
+          </CurrentEditIconContainer>
+          {' Favorite: '}
           {getName(currentlyEditing)}
           {showUnsaved ? '*' : ''}
           {currentlyEditing.isStatic ? ' (read-only)' : ''}
@@ -320,19 +282,7 @@ export function MainEditor({
               onClick={() => {
                 setUnsaved(false)
                 const editorValue = editorRef.current?.getValue() || ''
-
-                const { isProjectFile, name } = currentlyEditing
-                if (isProjectFile && projectId && name) {
-                  addFile({
-                    variables: {
-                      projectId,
-                      fileUpload: new File([editorValue], name),
-                      overwrite: true
-                    }
-                  })
-                } else {
-                  updateFavorite(currentlyEditing.id, editorValue)
-                }
+                updateFavorite(currentlyEditing.id, editorValue)
                 setCurrentlyEditing({
                   ...currentlyEditing,
                   content: editorValue
@@ -340,11 +290,7 @@ export function MainEditor({
               }}
               key={'editor-Favorite'}
             >
-              {currentlyEditing.isProjectFile ? (
-                <UpdateFileIcon width={16} title={'Update project file'} />
-              ) : (
-                <FavoriteIcon width={16} title={'Update favorite'} />
-              )}
+              <FavoriteIcon width={16} title={'Update favorite'} />
             </StyledEditorButton>
           )}
           <StyledEditorButton
@@ -381,7 +327,6 @@ const mapStateToProps = (state: GlobalState) => {
     codeFontLigatures: codeFontLigatures(state),
     enableMultiStatementMode: shouldEnableMultiStatementMode(state),
     history: getHistory(state),
-    projectId: getProjectId(state),
     useDb: getUseDb(state),
     params: getParams(state)
   }

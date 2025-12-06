@@ -45,7 +45,6 @@ type DrawerId =
   | 'sync'
   | 'favorites'
   | 'about'
-  | 'project files'
   | 'settings'
   | null
 export interface SidebarState {

@@ -72,7 +72,6 @@ interface EditContentAction {
   type: typeof EDIT_CONTENT
   message: string
   id: string
-  isProjectFile: boolean
   isStatic: boolean
   name: null | string
   directory: null
@@ -81,22 +80,16 @@ interface EditContentAction {
 interface EditContentOptions {
   name?: string | null
   isStatic?: boolean
-  isProjectFile?: boolean
 }
 
 export const editContent = (
   id = '',
   message: string,
-  {
-    name = null,
-    isStatic = false,
-    isProjectFile = false
-  }: EditContentOptions = {}
+  { name = null, isStatic = false }: EditContentOptions = {}
 ): EditContentAction => ({
   type: EDIT_CONTENT,
   message,
   id,
-  isProjectFile,
   isStatic,
   name,
   directory: null

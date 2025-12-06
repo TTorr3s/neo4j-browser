@@ -66,26 +66,13 @@ export const getAllowedBoltSchemes = (
       ? SECURE_SCHEMES
       : [...SECURE_SCHEMES, ...INSECURE_SCHEMES]
     : (hostedUrl || '').startsWith('https')
-    ? SECURE_SCHEMES
-    : INSECURE_SCHEMES
+      ? SECURE_SCHEMES
+      : INSECURE_SCHEMES
 }
-// currently only Desktop specific
-export const isRelateAvailable = (state: GlobalState): boolean =>
-  Boolean(
-    state[NAME].relateUrl &&
-      state[NAME].relateApiToken &&
-      state[NAME].relateProjectId
-  )
-export const getProjectId = (state: GlobalState): string | undefined =>
-  state[NAME].relateProjectId
 
 export type AppState = {
   hostedUrl?: string | null
   env?: Environment
-  relateUrl?: string
-  relateApiToken?: string
-  relateProjectId?: string
-  neo4jDesktopGraphAppId?: string
 }
 
 // Reducer
@@ -98,11 +85,7 @@ export default function reducer(
       return {
         ...state,
         hostedUrl: action.url,
-        env: action.env,
-        relateUrl: action.relateUrl,
-        relateApiToken: action.relateApiToken,
-        relateProjectId: action.relateProjectId,
-        neo4jDesktopGraphAppId: action.neo4jDesktopGraphAppId
+        env: action.env
       }
     default:
       return state

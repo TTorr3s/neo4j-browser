@@ -42,7 +42,6 @@ export const PIN = 'frames/PIN'
 export const UNPIN = 'frames/UNPIN'
 export const SET_RECENT_VIEW = 'frames/SET_RECENT_VIEW'
 export const ENSURE_MAX_FRAMES = 'frames/ENSURE_MAX_FRAMES'
-export const TRACK_SAVE_AS_PROJECT_FILE = 'frames/TRACK_SAVE_AS_PROJECT_FILE'
 export const TRACK_FULLSCREEN_TOGGLE = 'frames/TRACK_FULLSCREEN_TOGGLE'
 export const TRACK_COLLAPSE_TOGGLE = 'frames/TRACK_COLLAPSE_TOGGLE'
 export const SET_NODE_PROPERTIES_COLLAPSED_BY_DEFAULT =
