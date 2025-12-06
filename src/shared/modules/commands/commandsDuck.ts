@@ -17,23 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import Rx from 'rxjs'
 import { v4 } from 'uuid'
 
 import { CONNECTION_SUCCESS } from '../connections/connectionsDuck'
-import {
-  getAvailableSettings,
-  getDefaultRemoteContentHostnameAllowlist,
-  getRemoteContentHostnameAllowlist,
-  UPDATE_SETTINGS
-} from '../dbMeta/dbMetaDuck'
+import { getAvailableSettings, UPDATE_SETTINGS } from '../dbMeta/dbMetaDuck'
 import { addHistory } from '../history/historyDuck'
 import {
   getMaxHistory,
   getPlayImplicitInitCommands,
   shouldEnableMultiStatementMode
 } from '../settings/settingsDuck'
-import { fetchRemoteGuideAsync } from './helpers/playAndGuides'
 import helper from 'services/commandInterpreterHelper'
 import {
   buildCommandObject,
@@ -41,13 +34,7 @@ import {
   extractPostConnectCommandsFromServerConfig,
   extractStatementsFromString
 } from 'services/commandUtils'
-import {
-  addProtocolsToUrlList,
-  extractAllowlistFromConfigString,
-  firstSuccessPromise,
-  resolveAllowlistWildcard,
-  serialExecution
-} from 'services/utils'
+import { serialExecution } from 'services/utils'
 import { APP_START, USER_CLEAR } from 'shared/modules/app/appDuck'
 import { add as addFrame } from 'shared/modules/frames/framesDuck'
 import { update as updateQueryResult } from 'shared/modules/requests/requestsDuck'
@@ -60,7 +47,6 @@ export const SYSTEM_COMMAND_QUEUED = `${NAME}/SYSTEM_COMMAND_QUEUED`
 export const UNKNOWN_COMMAND = `${NAME}/UNKNOWN_COMMAND`
 export const SHOW_ERROR_MESSAGE = `${NAME}/SHOW_ERROR_MESSAGE`
 export const CLEAR_ERROR_MESSAGE = `${NAME}/CLEAR_ERROR_MESSAGE`
-export const FETCH_GUIDE_FROM_ALLOWLIST = `${NAME}FETCH_GUIDE_FROM_ALLOWLIST`
 // Re-export for backward compatibility
 export { CYPHER_SUCCEEDED, CYPHER_FAILED }
 
@@ -197,10 +183,6 @@ export const successfulCypher = (query: any) => ({
 export const unsuccessfulCypher = (query: any) => ({
   type: CYPHER_FAILED,
   query
-})
-export const fetchGuideFromAllowlistAction = (url: any) => ({
-  type: FETCH_GUIDE_FROM_ALLOWLIST,
-  url
 })
 
 // Epics
@@ -341,34 +323,3 @@ export const postConnectCmdEpic = (some$: any, store: any) =>
       })
       .take(1)
   )
-
-export const fetchGuideFromAllowlistEpic = (some$: any, store: any) =>
-  some$.ofType(FETCH_GUIDE_FROM_ALLOWLIST).mergeMap((action: any) => {
-    if (!action.$$responseChannel || !action.url) {
-      return Rx.Observable.of({ type: 'NOOP' })
-    }
-    const allowlistStr = getRemoteContentHostnameAllowlist(store.getState())
-    const allowlist = extractAllowlistFromConfigString(allowlistStr)
-    const defaultAllowlist = extractAllowlistFromConfigString(
-      getDefaultRemoteContentHostnameAllowlist()
-    )
-    const resolvedWildcardAllowlist = resolveAllowlistWildcard(
-      allowlist,
-      defaultAllowlist
-    )
-    const urlAllowlist = addProtocolsToUrlList(resolvedWildcardAllowlist)
-    const guidesUrls = urlAllowlist.map((url: any) => `${url}/${action.url}`)
-
-    return firstSuccessPromise(guidesUrls, (url: any) => {
-      // Get first successful fetch
-      return fetchRemoteGuideAsync(url, allowlistStr).then(r => ({
-        type: action.$$responseChannel,
-        success: true,
-        result: r
-      }))
-    }).catch((e: any) => ({
-      type: action.$$responseChannel,
-      success: false,
-      error: e
-    })) // If all fails, report that
-  })

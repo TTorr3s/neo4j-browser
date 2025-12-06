@@ -5,7 +5,6 @@ exports[`settings reducer handles REPLACE 1`] = `
   "allowCrashReports": true,
   "allowUserStats": true,
   "autoComplete": true,
-  "browserSyncDebugServer": null,
   "codeFontLigatures": true,
   "connectionTimeout": 30000,
   "editorLint": false,

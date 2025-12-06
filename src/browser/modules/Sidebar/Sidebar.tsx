@@ -22,20 +22,16 @@ import { connect } from 'react-redux'
 
 import {
   AboutIcon,
-  CloudSyncIcon,
   DatabaseIcon,
   DocumentsIcon,
   FavoritesIcon,
-  GuideDrawerIcon,
   ProjectFilesIcon,
   SettingsIcon
 } from 'browser-components/icons/LegacyIcons'
 
 import DatabaseDrawer from '../DBMSInfo/DBMSInfo'
-import BrowserSync from '../Sync/BrowserSync'
 import AboutDrawer from './About'
 import DocumentsDrawer from './Documents'
-import GuideDrawer from './GuideDrawer'
 import ProjectFilesDrawer from './ProjectFiles'
 import UserSettingsDrawer from './UserSettings'
 import Favorites from './favorites'
@@ -52,17 +48,13 @@ import {
   DISCONNECTED_STATE,
   PENDING_STATE
 } from 'shared/modules/connections/connectionsDuck'
-import { utilizeBrowserSync } from 'shared/modules/features/featuresDuck'
 import { getCurrentDraft } from 'shared/modules/sidebar/sidebarDuck'
-import { isUserSignedIn } from 'shared/modules/sync/syncDuck'
 
 interface SidebarProps {
   selectedDrawerName: string
   onNavClick: () => void
   neo4jConnectionState: string
   showStaticScripts: boolean
-  syncConnected: boolean
-  loadSync: boolean
   isRelateAvailable: boolean
   scriptDraft: string | null
 }
@@ -72,8 +64,6 @@ const Sidebar = ({
   onNavClick,
   neo4jConnectionState,
   showStaticScripts,
-  syncConnected,
-  loadSync,
   isRelateAvailable,
   scriptDraft
 }: SidebarProps) => {
@@ -122,15 +112,7 @@ const Sidebar = ({
             }
           }
         ]
-      : []),
-    {
-      name: 'Guides',
-      title: 'Guides',
-      icon: function GuideDrawerIconComp(isOpen: boolean): JSX.Element {
-        return <GuideDrawerIcon isOpen={isOpen} />
-      },
-      content: GuideDrawer
-    }
+      : [])
   ]
 
   const bottomNavItems: NavItem[] = [
@@ -142,20 +124,6 @@ const Sidebar = ({
       },
       content: DocumentsDrawer,
       enableCannyBadge: true
-    },
-    {
-      name: 'Sync',
-      title: 'Browser Sync',
-      icon: function syncIcon(isOpen: boolean): JSX.Element {
-        return (
-          <CloudSyncIcon
-            isOpen={isOpen}
-            connected={syncConnected}
-            title="Browser Sync"
-          />
-        )
-      },
-      content: BrowserSync
     },
     {
       name: 'Settings',
@@ -173,7 +141,7 @@ const Sidebar = ({
       },
       content: AboutDrawer
     }
-  ].filter(({ name }) => loadSync || name !== 'Sync')
+  ]
 
   return (
     <TabNavigation
@@ -201,9 +169,7 @@ const mapStateToProps = (state: GlobalState) => {
     }
   }
   return {
-    syncConnected: isUserSignedIn(state) || false,
     neo4jConnectionState: connectionState,
-    loadSync: utilizeBrowserSync(state),
     showStaticScripts: state.settings.showSampleScripts,
     isRelateAvailable: isRelateAvailable(state),
     scriptDraft: getCurrentDraft(state)

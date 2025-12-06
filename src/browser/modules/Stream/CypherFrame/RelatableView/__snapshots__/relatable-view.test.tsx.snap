@@ -17,10 +17,10 @@ exports[`RelatableViews RelatableView displays bodyMessage if no rows 1`] = `
 exports[`RelatableViews RelatableView does not crash if key is empty string 1`] = `
 <div>
   <div
-    class="sc-gIDmLj dMzYfk"
+    class="sc-brSvTw iHVSPL"
   >
     <div
-      class="sc-dFtzxp hhiaao relatable"
+      class="sc-ctqQKy hgjWJZ relatable"
     >
       <table
         class="ui basic table relatable__table "
@@ -73,7 +73,7 @@ exports[`RelatableViews RelatableView does not crash if key is empty string 1`] 
               role="cell"
             >
               <span
-                class="sc-fHeRUh bpnhlL"
+                class="sc-evcjhq kRdrLI"
               >
                 "String value"
               </span>
@@ -89,10 +89,10 @@ exports[`RelatableViews RelatableView does not crash if key is empty string 1`] 
 exports[`RelatableViews RelatableView does not display bodyMessage if rows, and escapes HTML 1`] = `
 <div>
   <div
-    class="sc-gIDmLj dMzYfk"
+    class="sc-brSvTw iHVSPL"
   >
     <div
-      class="sc-dFtzxp hhiaao relatable"
+      class="sc-ctqQKy hgjWJZ relatable"
     >
       <table
         class="ui basic table relatable__table "
@@ -145,7 +145,7 @@ exports[`RelatableViews RelatableView does not display bodyMessage if rows, and 
               role="cell"
             >
               <span
-                class="sc-fHeRUh bpnhlL"
+                class="sc-evcjhq kRdrLI"
               >
                 "String with HTML &lt;strong&gt;in&lt;/strong&gt; it"
               </span>
@@ -161,7 +161,7 @@ exports[`RelatableViews RelatableView does not display bodyMessage if rows, and 
 exports[`RelatableViews TableStatusbar displays no statusBarMessage 1`] = `
 <div>
   <div
-    class="sc-jeraig dxzVkG"
+    class="sc-iNGGcK ijuURP"
   />
 </div>
 `;

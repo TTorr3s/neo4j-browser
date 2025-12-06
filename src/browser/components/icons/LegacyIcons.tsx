@@ -28,8 +28,6 @@ import arrowRight from './svgs/arrow-right.svg'
 import backArrow from './svgs/back-arrow.svg'
 import cannyFeedback from './svgs/canny-feedback.svg'
 import cannyNotifications from './svgs/canny-notifications.svg'
-import cloudCheck from './svgs/cloud-check.svg'
-import cloudRemove from './svgs/cloud-remove.svg'
 import cog from './svgs/cog.svg'
 import databaseCheck from './svgs/database-check.svg'
 import saveFavorite from './svgs/favorite.svg'
@@ -45,7 +43,6 @@ import shrink from './svgs/frame-shrink.svg'
 import help from './svgs/help.svg'
 import vizIcon from './svgs/hierarchy-9.svg'
 import hollowPlay from './svgs/hollow-run-icon.svg'
-import monitorPlay from './svgs/monitor-play.svg'
 import navigationMenuVertical from './svgs/navigation-menu-vertical.svg'
 import neo4j from './svgs/neo4j-icon.svg'
 import ratingStar from './svgs/rating-star.svg'
@@ -64,10 +61,6 @@ const inactive = `
   fill: #797979;
 `
 const green = `
-  color: #4cd950;
-`
-
-const successGreen = `
   color: #4cd950;
 `
 const blue = `
@@ -142,17 +135,6 @@ export const DatabaseIcon = (props: {
   )
 }
 
-export const GuideDrawerIcon = (props: { isOpen: boolean }): JSX.Element => (
-  <IconContainer
-    activeStyle={white}
-    inactiveStyle={inactive}
-    width={28}
-    isOpen={props.isOpen}
-    icon={monitorPlay}
-    title="Guides"
-  />
-)
-
 interface SidebarIconProps {
   isOpen: boolean
   title: string
@@ -198,23 +180,6 @@ export const DocumentsIcon = ({
     title={title}
   />
 )
-
-export const CloudSyncIcon = ({
-  isOpen,
-  title,
-  connected
-}: SidebarIconProps & { connected: boolean }): JSX.Element => {
-  return (
-    <IconContainer
-      activeStyle={connected ? successGreen : warningRed}
-      inactiveStyle={connected ? inactive : warningRed}
-      icon={connected ? cloudCheck : cloudRemove}
-      width={SIDEBAR_SIZE}
-      isOpen={isOpen}
-      title={title}
-    />
-  )
-}
 
 export const SettingsIcon = ({
   isOpen,

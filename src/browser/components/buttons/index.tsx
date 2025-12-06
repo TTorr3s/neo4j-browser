@@ -481,12 +481,3 @@ export const StyledLink = styled.a`
     text-decoration: none;
   }
 `
-
-export const SyncSignInButton = styled(FormButton)`
-  background-color: #5fb434;
-  color: #ffffff;
-  &:hover {
-    background-color: ${props => props.theme.formButtonBackgroundHover};
-    color: #797979;
-  }
-`

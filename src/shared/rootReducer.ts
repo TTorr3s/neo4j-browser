@@ -42,7 +42,6 @@ import featuresReducer, {
 } from 'shared/modules/features/featuresDuck'
 import streamReducer, { NAME as stream } from 'shared/modules/frames/framesDuck'
 import grassReducer, { NAME as grass } from 'shared/modules/grass/grassDuck'
-import guideReducer, { NAME as guides } from 'shared/modules/guides/guidesDuck'
 import historyReducer, {
   NAME as history
 } from 'shared/modules/history/historyDuck'
@@ -56,14 +55,6 @@ import settingsReducer, {
 import sidebarReducer, {
   NAME as sidebar
 } from 'shared/modules/sidebar/sidebarDuck'
-import {
-  NAME as sync,
-  NAME_CONSENT as syncConsent,
-  syncConsentReducer,
-  syncMetaDataReducer,
-  NAME_META as syncMetadata,
-  syncReducer
-} from 'shared/modules/sync/syncDuck'
 import udcReducer, { NAME as udc } from 'shared/modules/udc/udcDuck'
 
 export default {
@@ -80,12 +71,8 @@ export default {
   [params]: paramsReducer,
   [requests]: requestsReducer,
   [grass]: grassReducer,
-  [sync]: syncReducer,
-  [syncConsent]: syncConsentReducer,
-  [syncMetadata]: syncMetaDataReducer,
   [commands]: commandsReducer,
   [udc]: udcReducer,
   [app]: appReducer,
-  [guides]: guideReducer,
   [experimentalFeatures]: experimentalFeaturesReducer
 }

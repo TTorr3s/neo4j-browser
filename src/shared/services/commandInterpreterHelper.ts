@@ -23,12 +23,10 @@ import { Action, Dispatch } from 'redux'
 import { v4 } from 'uuid'
 
 import { getCommandAndParam } from './commandUtils'
-import { tryGetRemoteInitialSlideFromUrl } from './guideResolverHelper'
 import { unescapeCypherIdentifier } from './utils'
 import { getLatestFromFrameStack } from 'browser/modules/Stream/stream.utils'
 import bolt from 'services/bolt/bolt'
 import {
-  CouldNotFetchRemoteGuideError,
   DatabaseNotFoundError,
   DatabaseUnavailableError,
   FetchUrlError,
@@ -63,7 +61,6 @@ import {
   getParamName,
   handleParamsCommand
 } from 'shared/modules/commands/helpers/params'
-import { fetchRemoteGuideAsync } from 'shared/modules/commands/helpers/playAndGuides'
 import { handleServerCommand } from 'shared/modules/commands/helpers/server'
 import {
   getActiveConnectionData,
@@ -85,7 +82,6 @@ import {
   getGraphStyleData,
   updateGraphStyleData
 } from 'shared/modules/grass/grassDuck'
-import { fetchRemoteGuide, resetGuide } from 'shared/modules/guides/guidesDuck'
 import { clearHistory, getHistory } from 'shared/modules/history/historyDuck'
 import { getParams } from 'shared/modules/params/paramsDuck'
 import {
@@ -111,8 +107,6 @@ import {
   isSystemOrCompositeDb
 } from 'shared/utils/selectors'
 import { isBrowserError } from 'shared/utils/typeguards'
-
-const PLAY_FRAME_TYPES = ['play', 'play-remote']
 
 const availableCommands = [
   {
@@ -519,139 +513,6 @@ const availableCommands = [
           )
         return response
       }
-    }
-  },
-  {
-    name: 'guide',
-    match: (cmd: string) => /^guide(\s|$)/.test(cmd),
-    exec(action: ExecuteSingleCommandAction, dispatch: Dispatch<Action>) {
-      const guideIdentifier = action.cmd.substring(':guide'.length).trim()
-      if (!guideIdentifier) {
-        dispatch(resetGuide())
-        dispatch(open('guides'))
-        return
-      }
-
-      dispatch(fetchRemoteGuide(guideIdentifier))
-    }
-  },
-  {
-    name: 'play-remote',
-    match: (cmd: any) => /^play(\s|$)https?/.test(cmd),
-    exec(action: any, put: any, store: any) {
-      let id: any
-      // We have a frame that generated this command
-      if (action.id) {
-        const originFrame = frames.getFrame(store.getState(), action.id)
-        // Only replace when the origin is a play frame or the frame is reused
-        if (originFrame) {
-          const latest = getLatestFromFrameStack(originFrame)
-          if (
-            (latest && PLAY_FRAME_TYPES.includes(latest.type)) ||
-            action.isRerun
-          ) {
-            id = action.id
-          }
-        } else {
-          // New id === new frame
-          id = v4()
-        }
-      }
-
-      const url = action.cmd.substring(':play '.length)
-      const urlObject = new URL(url)
-      urlObject.href = url
-      const filenameExtension = urlObject.pathname.includes('.')
-        ? urlObject.pathname.split('.').pop()
-        : 'html'
-      const allowlist = getRemoteContentHostnameAllowlist(store.getState())
-      fetchRemoteGuideAsync(url, allowlist)
-        .then(r => {
-          put(
-            frames.add({
-              useDb: getUseDb(store.getState()),
-              ...action,
-              filenameExtension,
-              id,
-              type: 'play-remote',
-              initialSlide: tryGetRemoteInitialSlideFromUrl(url),
-              result: r
-            })
-          )
-        })
-        .catch(e => {
-          put(
-            frames.add({
-              useDb: getUseDb(store.getState()),
-              ...action,
-              filenameExtension,
-              id,
-              type: 'play-remote',
-              response: e.response || null,
-              initialSlide: tryGetRemoteInitialSlideFromUrl(url),
-              error: CouldNotFetchRemoteGuideError({
-                error: `${e.name}: ${e.message}`
-              })
-            })
-          )
-        })
-    }
-  },
-  {
-    name: 'play',
-    match: (cmd: any) => /^play(\s|$)/.test(cmd),
-    exec(action: any, put: any, store: any) {
-      /* Un pause when tests are fixed
-      // Built in play guides where migrated to
-      // use the guide command instead
-      const legacyBuiltInGuides: GuideChapter[] = [
-        'concepts',
-        'cypher',
-        'intro',
-        'movies',
-        'movieGraph',
-        'movie-graph',
-        'northwind',
-        'northwindGraph',
-        'northwind-graph'
-      ]
-
-      const guideName = (action.cmd.split(' ')[1] || '').trim()
-
-      if (legacyBuiltInGuides.includes(guideName)) {
-        put(executeCommand(`:guide ${guideName}`))
-        return
-      }
-      */
-
-      let id
-      // We have a frame that generated this command
-      if (action.id) {
-        const originFrame = frames.getFrame(store.getState(), action.id)
-        // Only replace when the origin is a play frame or the frame is reused
-        if (originFrame) {
-          const latest = getLatestFromFrameStack(originFrame)
-          if (
-            (latest && PLAY_FRAME_TYPES.includes(latest.type)) ||
-            action.isRerun
-          ) {
-            id = action.id
-          }
-        } else {
-          // New id === new frame
-          id = v4()
-        }
-      }
-
-      put(
-        frames.add({
-          useDb: getUseDb(store.getState()),
-          ...action,
-          id,
-          initialSlide: tryGetRemoteInitialSlideFromUrl(action.cmd),
-          type: 'play'
-        })
-      )
     }
   },
   {

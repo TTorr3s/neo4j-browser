@@ -23,7 +23,6 @@ import { v4 } from 'uuid'
 
 import { USER_CLEAR } from '../app/appDuck'
 import { CONNECT, CONNECTION_SUCCESS } from '../connections/connectionsDuck'
-import { isBuiltInGuide, isPlayChapter } from 'browser/documentation'
 import { GlobalState } from 'shared/globalState'
 import { COMMAND_QUEUED } from 'shared/modules/commands/commandsDuck'
 import {
@@ -66,7 +65,6 @@ export const GENERATE_SET_MISSING_PARAMS_TEMPLATE =
   'udc/GENERATE_SET_MISSING_PARAMS_TEMPLATE'
 export const METRICS_EVENT = 'udc/METRICS_EVENT'
 export const UDC_STARTUP = 'udc/STARTUP'
-export const LAST_GUIDE_SLIDE = 'udc/LAST_GUIDE_SLIDE'
 
 export const getAuraNtId = (state: GlobalState): string | undefined =>
   state[NAME].auraNtId
@@ -255,29 +253,16 @@ export const trackCommandUsageEpic: Epic<Action, GlobalState> = action$ =>
 
     const type = cmdHelper.interpret(action.cmd.slice(1))?.name
 
-    const extraData: Record<string, string | number> = {}
-
-    if (type === 'play') {
-      const guideName = action.cmd.substring(':play'.length).trim()
-      extraData.content = isPlayChapter(guideName) ? 'built-in' : 'non-built-in'
-    } else if (type === 'guide') {
-      const guideName = action.cmd.substring(':guide'.length).trim()
-      extraData.content = isBuiltInGuide(guideName)
-        ? 'built-in'
-        : 'non-built-in'
-    }
-
     return metricsEvent({
       category: 'command',
       label: 'non-cypher',
-      data: { source: action.source || 'unknown', type, ...extraData }
+      data: { source: action.source || 'unknown', type }
     })
   })
 
 const actionsOfInterest = [
   ADD_FAVORITE,
   GENERATE_SET_MISSING_PARAMS_TEMPLATE,
-  LAST_GUIDE_SLIDE,
   LOAD_FAVORITES,
   PIN,
   REMOVE_FAVORITE,

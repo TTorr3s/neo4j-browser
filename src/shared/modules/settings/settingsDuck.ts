@@ -48,10 +48,6 @@ export const getPlayImplicitInitCommands = (state: any) =>
 export const getTheme = (state: any) => state[NAME].theme || initialState.theme
 export const getUseBoltRouting = (state: any) =>
   state[NAME].useBoltRouting || initialState.useBoltRouting
-export const getBrowserSyncConfig = (
-  state: any,
-  host = getSettings(state).browserSyncDebugServer
-) => browserSyncConfig(host || undefined)
 export const getMaxNeighbours = (state: GlobalState): number =>
   toNumber(state[NAME].maxNeighbours ?? initialState.maxNeighbours)
 export const getMaxRows = (state: GlobalState): number =>
@@ -72,18 +68,6 @@ export const shouldShowPerformanceOverlay = (state: any): boolean =>
   state[NAME].showPerformanceOverlay === true
 export const shouldUseReadTransactions = (state: any) =>
   state[NAME].useReadTransactions || initialState.useReadTransactions
-
-const browserSyncConfig = (host = 'https://auth.neo4j.com') => ({
-  authWindowUrl: `${host}/indexNewBrowser.html`,
-  silentAuthIframeUrl: `${host}/silentAuthNewBrowser.html`,
-  delegationTokenIframeUrl: `${host}/getDelegationTokenNewBrowser.html`,
-  logoutUrl: 'https://neo4j-sync.auth0.com/v2/logout',
-  firebaseConfig: {
-    apiKey: 'AIzaSyA1RwZMBWHxqRGyY3CK60leRkr56H6GHV4',
-    databaseURL: 'https://fiery-heat-7952.firebaseio.com',
-    messagingSenderId: '352959348981'
-  }
-})
 export const getUseNewVisualization = (state: any) => state[NAME].useNewVis
 export const getConnectionTimeout = (state: any) =>
   state[NAME].connectionTimeout || initialState.connectionTimeout
@@ -111,7 +95,6 @@ export type SettingsState = {
   initialNodeDisplay: string | number
   maxNeighbours: string | number
   showSampleScripts: boolean
-  browserSyncDebugServer: any
   maxRows: string | number
   maxFieldItems: string | number
   autoComplete: boolean
@@ -137,7 +120,6 @@ export const initialState: SettingsState = {
   initialNodeDisplay: 300,
   maxNeighbours: 100,
   showSampleScripts: true,
-  browserSyncDebugServer: null,
   maxRows: 1000,
   maxFieldItems: 500,
   autoComplete: true,

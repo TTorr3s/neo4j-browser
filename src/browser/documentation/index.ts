@@ -23,7 +23,6 @@ import helpBolt from './dynamic/bolt'
 import helpCommands from './dynamic/commands'
 import helpCypher from './dynamic/cypher'
 import helpHelp from './dynamic/help'
-import helpPlay from './dynamic/play'
 import helpAlterUser from './help/alter-user'
 import helpAuto from './help/auto'
 import helpBoltEncryption from './help/bolt-encryption'
@@ -85,32 +84,11 @@ import helpUnknown from './help/unknown'
 import helpUnwind from './help/unwind'
 import helpWhere from './help/where'
 import helpWith from './help/with'
-// Play guides
-import playConcepts from './play-guides/concepts'
-import playCypher from './play-guides/cypher'
-import playIconography from './play-guides/iconography'
-import playIntro from './play-guides/intro'
-import playLearn from './play-guides/learn'
-import playMovieGraph from './play-guides/movie-graph'
-import playNorthwindGraph from './play-guides/northwind-graph'
-import playStart from './play-guides/start'
-import playTypography from './play-guides/typography'
-import playUnfound from './play-guides/unfound'
-import playWritecode from './play-guides/write-code'
-// Migrated sidebar guides
-import guideConcepts from './sidebar-guides/concepts'
-import guideCypher from './sidebar-guides/cypher'
-import guideIntro from './sidebar-guides/intro'
-import guideMovieGraph from './sidebar-guides/movie-graph'
-import guideNorthwindGraph from './sidebar-guides/northwind-graph'
-import guideUnfound from './sidebar-guides/unfound'
 
 type AllDocumentation = {
   help: HelpDocs
   cypher: CypherDocs
   bolt: BoltDocs
-  play: PlayDocs
-  guide: GuideDocs
 }
 export type DocItem = {
   title: string
@@ -119,61 +97,6 @@ export type DocItem = {
   content?: JSX.Element | null
   footer?: JSX.Element
   slides?: JSX.Element[]
-}
-
-export type Guide = {
-  currentSlide: number
-  title: string
-  identifier: string
-  slides: JSX.Element[]
-  isError?: boolean
-}
-
-type GuideDocs = {
-  title: 'Built-in Browser guides'
-  chapters: Record<BuiltInGuideIdentifier, Omit<Guide, 'currentSlide'>>
-}
-
-export type BuiltInGuideIdentifier =
-  | 'concepts'
-  | 'cypher'
-  | 'intro'
-  | 'movie-graph'
-  | 'movieGraph'
-  | 'movies'
-  | 'northwind'
-  | 'northwind-graph'
-  | 'northwindGraph'
-  | 'unfound'
-
-// TypeGuard function to ts to understand that a string is a valid key
-export const isBuiltInGuide = (name: string): name is BuiltInGuideIdentifier =>
-  name in docs.guide.chapters
-
-type PlayDocs = {
-  title: 'Guides & Examples'
-  chapters: Record<PlayChapter, DocItem>
-}
-
-type PlayChapter =
-  | 'concepts'
-  | 'cypher'
-  | 'iconography'
-  | 'intro'
-  | 'learn'
-  | 'movie-graph'
-  | 'movieGraph'
-  | 'movies'
-  | 'northwind'
-  | 'northwind-graph'
-  | 'northwindGraph'
-  | 'start'
-  | 'typography'
-  | 'unfound'
-  | 'writeCode'
-
-export function isPlayChapter(name: string): name is PlayChapter {
-  return name in docs.play.chapters
 }
 
 type BoltDocs = { title: 'Bolt'; chapters: Record<BoltChapter, DocItem> }
@@ -236,12 +159,10 @@ type HelpChapter =
   | 'clear'
   | 'commands'
   | 'cypher'
-  | 'guides'
   | 'help'
   | 'history'
   | 'historyClear'
   | 'keys'
-  | 'play'
   | 'queries'
   | 'server'
   | 'serverUser'
@@ -258,12 +179,10 @@ const docs: AllDocumentation = {
       clear: helpClear,
       commands: helpCommands,
       cypher: helpCypher,
-      guides: helpPlay,
       help: helpHelp,
       history: helpHistory,
       historyClear: helpHistoryClear,
       keys: helpKeys,
-      play: helpPlay,
       queries: helpQueries,
       server: helpServer,
       serverUser: helpServerUser,
@@ -330,42 +249,6 @@ const docs: AllDocumentation = {
     chapters: {
       boltEncryption: helpBoltEncryption,
       boltRouting: helpBoltRouting
-    }
-  },
-  play: {
-    title: 'Guides & Examples',
-    chapters: {
-      concepts: playConcepts,
-      cypher: playCypher,
-      iconography: playIconography,
-      intro: playIntro,
-      learn: playLearn,
-      movieGraph: playMovieGraph,
-      'movie-graph': playMovieGraph,
-      movies: playMovieGraph,
-      northwind: playNorthwindGraph,
-      'northwind-graph': playNorthwindGraph,
-      northwindGraph: playNorthwindGraph,
-      start: playStart,
-      typography: playTypography,
-      unfound: playUnfound,
-      writeCode: playWritecode
-    }
-  },
-  // Guides are play-guides but migrated to be viewable in the sidebar
-  guide: {
-    title: 'Built-in Browser guides',
-    chapters: {
-      concepts: guideConcepts,
-      cypher: guideCypher,
-      intro: guideIntro,
-      movies: guideMovieGraph,
-      movieGraph: guideMovieGraph,
-      'movie-graph': guideMovieGraph,
-      northwind: guideNorthwindGraph,
-      northwindGraph: guideNorthwindGraph,
-      'northwind-graph': guideNorthwindGraph,
-      unfound: guideUnfound
     }
   }
 }

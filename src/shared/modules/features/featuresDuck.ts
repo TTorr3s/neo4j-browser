@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { APP_START, CLOUD, DESKTOP } from 'shared/modules/app/appDuck'
+import { APP_START } from 'shared/modules/app/appDuck'
 import { DISCONNECTION_SUCCESS } from 'shared/modules/connections/connectionsDuck'
 
 export const NAME = 'features'
@@ -26,7 +26,6 @@ export const UPDATE_USER_CAPABILITIES = 'features/UPDATE_USER_CAPABILITIES'
 export const DETECTED_CLIENT_CONFIG = 'features/DETECTED_CLIENT_CONFIG'
 
 export const hasClientConfig = (state: any) => state[NAME].clientConfig
-export const utilizeBrowserSync = (state: any) => !!state[NAME].browserSync
 export const getUserCapabilities = (state: any) => state[NAME].userCapabilities
 
 export const USER_CAPABILITIES = {
@@ -34,7 +33,6 @@ export const USER_CAPABILITIES = {
 }
 
 export const initialState = {
-  browserSync: true,
   clientConfig: null,
   userCapabilities: {
     [USER_CAPABILITIES.serverConfigReadable]: false
@@ -46,8 +44,7 @@ export default function (state = initialState, action: any) {
     case APP_START:
       return {
         ...initialState,
-        ...state,
-        browserSync: shouldUtilizeBrowserSync(action)
+        ...state
       }
     case DETECTED_CLIENT_CONFIG:
       return { ...state, clientConfig: action.isAvailable }
@@ -64,11 +61,6 @@ export default function (state = initialState, action: any) {
     default:
       return state
   }
-}
-
-// Helper functions
-const shouldUtilizeBrowserSync = (action: any) => {
-  return ![DESKTOP, CLOUD].includes(action.env)
 }
 
 export const updateUserCapability = (

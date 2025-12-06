@@ -5,42 +5,42 @@ exports[`WarningsView displays nothing if no notifications 1`] = `<div />`;
 exports[`WarningsView does display a warning 1`] = `
 <div>
   <div
-    class="sc-hGPBjI kgdIGh"
+    class="sc-dJjYzT cEMJyA"
   >
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-hGPBjI yIbML"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-dlVxhl dhJkjd"
       >
         <div
-          class="sc-cxpSdN sc-llYSUQ cnlYxc eNTkBC"
+          class="sc-iwjdpV sc-cxpSdN kxtdcs jesyJO"
         >
           WARNING
         </div>
         <h4
-          class="sc-kLwhqv"
+          class="sc-bYoBSM"
         >
           My xx1 warning
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
       >
         <div
-          class="sc-kfPuZi lgMZCo"
+          class="sc-dlVxhl dhJkjd"
         >
           This is xx2 warning
         </div>
         <div
-          class="sc-fKVqWL"
+          class="sc-kfPuZi"
         >
           <pre
-            class="sc-hiCibw jvxLJD"
+            class="sc-jJoQJp fAKJvF"
           >
             EXPLAIN MATCH xx3
             <br
-              class="sc-jJoQJp"
+              class="sc-ikJyIC"
             />
                    
             ^
@@ -48,12 +48,12 @@ exports[`WarningsView does display a warning 1`] = `
         </div>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
         style="margin-top: 10px;"
       >
         Status code: 
         <code
-          class="sc-ZOtfp koHcGf"
+          class="sc-jIkXHa dbcfkZ"
         >
           xx3.Warning
         </code>
@@ -66,42 +66,42 @@ exports[`WarningsView does display a warning 1`] = `
 exports[`WarningsView does display a warning for GQL status codes 1`] = `
 <div>
   <div
-    class="sc-hGPBjI kgdIGh"
+    class="sc-dJjYzT cEMJyA"
   >
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-hGPBjI yIbML"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-dlVxhl dhJkjd"
       >
         <div
-          class="sc-cxpSdN sc-llYSUQ cnlYxc eNTkBC"
+          class="sc-iwjdpV sc-cxpSdN kxtdcs jesyJO"
         >
           WARNING
         </div>
         <h4
-          class="sc-kLwhqv"
+          class="sc-bYoBSM"
         >
           03N90: Cartesian product
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
       >
         <div
-          class="sc-kfPuZi lgMZCo"
+          class="sc-dlVxhl dhJkjd"
         >
           The disconnected pattern 'p = ()--(), q = ()--()' builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.
         </div>
         <div
-          class="sc-fKVqWL"
+          class="sc-kfPuZi"
         >
           <pre
-            class="sc-hiCibw jvxLJD"
+            class="sc-jJoQJp fAKJvF"
           >
             MATCH p=()--(), q=()--() RETURN p, q
             <br
-              class="sc-jJoQJp"
+              class="sc-ikJyIC"
             />
                    
             ^
@@ -116,42 +116,42 @@ exports[`WarningsView does display a warning for GQL status codes 1`] = `
 exports[`WarningsView does display multiple warnings 1`] = `
 <div>
   <div
-    class="sc-hGPBjI kgdIGh"
+    class="sc-dJjYzT cEMJyA"
   >
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-hGPBjI yIbML"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-dlVxhl dhJkjd"
       >
         <div
-          class="sc-cxpSdN sc-llYSUQ cnlYxc eNTkBC"
+          class="sc-iwjdpV sc-cxpSdN kxtdcs jesyJO"
         >
           WARNING
         </div>
         <h4
-          class="sc-kLwhqv"
+          class="sc-bYoBSM"
         >
           My xx1 warning
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
       >
         <div
-          class="sc-kfPuZi lgMZCo"
+          class="sc-dlVxhl dhJkjd"
         >
           This is xx2 warning
         </div>
         <div
-          class="sc-fKVqWL"
+          class="sc-kfPuZi"
         >
           <pre
-            class="sc-hiCibw jvxLJD"
+            class="sc-jJoQJp fAKJvF"
           >
             EXPLAIN MATCH zz3
             <br
-              class="sc-jJoQJp"
+              class="sc-ikJyIC"
             />
                    
             ^
@@ -159,51 +159,51 @@ exports[`WarningsView does display multiple warnings 1`] = `
         </div>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
         style="margin-top: 10px;"
       >
         Status code: 
         <code
-          class="sc-ZOtfp koHcGf"
+          class="sc-jIkXHa dbcfkZ"
         >
           xx3.Warning
         </code>
       </div>
     </div>
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-hGPBjI yIbML"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-dlVxhl dhJkjd"
       >
         <div
-          class="sc-cxpSdN sc-llYSUQ cnlYxc eNTkBC"
+          class="sc-iwjdpV sc-cxpSdN kxtdcs jesyJO"
         >
           WARNING
         </div>
         <h4
-          class="sc-kLwhqv"
+          class="sc-bYoBSM"
         >
           My yy1 warning
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
       >
         <div
-          class="sc-kfPuZi lgMZCo"
+          class="sc-dlVxhl dhJkjd"
         >
           This is yy2 warning
         </div>
         <div
-          class="sc-fKVqWL"
+          class="sc-kfPuZi"
         >
           <pre
-            class="sc-hiCibw jvxLJD"
+            class="sc-jJoQJp fAKJvF"
           >
             EXPLAIN MATCH zz3
             <br
-              class="sc-jJoQJp"
+              class="sc-ikJyIC"
             />
                
             ^
@@ -211,12 +211,12 @@ exports[`WarningsView does display multiple warnings 1`] = `
         </div>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
         style="margin-top: 10px;"
       >
         Status code: 
         <code
-          class="sc-ZOtfp koHcGf"
+          class="sc-jIkXHa dbcfkZ"
         >
           yy3.Warning
         </code>
@@ -229,42 +229,42 @@ exports[`WarningsView does display multiple warnings 1`] = `
 exports[`WarningsView does display multiple warnings for GQL status codes 1`] = `
 <div>
   <div
-    class="sc-hGPBjI kgdIGh"
+    class="sc-dJjYzT cEMJyA"
   >
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-hGPBjI yIbML"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-dlVxhl dhJkjd"
       >
         <div
-          class="sc-cxpSdN sc-llYSUQ cnlYxc eNTkBC"
+          class="sc-iwjdpV sc-cxpSdN kxtdcs jesyJO"
         >
           WARNING
         </div>
         <h4
-          class="sc-kLwhqv"
+          class="sc-bYoBSM"
         >
           03N90: Cartesian product
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
       >
         <div
-          class="sc-kfPuZi lgMZCo"
+          class="sc-dlVxhl dhJkjd"
         >
           The disconnected pattern 'p = ()--(), q = ()--()' builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.
         </div>
         <div
-          class="sc-fKVqWL"
+          class="sc-kfPuZi"
         >
           <pre
-            class="sc-hiCibw jvxLJD"
+            class="sc-jJoQJp fAKJvF"
           >
             MATCH p=()--(), q=()--() RETURN p, q
             <br
-              class="sc-jJoQJp"
+              class="sc-ikJyIC"
             />
                    
             ^
@@ -273,39 +273,39 @@ exports[`WarningsView does display multiple warnings for GQL status codes 1`] = 
       </div>
     </div>
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-hGPBjI yIbML"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-dlVxhl dhJkjd"
       >
         <div
-          class="sc-cxpSdN sc-llYSUQ cnlYxc eNTkBC"
+          class="sc-iwjdpV sc-cxpSdN kxtdcs jesyJO"
         >
           WARNING
         </div>
         <h4
-          class="sc-kLwhqv"
+          class="sc-bYoBSM"
         >
           01N50: Label does not exist
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-kfPuZi"
       >
         <div
-          class="sc-kfPuZi lgMZCo"
+          class="sc-dlVxhl dhJkjd"
         >
           The label \`A\` does not exist. Verify that the spelling is correct.
         </div>
         <div
-          class="sc-fKVqWL"
+          class="sc-kfPuZi"
         >
           <pre
-            class="sc-hiCibw jvxLJD"
+            class="sc-jJoQJp fAKJvF"
           >
             MATCH p=()--(), q=()--() RETURN p, q
             <br
-              class="sc-jJoQJp"
+              class="sc-ikJyIC"
             />
                
             ^

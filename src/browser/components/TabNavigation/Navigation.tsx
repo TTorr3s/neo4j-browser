@@ -31,7 +31,6 @@ import {
   StyledCannyBadgeAnchor,
   StyledNavigationButton
 } from 'browser-components/buttons'
-import { GUIDE_DRAWER_ID } from 'shared/modules/sidebar/sidebarDuck'
 import { Resizable } from 're-resizable'
 
 export const LARGE_DRAWER_WIDTH = 500
@@ -65,7 +64,6 @@ interface NavigationProps {
 interface NavigationState {
   transitionState: DrawerTransitionState
   closingDrawerName: string | null
-  guideWidth: number
   isResizing: boolean
 }
 
@@ -73,7 +71,6 @@ class Navigation extends Component<NavigationProps, NavigationState> {
   state: NavigationState = {
     transitionState: this.props.selectedDrawerName ? Open : Closed,
     closingDrawerName: null,
-    guideWidth: LARGE_DRAWER_WIDTH,
     isResizing: false
   }
 
@@ -177,11 +174,7 @@ class Navigation extends Component<NavigationProps, NavigationState> {
 
     const drawerIsVisible = this.state.transitionState !== Closed
 
-    const guideDrawerSelected =
-      this.props.selectedDrawerName === GUIDE_DRAWER_ID
-    const drawerWidth = guideDrawerSelected
-      ? this.state.guideWidth
-      : STANDARD_DRAWER_WIDTH
+    const drawerWidth = STANDARD_DRAWER_WIDTH
     const isOpenOrOpening =
       this.state.transitionState === Open ||
       this.state.transitionState === Opening
@@ -201,21 +194,20 @@ class Navigation extends Component<NavigationProps, NavigationState> {
           }}
         >
           <Resizable
-            minWidth={guideDrawerSelected ? STANDARD_DRAWER_WIDTH : 0}
+            minWidth={0}
             maxWidth={'70vw'}
             size={{ width: width, height: '100%' }}
             onResizeStart={() => {
               this.setState({ isResizing: true })
             }}
-            onResizeStop={(_e, _direction, _ref, d) => {
+            onResizeStop={(_e, _direction, _ref, _d) => {
               this.setState({
-                guideWidth: this.state.guideWidth + d.width,
                 isResizing: false
               })
             }}
             enable={{
               top: false,
-              right: guideDrawerSelected,
+              right: false,
               bottom: false,
               left: false,
               topRight: false,

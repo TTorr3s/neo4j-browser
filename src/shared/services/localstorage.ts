@@ -37,10 +37,8 @@ export type LocalStorageKey =
   | 'documents'
   | 'folders'
   | 'grass'
-  | 'syncConsent'
   | 'udc'
   | 'experimentalFeatures'
-  | 'guides'
 const keys: LocalStorageKey[] = []
 
 export function getItem(
@@ -104,8 +102,6 @@ function storeReduxInLocalStorage(state: GlobalState) {
       })
     } else if (key === 'history' && !shouldRetainEditorHistory(state)) {
       setItem(key, [])
-    } else if (key === 'guides') {
-      setItem(key, { ...state[key], currentGuide: null })
     } else {
       setItem(key, state[key])
     }

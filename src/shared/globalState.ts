@@ -43,7 +43,6 @@ import {
 } from './modules/features/featuresDuck'
 import { FramesState, NAME as frames } from './modules/frames/framesDuck'
 import { NAME as grass } from './modules/grass/grassDuck'
-import { GuideState, NAME as guides } from './modules/guides/guidesDuck'
 import { NAME as history } from './modules/history/historyDuck'
 import { NAME as params } from './modules/params/paramsDuck'
 import { RequestState, NAME as requests } from './modules/requests/requestsDuck'
@@ -52,14 +51,6 @@ import {
   NAME as settings
 } from './modules/settings/settingsDuck'
 import { SidebarState, NAME as sidebar } from './modules/sidebar/sidebarDuck'
-import {
-  initialConsentState,
-  initialMetadataState,
-  NAME as sync,
-  NAME_CONSENT as syncConsent,
-  initialState as syncInitialState,
-  NAME_META as syncMetadata
-} from './modules/sync/syncDuck'
 import { UdcState, NAME as udc } from './modules/udc/udcDuck'
 
 export interface GlobalState {
@@ -75,13 +66,9 @@ export interface GlobalState {
   [documents]: Favorite[]
   [params]: Record<string, unknown>
   [grass]: unknown
-  [sync]: typeof syncInitialState
-  [syncMetadata]: typeof initialMetadataState
-  [syncConsent]: typeof initialConsentState
   [folders]: Folder[]
   [commands]: unknown
   [udc]: UdcState
   [app]: AppState
   [experimentalFeatures]: typeof experimentalFeaturesInitialState
-  [guides]: GuideState
 }

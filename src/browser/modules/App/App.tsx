@@ -28,7 +28,6 @@ import FeatureToggleProvider from '../FeatureToggle/FeatureToggleProvider'
 import Main from '../Main/Main'
 import Segment, { MetricsData } from '../Segment'
 import Sidebar from '../Sidebar/Sidebar'
-import BrowserSyncInit from '../Sync/BrowserSyncInit'
 import UserInteraction from '../UserInteraction'
 import PerformanceOverlay from './PerformanceOverlay'
 import { useKeyboardShortcuts } from './keyboardShortcuts'
@@ -79,16 +78,13 @@ import {
   INJECTED_DISCOVERY
 } from 'shared/modules/discovery/discoveryDuck'
 import { getExperimentalFeatures } from 'shared/modules/experimentalFeatures/experimentalFeaturesDuck'
-import { utilizeBrowserSync } from 'shared/modules/features/featuresDuck'
 import {
   LIGHT_THEME,
   codeFontLigatures,
-  getBrowserSyncConfig,
   getTheme
 } from 'shared/modules/settings/settingsDuck'
 import { getOpenDrawer, open } from 'shared/modules/sidebar/sidebarDuck'
 import { toggle } from 'shared/modules/sidebar/sidebarDuck'
-import { getMetadata, getUserAuthStatus } from 'shared/modules/sync/syncDuck'
 import {
   METRICS_EVENT,
   getConsentBannerShownCount,
@@ -150,9 +146,6 @@ export function App(props: any) {
   }, [props.bus])
 
   const {
-    browserSyncAuthStatus,
-    browserSyncConfig,
-    browserSyncMetadata,
     bus,
     codeFontLigatures,
     connectionState,
@@ -165,11 +158,9 @@ export function App(props: any) {
     handleNavClick,
     lastConnectionUpdate,
     loadExternalScripts,
-    loadSync,
     openSettingsDrawer,
     setConsentBannerShownCount,
     store,
-    syncConsent,
     telemetrySettings,
     titleString,
     useDb,
@@ -251,13 +242,6 @@ export function App(props: any) {
                   <CannyLoader />
                 </>
               )}
-              {syncConsent && loadExternalScripts && loadSync && (
-                <BrowserSyncInit
-                  authStatus={browserSyncAuthStatus}
-                  authData={browserSyncMetadata}
-                  config={browserSyncConfig}
-                />
-              )}
               <StyledApp>
                 <StyledBody>
                   <ErrorBoundary>
@@ -315,11 +299,6 @@ const mapStateToProps = (state: GlobalState) => {
       shouldAllowOutgoingConnections(state) !== false && isConnected(state),
     titleString: asTitleString(connectionData),
     defaultConnectionData: getConnectionData(state, CONNECTION_ID),
-    syncConsent: state.syncConsent.consented,
-    browserSyncMetadata: getMetadata(state),
-    browserSyncConfig: getBrowserSyncConfig(state),
-    browserSyncAuthStatus: getUserAuthStatus(state),
-    loadSync: utilizeBrowserSync(state),
     isWebEnv: inWebEnv(state),
     useDb,
     isDatabaseUnavailable,

@@ -38,7 +38,6 @@ import ErrorFrame from './ErrorFrame'
 import HelpFrame from './HelpFrame'
 import HistoryFrame from './HistoryFrame'
 import ParamsFrame from './ParamsFrame'
-import PlayFrame from './PlayFrame'
 import PreFrame from './PreFrame'
 import QueriesFrame from './Queries/QueriesFrame'
 import SchemaFrame from './SchemaFrame'
@@ -59,8 +58,6 @@ const nameToFrame: Record<string, React.ComponentType<any>> = {
   'user-add': UserAdd,
   'change-password': ChangePasswordFrame,
   pre: PreFrame,
-  play: PlayFrame,
-  'play-remote': PlayFrame,
   history: HistoryFrame,
   param: ParamsFrame,
   params: ParamsFrame,

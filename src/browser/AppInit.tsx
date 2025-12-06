@@ -67,10 +67,8 @@ applyKeys(
   'documents',
   'folders',
   'grass',
-  'syncConsent',
   'udc',
-  'experimentalFeatures',
-  'guides'
+  'experimentalFeatures'
 )
 
 // Create suber bus

@@ -20,7 +20,6 @@
 import { combineEpics } from 'redux-observable'
 
 import {
-  fetchGuideFromAllowlistEpic,
   handleCommandEpic,
   handleSingleCommandEpic,
   postConnectCmdEpic
@@ -73,19 +72,8 @@ import {
 } from './modules/editor/editorDuck'
 import { clearOnDisconnectEpic } from './modules/features/featuresDuck'
 import { ensureMaxFramesEpic } from './modules/frames/framesDuck'
-import { fetchRemoteGuideEpic } from './modules/guides/guidesDuck'
 import { clearLocalstorageEpic } from './modules/localstorage/localstorageDuck'
 import { cancelRequestEpic } from './modules/requests/requestsDuck'
-import {
-  clearSyncEpic,
-  loadFavoritesFromSyncEpic,
-  loadFoldersFromSyncEpic,
-  loadGrassFromSyncEpic,
-  syncFavoritesEpic,
-  syncFoldersEpic,
-  syncGrassEpic,
-  syncItemsEpic
-} from './modules/sync/syncDuck'
 import {
   trackCommandUsageEpic,
   trackErrorFramesEpic,
@@ -98,7 +86,6 @@ export default combineEpics(
   handleCommandEpic,
   handleSingleCommandEpic,
   postConnectCmdEpic,
-  fetchGuideFromAllowlistEpic,
   connectionLostEpic,
   switchConnectionEpic,
   switchConnectionSuccessEpic,
@@ -131,14 +118,6 @@ export default combineEpics(
   clearLocalstorageEpic,
   handleForcePasswordChangeEpic,
   clearOnDisconnectEpic,
-  syncFavoritesEpic,
-  loadFavoritesFromSyncEpic,
-  loadGrassFromSyncEpic,
-  syncItemsEpic,
-  clearSyncEpic,
-  loadFoldersFromSyncEpic,
-  syncFoldersEpic,
-  syncGrassEpic,
   credentialsTimeoutEpic,
   udcStartupEpic,
   ensureMaxFramesEpic,
@@ -149,6 +128,5 @@ export default combineEpics(
   trackReduxActionsEpic,
   initializeCypherEditorEpic,
   updateEditorSupportSchemaEpic,
-  fetchRemoteGuideEpic,
   trackPreviewEpic
 )
