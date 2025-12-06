@@ -54,8 +54,10 @@ function matchesShortcut(e: KeyboardEvent, shortcut: Shortcut): boolean {
 }
 
 function isOutsideTextArea(e: KeyboardEvent): boolean {
-  const tagName = (e.target as HTMLElement).tagName
-  return ['INPUT', 'TEXTAREA'].indexOf(tagName) === -1
+  const target = e.target as HTMLElement
+  const tagName = target.tagName
+  const isMonacoEditor = target.closest('.monaco-editor') !== null
+  return ['INPUT', 'TEXTAREA'].indexOf(tagName) === -1 && !isMonacoEditor
 }
 
 export function useKeyboardShortcuts(bus: Bus): void {

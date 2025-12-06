@@ -19,21 +19,21 @@
  */
 import { QueryOrCommand, parse } from '@neo4j-cypher/editor-support'
 import { debounce } from 'lodash-es'
-// import 'monaco-editor/esm/vs/editor/editor.all.js'
+import 'monaco-editor/esm/vs/editor/editor.all.js'
 
-// núcleo del editor
-import 'monaco-editor/esm/vs/editor/editor.api'
+// // núcleo del editor
+// import 'monaco-editor/esm/vs/editor/editor.api'
 
-// contributions válidas
-import 'monaco-editor/esm/vs/editor/contrib/find/browser/findController'
-import 'monaco-editor/esm/vs/editor/contrib/wordOperations/browser/wordOperations'
-import 'monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard'
-import 'monaco-editor/esm/vs/editor/contrib/caretOperations/browser/caretOperations'
-import 'monaco-editor/esm/vs/editor/contrib/multicursor/browser/multicursor'
-import 'monaco-editor/esm/vs/editor/contrib/smartSelect/browser/smartSelect'
-import 'monaco-editor/esm/vs/editor/contrib/indentation/browser/indentation'
-import 'monaco-editor/esm/vs/editor/contrib/bracketMatching/browser/bracketMatching'
-import 'monaco-editor/esm/vs/editor/contrib/suggest/browser/suggestController'
+// // contributions válidas
+// import 'monaco-editor/esm/vs/editor/contrib/find/browser/findController'
+// import 'monaco-editor/esm/vs/editor/contrib/wordOperations/browser/wordOperations'
+// import 'monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard'
+// import 'monaco-editor/esm/vs/editor/contrib/caretOperations/browser/caretOperations'
+// import 'monaco-editor/esm/vs/editor/contrib/multicursor/browser/multicursor'
+// import 'monaco-editor/esm/vs/editor/contrib/smartSelect/browser/smartSelect'
+// import 'monaco-editor/esm/vs/editor/contrib/indentation/browser/indentation'
+// import 'monaco-editor/esm/vs/editor/contrib/bracketMatching/browser/bracketMatching'
+// import 'monaco-editor/esm/vs/editor/contrib/suggest/browser/suggestController'
 
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import { QueryResult } from 'neo4j-driver-core'
