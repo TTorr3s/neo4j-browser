@@ -30,17 +30,6 @@ import {
 export const stopIconColor = '#FD766E'
 export const primaryLightColor = '#68BDF4'
 
-// These and colors in dark theme from light palette are to be translated to corresponding
-// version in dark palette when available
-const NDLColors = {
-  neutral: {
-    '70': {
-      opacity50: 'rgb(113, 119, 128, 0.5)',
-      opacity60: 'rgb(113, 119, 128, 0.6)'
-    }
-  }
-}
-
 export const base = {
   ...baseArcTheme,
   name: 'base',
@@ -159,67 +148,84 @@ export const outline = {
   topicBorder: '1px solid #000'
 }
 
+// Tokyo Night Storm color palette
+const tokyoNightStorm = {
+  bg: '#24283b', // Main background
+  bgDark: '#1f2335', // Darker background (widgets, panels)
+  bgHighlight: '#292e42', // Line highlight, hover
+  selection: '#414868', // Selection, borders
+  fg: '#a9b1d6', // Main foreground
+  fgBright: '#c0caf5', // Bright foreground
+  fgMuted: '#565f89', // Comments, muted text
+  blue: '#7aa2f7', // Links, primary
+  cyan: '#7dcfff', // Secondary accent
+  green: '#9ece6a', // Success
+  red: '#f7768e', // Error
+  orange: '#ff9e64', // Warning
+  purple: '#bb9af7' // Accent
+}
+
 export const dark = {
   ...base,
   name: DARK_THEME,
 
-  primaryText: '#f4f4f4',
-  secondaryText: '#eee',
-  headerText: '#f4f4f4',
-  primaryHeaderText: '#f4f4f4',
-  link: '#5CA6D9',
-  linkHover: '#1e70bf',
-  topicText: '#ffffff',
-  preText: '#e8e7ecff',
-  asideText: 'rgb(255, 255, 255, 0.87)',
+  primaryText: tokyoNightStorm.fgBright,
+  secondaryText: tokyoNightStorm.fg,
+  headerText: tokyoNightStorm.fgBright,
+  primaryHeaderText: tokyoNightStorm.fgBright,
+  link: tokyoNightStorm.blue,
+  linkHover: tokyoNightStorm.cyan,
+  topicText: tokyoNightStorm.fgBright,
+  preText: tokyoNightStorm.fg,
+  asideText: tokyoNightStorm.fg,
 
-  // Backgrounds
-  primaryBackground: '#525865',
-  secondaryBackground: '#292C33',
-  editorBackground: '#070818ff',
-  drawerBackground: '#1b1e21',
+  // Backgrounds - Tokyo Night Storm
+  primaryBackground: tokyoNightStorm.selection,
+  secondaryBackground: tokyoNightStorm.bgDark,
+  editorBackground: tokyoNightStorm.bg,
+  drawerBackground: tokyoNightStorm.bgDark,
   topicBackground: 'transparent',
-  preBackground: '#14161e',
-  alteringTableRowBackground: '#050614ff',
-  frameCommandBackground: '#050614ff',
-  runnableBackground: '#202226',
-  teaserCardBackground: '#050614ff',
+  preBackground: tokyoNightStorm.bgDark,
+  alteringTableRowBackground: tokyoNightStorm.bgHighlight,
+  frameCommandBackground: tokyoNightStorm.bgDark,
+  runnableBackground: tokyoNightStorm.bgHighlight,
+  teaserCardBackground: tokyoNightStorm.bgDark,
 
   // Buttons
-  primaryButtonText: '#ffffff',
-  primaryButtonBackground: '#195754',
-  secondaryButtonText: '#f4f4f4',
-  secondaryButtonBorder: '1px solid #888',
+  primaryButtonText: tokyoNightStorm.fgBright,
+  primaryButtonBackground: tokyoNightStorm.purple,
+  secondaryButtonText: tokyoNightStorm.fg,
+  secondaryButtonBorder: `1px solid ${tokyoNightStorm.selection}`,
   secondaryButtonBackground: 'transparent',
-  secondaryButtonTextHover: '#f4f4f4',
-  secondaryButtonBorderHover: '1px solid #888',
-  secondaryButtonBackgroundHover: '#1b1e21',
+  secondaryButtonTextHover: tokyoNightStorm.fgBright,
+  secondaryButtonBorderHover: `1px solid ${tokyoNightStorm.fgMuted}`,
+  secondaryButtonBackgroundHover: tokyoNightStorm.bgHighlight,
 
   // Borders
-  inFrameBorder: '1px solid rgba(255,255,255,0.12)',
-  monacoEditorBorder: '1px solid #38517d',
+  inFrameBorder: `1px solid ${tokyoNightStorm.selection}`,
+  monacoEditorBorder: `1px solid ${tokyoNightStorm.selection}`,
 
-  // Frame
-  frameSidebarBackground: '#070818ff',
-  frameTitlebarText: '#717172',
-  frameControlButtonTextColor: '#D7E5F1',
-  frameButtonTextColorLegacy: '#FFF',
-  frameButtonTextColor: needlePalette.light.neutral.bg.default,
-  frameButtonHoverBackground: NDLColors.neutral['70'].opacity60,
-  frameButtonActiveBackground: NDLColors.neutral['70'].opacity50,
-  frameNodePropertiesPanelIconTextColor: '#f4f4f4',
-  streamBackgroundColor: '#000000',
-  frameBackground: '#080c13',
-  accordionContentBackground: '#050614ff',
-  currentEditIconColor: '#6B6B6B',
+  // Frame - Tokyo Night Storm
+  frameSidebarBackground: tokyoNightStorm.bgDark,
+  frameTitlebarText: tokyoNightStorm.fgMuted,
+  frameControlButtonTextColor: tokyoNightStorm.fg,
+  frameButtonTextColorLegacy: tokyoNightStorm.fgBright,
+  frameButtonTextColor: tokyoNightStorm.fg,
+  frameButtonHoverBackground: tokyoNightStorm.bgHighlight,
+  frameButtonActiveBackground: tokyoNightStorm.selection,
+  frameNodePropertiesPanelIconTextColor: tokyoNightStorm.fg,
+  streamBackgroundColor: tokyoNightStorm.bg,
+  frameBackground: tokyoNightStorm.bg,
+  accordionContentBackground: tokyoNightStorm.bgDark,
+  currentEditIconColor: tokyoNightStorm.fgMuted,
 
   // Info message
-  infoBackground: needlePalette.light.neutral.bg.strongest,
-  infoBorder: `1px solid ${needlePalette.light.neutral.text.weakest}`,
-  infoIconColor: needlePalette.light.neutral.bg.weak,
+  infoBackground: tokyoNightStorm.bgHighlight,
+  infoBorder: `1px solid ${tokyoNightStorm.selection}`,
+  infoIconColor: tokyoNightStorm.blue,
 
   // Code block
-  codeBlockBackground: '#717780',
-  codeBlockTextColor: needlePalette.light.primary.border.weak,
-  codeBlockHoveBackground: needlePalette.light.neutral.bg.strongest
+  codeBlockBackground: tokyoNightStorm.bgHighlight,
+  codeBlockTextColor: tokyoNightStorm.cyan,
+  codeBlockHoveBackground: tokyoNightStorm.selection
 }

@@ -19,27 +19,56 @@
  */
 import { editor } from 'monaco-editor/esm/vs/editor/editor.api'
 
-// Custom color palette for Cypher syntax highlighting (Dracula-inspired)
-const cypherColorFallback = {
-  black: '#000000',
-  blue: '#4FC1FF', // Node labels and relationship types (vivid blue)
-  cyan: '#56D4DD', // Numbers (vivid cyan)
-  cyan_grey: '#6A9955',
-  green: '#6A9955',
-  light_grey: '#6272A4', // Comments (muted purple-gray)
-  magenta: '#FF79C6', // Magenta (vivid)
-  orange: '#FF9E64', // Orange (vivid)
-  red: '#FF6B6B', // Red (vivid)
-  violet: '#BD93F9', // Functions and procedures (vivid violet)
-  white: '#F8F8F2',
-  yellow: '#50FA7B', // String quotes (vivid green)
-  string_content: '#2E9B4E', // String content (darker green)
-  light_blue: '#8BE9FD', // Variables (vivid light blue/cyan)
-  keyword_orange: '#FFB86C', // Keywords (vivid orange)
-  property_color: '#E6DB74' // Properties (vivid yellow/gold)
+// Tokyo Night Storm color palette for Cypher syntax highlighting
+// Inspired by enkia.tokyo-night VS Code extension
+const tokyoNightStormColors = {
+  // Editor colors
+  background: '#24283b',
+  foreground: '#a9b1d6',
+  foregroundBright: '#c0caf5',
+  foregroundMuted: '#9aa5ce',
+  comment: '#565f89',
+  selection: '#414868',
+
+  // Syntax colors
+  red: '#f7768e', // This keyword, HTML elements, Regex group symbol
+  orange: '#ff9e64', // Number and Boolean constants
+  yellow: '#e0af68', // Function parameters, Regex character sets
+  yellowMuted: '#cfc9c2', // Parameters inside functions
+  green: '#9ece6a', // Strings, CSS class names
+  greenCyan: '#73daca', // Object literal keys, Markdown links
+  cyan: '#b4f9f8', // Regex literal strings
+  cyanBright: '#2ac3de', // Language support functions
+  blue: '#7dcfff', // Object properties, Regex quantifiers
+  blueBright: '#7aa2f7', // Function names, CSS property names
+  purple: '#bb9af7', // Control Keywords, Storage Types
+  white: '#c0caf5' // Variables, Class names
 }
 
-export type CypherColorFallback = typeof cypherColorFallback
+// Tokyo Night Light color palette
+const tokyoNightLightColors = {
+  // Editor colors
+  background: '#e6e7ed',
+  foreground: '#343b58',
+  foregroundMuted: '#40434f',
+  comment: '#6c6e75',
+  selection: '#d5d6db',
+
+  // Syntax colors
+  red: '#8c4351', // This keyword, HTML elements
+  orange: '#965027', // Number and Boolean constants
+  yellow: '#8f5e15', // Function parameters
+  yellowMuted: '#634f30', // Parameters inside functions
+  green: '#385f0d', // Strings, CSS class names
+  greenCyan: '#33635c', // Object literal keys, Markdown links
+  cyan: '#006c86', // Language support functions
+  blue: '#0f4b6e', // Object properties
+  blueBright: '#2959aa', // Function names
+  purple: '#5a3e8e', // Control Keywords, Storage Types
+  black: '#343b58' // Variables, Class names
+}
+
+export type CypherColorFallback = typeof tokyoNightStormColors
 
 const comments: string[] = ['comment']
 const strings: string[] = ['stringliteral', 'urlhex']
@@ -313,131 +342,220 @@ const tokensWithoutSyntaxHighlighting: string[] = [
 ]
 
 export const getMonacoThemes = (
-  color?: typeof cypherColorFallback
+  _color?: CypherColorFallback
 ): {
   monacoDarkTheme: editor.IStandaloneThemeData
   monacoLightTheme: editor.IStandaloneThemeData
 } => {
-  const cypherColor = color || cypherColorFallback
+  const storm = tokyoNightStormColors
+  const light = tokyoNightLightColors
 
   const makeCypherTokenThemeRule = (token: string, foreground: string) => ({
     token: `${token}.cypher`,
     foreground
   })
 
-  // Custom syntax highlighting for Cypher
-  const sharedRules: editor.ITokenThemeRule[] = [
-    ...strings.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.yellow)
-    ),
-    ...stringQuotes.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.yellow)
-    ),
+  // Tokyo Night Storm (Dark) theme rules for Cypher
+  const stormRules: editor.ITokenThemeRule[] = [
+    // Strings - green
+    ...strings.map(token => makeCypherTokenThemeRule(token, storm.green)),
+    ...stringQuotes.map(token => makeCypherTokenThemeRule(token, storm.green)),
     ...stringContents.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.string_content)
+      makeCypherTokenThemeRule(token, storm.green)
     ),
-    ...numbers.map(token => makeCypherTokenThemeRule(token, cypherColor.cyan)),
 
-    ...keywords.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.keyword_orange)
-    ),
-    ...labels.map(token => makeCypherTokenThemeRule(token, cypherColor.blue)),
+    // Numbers - orange
+    ...numbers.map(token => makeCypherTokenThemeRule(token, storm.orange)),
+
+    // Keywords - purple (Control Keywords)
+    ...keywords.map(token => makeCypherTokenThemeRule(token, storm.purple)),
+
+    // Labels and relationship types - red (HTML elements style)
+    ...labels.map(token => makeCypherTokenThemeRule(token, storm.red)),
     ...relationshipTypes.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.blue)
+      makeCypherTokenThemeRule(token, storm.red)
     ),
-    ...variables.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.light_blue)
-    ),
+
+    // Variables - white/bright foreground
+    ...variables.map(token => makeCypherTokenThemeRule(token, storm.white)),
+
+    // Properties - blue (Object properties)
+    ...properties.map(token => makeCypherTokenThemeRule(token, storm.blue)),
+
+    // Functions and procedures - blue bright (Function names)
     ...procedures.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.violet)
+      makeCypherTokenThemeRule(token, storm.blueBright)
     ),
     ...functions.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.violet)
+      makeCypherTokenThemeRule(token, storm.blueBright)
     ),
+
+    // Parameters - cyan bright
     ...parameters.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.red)
+      makeCypherTokenThemeRule(token, storm.cyanBright)
     ),
+
+    // Console commands - cyan
     ...consoleCommands.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.magenta)
+      makeCypherTokenThemeRule(token, storm.cyanBright)
     ),
+
+    // Procedure output - green cyan
     ...procedureOutput.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.blue)
+      makeCypherTokenThemeRule(token, storm.greenCyan)
     ),
-    ...properties.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.property_color)
-    )
-  ]
-  const darkThemeRules = [
-    ...sharedRules,
-    ...comments.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.light_grey)
-    ),
-    ...tokensWithoutSyntaxHighlighting.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.white)
-    ),
+
+    // Comments - muted gray
+    ...comments.map(token => makeCypherTokenThemeRule(token, storm.comment)),
+
+    // Operators - foreground muted
     ...operators.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.light_grey)
-    )
-  ]
-  const lightThemeRules = [
-    ...sharedRules,
-    ...comments.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.light_grey)
+      makeCypherTokenThemeRule(token, storm.foregroundMuted)
     ),
+
+    // Tokens without highlighting - default foreground
     ...tokensWithoutSyntaxHighlighting.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.black)
-    ),
-    ...operators.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.cyan_grey)
+      makeCypherTokenThemeRule(token, storm.foreground)
     )
   ]
 
-  // Additional rules to override vs-dark theme defaults for strings
-  const stringOverrideRules: editor.ITokenThemeRule[] = [
-    { token: 'string', foreground: cypherColor.string_content },
-    { token: 'string.cypher', foreground: cypherColor.string_content },
-    { token: 'string.quote', foreground: cypherColor.yellow },
-    { token: 'string.quote.cypher', foreground: cypherColor.yellow },
-    { token: 'string.delimiter', foreground: cypherColor.yellow },
-    { token: 'string.delimiter.cypher', foreground: cypherColor.yellow },
-    // Override punctuation colors that may affect quotes
-    { token: 'punctuation', foreground: cypherColor.yellow },
-    { token: 'punctuation.definition.string', foreground: cypherColor.yellow },
-    {
-      token: 'punctuation.definition.string.begin',
-      foreground: cypherColor.yellow
-    },
-    {
-      token: 'punctuation.definition.string.end',
-      foreground: cypherColor.yellow
-    }
+  // Tokyo Night Light theme rules for Cypher
+  const lightRules: editor.ITokenThemeRule[] = [
+    // Strings - green
+    ...strings.map(token => makeCypherTokenThemeRule(token, light.green)),
+    ...stringQuotes.map(token => makeCypherTokenThemeRule(token, light.green)),
+    ...stringContents.map(token =>
+      makeCypherTokenThemeRule(token, light.green)
+    ),
+
+    // Numbers - orange
+    ...numbers.map(token => makeCypherTokenThemeRule(token, light.orange)),
+
+    // Keywords - purple (Control Keywords)
+    ...keywords.map(token => makeCypherTokenThemeRule(token, light.purple)),
+
+    // Labels and relationship types - red
+    ...labels.map(token => makeCypherTokenThemeRule(token, light.red)),
+    ...relationshipTypes.map(token =>
+      makeCypherTokenThemeRule(token, light.red)
+    ),
+
+    // Variables - black/dark foreground
+    ...variables.map(token => makeCypherTokenThemeRule(token, light.black)),
+
+    // Properties - blue
+    ...properties.map(token => makeCypherTokenThemeRule(token, light.blue)),
+
+    // Functions and procedures - blue bright
+    ...procedures.map(token =>
+      makeCypherTokenThemeRule(token, light.blueBright)
+    ),
+    ...functions.map(token =>
+      makeCypherTokenThemeRule(token, light.blueBright)
+    ),
+
+    // Parameters - cyan
+    ...parameters.map(token => makeCypherTokenThemeRule(token, light.cyan)),
+
+    // Console commands - cyan
+    ...consoleCommands.map(token =>
+      makeCypherTokenThemeRule(token, light.cyan)
+    ),
+
+    // Procedure output - green cyan
+    ...procedureOutput.map(token =>
+      makeCypherTokenThemeRule(token, light.greenCyan)
+    ),
+
+    // Comments - muted gray
+    ...comments.map(token => makeCypherTokenThemeRule(token, light.comment)),
+
+    // Operators - foreground muted
+    ...operators.map(token =>
+      makeCypherTokenThemeRule(token, light.foregroundMuted)
+    ),
+
+    // Tokens without highlighting - default foreground
+    ...tokensWithoutSyntaxHighlighting.map(token =>
+      makeCypherTokenThemeRule(token, light.foreground)
+    )
+  ]
+
+  // Additional string override rules for Storm theme
+  const stormStringOverrideRules: editor.ITokenThemeRule[] = [
+    { token: 'string', foreground: storm.green },
+    { token: 'string.cypher', foreground: storm.green },
+    { token: 'string.quote', foreground: storm.green },
+    { token: 'string.quote.cypher', foreground: storm.green },
+    { token: 'string.delimiter', foreground: storm.green },
+    { token: 'string.delimiter.cypher', foreground: storm.green }
+  ]
+
+  // Additional string override rules for Light theme
+  const lightStringOverrideRules: editor.ITokenThemeRule[] = [
+    { token: 'string', foreground: light.green },
+    { token: 'string.cypher', foreground: light.green },
+    { token: 'string.quote', foreground: light.green },
+    { token: 'string.quote.cypher', foreground: light.green },
+    { token: 'string.delimiter', foreground: light.green },
+    { token: 'string.delimiter.cypher', foreground: light.green }
   ]
 
   const monacoDarkTheme: editor.IStandaloneThemeData = {
     base: 'vs-dark',
     inherit: true,
-    rules: [...darkThemeRules, ...stringOverrideRules],
+    rules: [...stormRules, ...stormStringOverrideRules],
     colors: {
-      'editor.background': '#070818ff',
-      'editorCursor.foreground': '#585a61',
-      'editorLineNumber.foreground': cypherColor.white,
-      'editorLineNumber.activeForeground': cypherColor.white,
-      foreground: cypherColor.white,
-      'editorWidget.background': '#01130ef2'
+      'editor.background': storm.background,
+      'editor.foreground': storm.foreground,
+      'editor.selectionBackground': storm.selection,
+      'editor.lineHighlightBackground': '#292e42',
+      'editorCursor.foreground': storm.foregroundBright,
+      'editorLineNumber.foreground': storm.comment,
+      'editorLineNumber.activeForeground': storm.foreground,
+      foreground: storm.foreground,
+      'editorWidget.background': '#1f2335',
+      'editorSuggestWidget.background': '#1f2335',
+      'editorSuggestWidget.border': storm.selection,
+      'editorSuggestWidget.foreground': storm.foreground,
+      'editorSuggestWidget.selectedBackground': storm.selection,
+      'editorHoverWidget.background': '#1f2335',
+      'editorHoverWidget.border': storm.selection,
+      'input.background': '#1f2335',
+      'input.foreground': storm.foreground,
+      'input.border': storm.selection,
+      'dropdown.background': '#1f2335',
+      'dropdown.foreground': storm.foreground,
+      'dropdown.border': storm.selection
     }
   }
 
   const monacoLightTheme: editor.IStandaloneThemeData = {
     base: 'vs',
     inherit: true,
-    rules: lightThemeRules,
+    rules: [...lightRules, ...lightStringOverrideRules],
     colors: {
-      'editor.background': '#ffffff',
-      'editorCursor.foreground': '#d6d7db',
-      'editorLineNumber.foreground': cypherColor.light_grey,
-      'editorLineNumber.activeForeground': cypherColor.light_grey,
-      foreground: cypherColor.black,
-      'suggestWidget.background': '#f0f0f0'
+      'editor.background': light.background,
+      'editor.foreground': light.foreground,
+      'editor.selectionBackground': light.selection,
+      'editor.lineHighlightBackground': '#d5d6db',
+      'editorCursor.foreground': light.foreground,
+      'editorLineNumber.foreground': light.comment,
+      'editorLineNumber.activeForeground': light.foreground,
+      foreground: light.foreground,
+      'editorWidget.background': '#d5d6db',
+      'editorSuggestWidget.background': '#d5d6db',
+      'editorSuggestWidget.border': '#b4b5b9',
+      'editorSuggestWidget.foreground': light.foreground,
+      'editorSuggestWidget.selectedBackground': '#c4c5c9',
+      'editorHoverWidget.background': '#d5d6db',
+      'editorHoverWidget.border': '#b4b5b9',
+      'input.background': '#d5d6db',
+      'input.foreground': light.foreground,
+      'input.border': '#b4b5b9',
+      'dropdown.background': '#d5d6db',
+      'dropdown.foreground': light.foreground,
+      'dropdown.border': '#b4b5b9'
     }
   }
 

@@ -21,15 +21,15 @@ import styled from 'styled-components'
 
 export const StyledSidebar = styled.div`
   flex: 0 0 auto;
-  background-color: #000000;
+  background-color: ${props => props.theme.drawerBackground};
   display: flex;
   flex-direction: row;
-  color: #ffffff;
+  color: ${props => props.theme.primaryText};
 `
 export const StyledDrawer = styled.div`
   height: 100%;
   flex: 0 0 auto;
-  background-color: #000000;
+  background-color: ${props => props.theme.drawerBackground};
   overflow-x: hidden;
   overflow-y: auto;
   transition: 0.2s ease-out;

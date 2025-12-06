@@ -110,20 +110,23 @@ export const StyledCaptionSelector = styled.a`
   padding: 1px 6px;
   font-size: 12px;
   line-height: 1em;
-  color: #9195a0;
-  border: 1px solid #9195a0;
+  color: ${props => props.theme.secondaryText};
+  border: 1px solid ${props => props.theme.secondaryText};
   overflow: hidden;
   border-radius: 0.25em;
   margin-right: 0;
   font-weight: bold;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
   &:hover {
-    border-color: #aaa;
-    color: #aaa;
+    border-color: ${props => props.theme.primaryText};
+    color: ${props => props.theme.primaryText};
     text-decoration: none;
   }
   &.active {
-    color: white;
-    background-color: #9195a0;
+    color: ${props => props.theme.primaryText};
+    background-color: ${props => props.theme.primaryBackground};
   }
 `
 
