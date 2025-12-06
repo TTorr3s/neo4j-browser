@@ -63,7 +63,11 @@ export async function exportFavoritesAsZip(
     }
   )
 
-  const blob = await zip.generateAsync({ type: 'blob' })
+  const blob = await zip.generateAsync({
+    type: 'blob',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 }
+  })
   await saveAs(
     blob,
     `saved-scripts-${new Date().toISOString().split('T')[0]}.zip`
