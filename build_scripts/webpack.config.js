@@ -37,6 +37,7 @@ module.exports = {
   resolve: {
     symlinks: false,
     alias: {
+      // uuid: path.resolve(__dirname, '../node_modules/uuid/dist/index.js'),
       'react-dom': '@hot-loader/react-dom',
       'project-root': path.resolve(__dirname, '../'),
       services: path.resolve(helpers.sourcePath, 'shared/services'),

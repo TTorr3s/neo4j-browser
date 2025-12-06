@@ -21,7 +21,7 @@ import { map } from 'lodash-es'
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import FrameAside from '../Frame/FrameAside'
 import FrameBodyTemplate from '../Frame/FrameBodyTemplate'
@@ -157,7 +157,7 @@ export class UserList extends Component<any, UserListState> {
       return (
         <UserInformation
           className="user-information"
-          key={uuid.v4()}
+          key={uuidv4()}
           user={row}
           refresh={this.getUserList.bind(this)}
           availableRoles={this.state.listRoles}

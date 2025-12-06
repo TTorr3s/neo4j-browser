@@ -20,7 +20,7 @@
 import { uniq } from 'lodash-es'
 import React, { useState } from 'react'
 import { useDrop } from 'react-dnd'
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import { AddIcon } from '../icons/LegacyIcons'
 
@@ -186,7 +186,7 @@ export default function SavedScripts({
   const newFolderButton = createNewFolder && (
     <NewFolderButton
       onClick={() => {
-        const id = uuid.v4()
+        const id = uuidv4()
         setUnNamedFolder(id)
         createNewFolder(id)
       }}

@@ -204,7 +204,7 @@
     "semver": "7.6.3",
     "styled-components": "^5.3.3",
     "suber": "^5.0.1",
-    "uuid": "3.4.0",
+    "uuid": "13.0.0",
     "whatwg-url": "^11.0.0"
   }
 }

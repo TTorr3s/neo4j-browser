@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import React, { useEffect, useState } from 'react'
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import Carousel from '../Carousel/Carousel'
 import Slide from '../Carousel/Slide'
@@ -61,7 +61,7 @@ export default function Docs({
       const htmlSlides = tmpDiv.getElementsByTagName('slide')
       if (htmlSlides && htmlSlides.length) {
         const reactSlides = Array.from(htmlSlides).map(slide => {
-          return <Slide key={uuid.v4()} html={slide.innerHTML} />
+          return <Slide key={uuidv4()} html={slide.innerHTML} />
         })
         setStateSlides(reactSlides)
         return

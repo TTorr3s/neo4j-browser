@@ -16,7 +16,7 @@
  */
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import MyScripts from 'browser/components/SavedScripts'
 import { ExportFormat, exporters } from 'services/exporting/favoriteUtils'
@@ -64,7 +64,7 @@ const mapFavoritesDispatchToProps = (dispatch: any, ownProps: any) => ({
     dispatch(foldersDuck.updateFolders(folders))
   },
   createNewFolder(id?: string) {
-    dispatch(foldersDuck.addFolder(id || uuid.v4(), 'New Folder'))
+    dispatch(foldersDuck.addFolder(id || uuidv4(), 'New Folder'))
   },
   dispatchRemoveFolderAndItsScripts(folderId: string, favoriteIds: string[]) {
     dispatch(foldersDuck.removeFolder(folderId))
@@ -74,7 +74,7 @@ const mapFavoritesDispatchToProps = (dispatch: any, ownProps: any) => ({
     dispatch(favoritesDuck.moveFavorite(favoriteId, folderId))
   },
   createNewScript() {
-    const id = uuid.v4()
+    const id = uuidv4()
     const content = `// Untitled favorite
 `
     dispatch(favoritesDuck.addFavorite(content, id))

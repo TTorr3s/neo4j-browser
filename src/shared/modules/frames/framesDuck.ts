@@ -21,7 +21,7 @@ import { Action } from 'redux'
 import { Epic } from 'redux-observable'
 import 'rxjs/add/operator/do'
 import 'rxjs/add/operator/mapTo'
-import uuid from 'uuid'
+import { v1 as uuidv1 } from 'uuid'
 
 import { Database } from '../dbMeta/dbMetaDuck'
 import {
@@ -318,7 +318,7 @@ export function add(payload: Frame): AddFrameAction {
     type: ADD,
     state: {
       ...payload,
-      id: payload.id || uuid.v1()
+      id: payload.id || uuidv1()
     }
   }
 }

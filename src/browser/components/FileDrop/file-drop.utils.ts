@@ -31,7 +31,7 @@ import {
   tail,
   values
 } from 'lodash-es'
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import { CYPHER_FILE_EXTENSION } from 'services/exporting/favoriteUtils'
 
@@ -57,7 +57,7 @@ export function getMissingFoldersFromNames(folderNames: any, allFolders: any) {
     filter(folderNames, folderName => !includes(existingNames, folderName)),
     name => ({
       name,
-      id: uuid.v4()
+      id: uuidv4()
     })
   )
 }
@@ -126,6 +126,6 @@ export function fileContentToFavoriteFactory(file: any) {
     const pathParts = split(pathWithoutLeadingSlash, '/')
     const folderName = join(reverse(tail(reverse(pathParts))), '/')
 
-    return { id: uuid.v4(), contents, folderName }
+    return { id: uuidv4(), contents, folderName }
   }
 }

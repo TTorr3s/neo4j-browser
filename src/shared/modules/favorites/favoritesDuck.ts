@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import { scripts as staticScriptsList } from './staticScripts'
 import { getBrowserName } from 'services/utils'
@@ -90,7 +90,7 @@ export default function reducer(
     case REMOVE_FAVORITES:
       return removeFavoritesById(state, action.ids)
     case ADD_FAVORITE:
-      return state.concat([{ id: action.id || uuid.v4(), content: action.cmd }])
+      return state.concat([{ id: action.id || uuidv4(), content: action.cmd }])
     case MOVE_FAVORITE:
       const updatedFavorites = updateFavoriteFields(state, action.id, {
         folder: action.folder

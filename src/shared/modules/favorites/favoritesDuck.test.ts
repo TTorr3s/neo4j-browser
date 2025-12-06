@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import reducer, * as favorites from './favoritesDuck'
 
@@ -49,15 +49,15 @@ describe('favorites reducer', () => {
 
   test('should update state for favorites when favorite is removed when there is more than one item in the list', () => {
     const favoriteScript1 = {
-      id: uuid.v4(),
+      id: uuidv4(),
       content: 'match (n) return n limit 1'
     }
     const favoriteScript2 = {
-      id: uuid.v4(),
+      id: uuidv4(),
       content: 'match (a) return a'
     }
     const favoriteScript3 = {
-      id: uuid.v4(),
+      id: uuidv4(),
       content: 'match (a) return a'
     }
     const initialState = [favoriteScript1, favoriteScript2, favoriteScript3]
@@ -69,7 +69,7 @@ describe('favorites reducer', () => {
   })
   test('should return favorite by id', () => {
     const script = {
-      id: uuid.v4(),
+      id: uuidv4(),
       content: 'match (n) return n limit 1'
     }
 
@@ -82,11 +82,11 @@ describe('favorites reducer', () => {
   })
   test('should update favorite by id', () => {
     const favoriteScript1 = {
-      id: uuid.v4(),
+      id: uuidv4(),
       content: 'match (n) return n limit 1'
     }
     const favoriteScript2 = {
-      id: uuid.v4(),
+      id: uuidv4(),
       content: 'match (a) return a'
     }
     const initialState = [favoriteScript1, favoriteScript2]
@@ -115,7 +115,7 @@ describe('favorites actions', () => {
     expect(favorites.loadFavorites(favs)).toEqual(expected)
   })
   test('should handle removing favorite', () => {
-    const id = uuid.v4()
+    const id = uuidv4()
     const expected = {
       type: favorites.REMOVE_FAVORITE,
       id

@@ -20,7 +20,7 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
-import uuid, { v4 } from 'uuid'
+import { v4 } from 'uuid'
 
 import { CloseIcon } from 'browser-components/icons/LegacyIcons'
 
@@ -198,8 +198,7 @@ export class UserInformation extends Component<any, UserInformationState> {
         </StyledUserTd>
         <StyledUserTd className="roles" aria-labelledby="roles">
           <RolesSelector
-            // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
-            id={`roles-selector-${uuid()}`}
+            id={`roles-selector-${v4()}`}
             roles={this.availableRoles()}
             onChange={this.onRoleSelect.bind(this)}
           />

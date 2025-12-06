@@ -21,7 +21,7 @@ import { map } from 'lodash-es'
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 import { CloseIcon } from 'browser-components/icons/LegacyIcons'
 
@@ -284,8 +284,7 @@ export class UserAdd extends Component<any, UserAddState> {
       )
 
     let errors = this.state.errors ? this.state.errors.join(', ') : null
-    // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
-    const formId = uuid()
+    const formId = uuidv4()
     const usernameId = `username-${formId}`
     const passwordId = `password-${formId}`
     const passwordConfirmId = `password-confirm-${formId}`
