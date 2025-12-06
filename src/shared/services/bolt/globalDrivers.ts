@@ -20,7 +20,7 @@
 import neo4j, { Driver } from 'neo4j-driver'
 
 import { createDriverOrFailFn } from './driverFactory'
-import { KERBEROS, NATIVE } from 'services/bolt/boltHelpers'
+import { NATIVE } from 'services/bolt/boltHelpers'
 import {
   isNonRoutingScheme,
   isNonSupportedRoutingSchemeError,
@@ -106,16 +106,8 @@ export const buildAuthObj = (props: {
   password: string
   username: string
 }) => {
-  let auth
-  if (props.authenticationMethod === KERBEROS) {
-    auth = neo4j.auth.kerberos(props.password)
-  } else if (
-    props.authenticationMethod === NATIVE ||
-    !props.authenticationMethod
-  ) {
-    auth = neo4j.auth.basic(props.username, props.password)
-  } else {
-    auth = neo4j.auth.basic('', '')
+  if (props.authenticationMethod === NATIVE || !props.authenticationMethod) {
+    return neo4j.auth.basic(props.username, props.password)
   }
-  return auth
+  return neo4j.auth.basic('', '')
 }

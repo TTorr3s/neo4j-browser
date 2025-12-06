@@ -91,8 +91,7 @@ describe('<DesktopApi>', () => {
     const event = { type: 'XXX' }
     const nonListenEvent = { type: 'YYY' }
     const integrationPoint = {
-      onContextUpdate: (fn: any) => (componentOnContextUpdate = fn),
-      getKerberosTicket: jest.fn()
+      onContextUpdate: (fn: any) => (componentOnContextUpdate = fn)
     }
 
     // When
@@ -106,36 +105,21 @@ describe('<DesktopApi>', () => {
 
     // Then
     expect(fn).toHaveBeenCalledTimes(1)
-    expect(fn).toHaveBeenLastCalledWith(
-      event,
-      newContext,
-      oldContext,
-      integrationPoint.getKerberosTicket
-    )
+    expect(fn).toHaveBeenLastCalledWith(event, newContext, oldContext)
 
     // When
     componentOnContextUpdate(nonListenEvent, newContext, oldContext) // We don't listen for this
 
     // Then
     expect(fn).toHaveBeenCalledTimes(1)
-    expect(fn).toHaveBeenLastCalledWith(
-      event,
-      newContext,
-      oldContext,
-      integrationPoint.getKerberosTicket
-    )
+    expect(fn).toHaveBeenLastCalledWith(event, newContext, oldContext)
 
     // When
     componentOnContextUpdate(event, newContext, oldContext) // Another one we're listening on
 
     // Then
     expect(fn).toHaveBeenCalledTimes(2)
-    expect(fn).toHaveBeenLastCalledWith(
-      event,
-      newContext,
-      oldContext,
-      integrationPoint.getKerberosTicket
-    )
+    expect(fn).toHaveBeenLastCalledWith(event, newContext, oldContext)
   })
   test('calls onArgumentsChange when args change', () => {
     // Given

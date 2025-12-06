@@ -22,24 +22,22 @@ import {
   getActiveGraph
 } from './desktop-api.utils'
 
-export const buildConnectionCreds = async (
+export const buildConnectionCreds = (
   _event?: any,
   context?: any,
   _oldContext?: any,
-  getKerberosTicket?: any,
   extra: any = {}
-) => {
+): Promise<ReturnType<typeof createConnectionCredentialsObject>> => {
   const activeGraph = getActiveGraph(context) || {}
-  const connectionsCredentialsObject = await createConnectionCredentialsObject(
+  const connectionsCredentialsObject = createConnectionCredentialsObject(
     activeGraph,
-    extra.defaultConnectionData,
-    getKerberosTicket
+    extra.defaultConnectionData
   )
   // No connection. Probably no graph active.
   if (!connectionsCredentialsObject) {
-    throw new Error('No connection creds found')
+    return Promise.reject(new Error('No connection creds found'))
   }
-  return connectionsCredentialsObject
+  return Promise.resolve(connectionsCredentialsObject)
 }
 
 export const getDesktopTheme = (_?: any, newContext?: any) => {

@@ -22,7 +22,7 @@ import {
   eventToHandler,
   getActiveGraph
 } from './desktop-api.utils'
-import { KERBEROS, NATIVE } from 'services/bolt/boltHelpers'
+import { NATIVE } from 'services/bolt/boltHelpers'
 
 describe('getActiveGraph', () => {
   const graphs = [
@@ -88,45 +88,13 @@ describe('eventToHandler', () => {
 })
 
 describe('createConnectionCredentialsObject', () => {
-  test('it creates an expected object from context, and adds kerberos ticket as password', async () => {
+  test('it creates an expected object from context', () => {
     // Given
-    const kerberosTicket = 'kerberos-ticket-test'
     const activeConnectionData = createApiResponse(
-      generateActiveGraph({ enc: 'REQUIRED', kerberos: true })
+      generateActiveGraph({ enc: 'REQUIRED' })
     )
     const activeGraph = getActiveGraph(activeConnectionData)
-    const getKerberosTicket = jest.fn(() => kerberosTicket)
-    const connectionData = await createConnectionCredentialsObject(
-      activeGraph,
-      {},
-      getKerberosTicket
-    )
-    expect(connectionData).toEqual({
-      username: 'one',
-      password: kerberosTicket,
-      url: 'bolt:port',
-      tlsLevel: 'REQUIRED',
-      encrypted: true,
-      host: 'bolt:port',
-      restApi: 'http://foo:bar',
-      authenticationMethod: KERBEROS
-    })
-    expect(getKerberosTicket).toHaveBeenCalledTimes(1)
-    expect(getKerberosTicket).toHaveBeenCalledWith('https')
-  })
-  test('it creates an expected object from context, without kerberos', async () => {
-    // Given
-    const kerberosTicket = 'kerberos-ticket-test'
-    const getKerberosTicket = jest.fn(() => kerberosTicket)
-    const activeConnectionData = createApiResponse(
-      generateActiveGraph({ enc: 'REQUIRED', kerberos: false })
-    )
-    const activeGraph = getActiveGraph(activeConnectionData)
-    const connectionData = await createConnectionCredentialsObject(
-      activeGraph,
-      {},
-      getKerberosTicket
-    )
+    const connectionData = createConnectionCredentialsObject(activeGraph, {})
     expect(connectionData).toEqual({
       username: 'one',
       password: 'one1',
@@ -137,7 +105,25 @@ describe('createConnectionCredentialsObject', () => {
       restApi: 'http://foo:bar',
       authenticationMethod: NATIVE
     })
-    expect(getKerberosTicket).toHaveBeenCalledTimes(0)
+  })
+
+  test('it creates an expected object with optional encryption', () => {
+    // Given
+    const activeConnectionData = createApiResponse(
+      generateActiveGraph({ enc: 'OPTIONAL' })
+    )
+    const activeGraph = getActiveGraph(activeConnectionData)
+    const connectionData = createConnectionCredentialsObject(activeGraph, {})
+    expect(connectionData).toEqual({
+      username: 'one',
+      password: 'one1',
+      url: 'bolt:port',
+      tlsLevel: 'OPTIONAL',
+      encrypted: false,
+      host: 'bolt:port',
+      restApi: 'http://foo:bar',
+      authenticationMethod: NATIVE
+    })
   })
 })
 
@@ -160,19 +146,13 @@ const createApiResponse = (graphs: any) => ({
   projects: [{ graphs }]
 })
 
-const generateActiveGraph = (props = { enc: 'OPTIONAL', kerberos: false }) => [
+const generateActiveGraph = (props = { enc: 'OPTIONAL' }) => [
   {
     id: 1,
     status: 'ACTIVE',
     connection: {
       configuration: {
-        protocols: { bolt: bolt(props.enc), http, https },
-        authenticationMethods: {
-          kerberos: {
-            enabled: props.kerberos,
-            servicePrincipal: 'https'
-          }
-        }
+        protocols: { bolt: bolt(props.enc), http, https }
       }
     }
   }

@@ -28,9 +28,6 @@ function DesktopApi({
   setEventMetricsCallback,
   ...rest
 }: any) {
-  const getKerberosTicket =
-    (integrationPoint && integrationPoint.getKerberosTicket) || undefined
-
   if (
     setEventMetricsCallback &&
     integrationPoint &&
@@ -47,7 +44,7 @@ function DesktopApi({
         // Pull initial data and call handler if defined
         if (rest.onMount) {
           const context = await integrationPoint.getContext()
-          rest.onMount('MOUNT', context, {}, getKerberosTicket)
+          rest.onMount('MOUNT', context, {})
         }
       }
     }
@@ -69,7 +66,7 @@ function DesktopApi({
             const handlerName = eventToHandler(event.type)
             // If we have a prop that's interested in this event, call it
             if (handlerName && typeof rest[handlerName] !== 'undefined') {
-              rest[handlerName](event, context, oldContext, getKerberosTicket)
+              rest[handlerName](event, context, oldContext)
             }
           }
         )

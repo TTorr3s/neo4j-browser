@@ -21,7 +21,6 @@ import { Session } from 'neo4j-driver'
 
 import { parseURLWithDefaultProtocol } from 'services/utils'
 
-export const KERBEROS = 'KERBEROS'
 export const NATIVE = 'NATIVE'
 export const NO_AUTH = 'NO_AUTH'
 

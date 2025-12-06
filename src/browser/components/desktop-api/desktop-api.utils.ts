@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { KERBEROS, NATIVE } from 'services/bolt/boltHelpers'
+import { NATIVE } from 'services/bolt/boltHelpers'
 import { upperFirst } from 'neo4j-arc/common'
 
 const notEmpty = (str: any) => str.length > 0
@@ -63,19 +63,14 @@ const getCredentialsForGraph = (protocol: any, graph: any = null) => {
   return configuration.protocols[protocol]
 }
 
-export async function createConnectionCredentialsObject(
+export function createConnectionCredentialsObject(
   activeGraph: any,
-  existingData: any,
-  getKerberosTicket = (_: any) => {}
+  existingData: any
 ) {
   const creds = getCredentialsForGraph('bolt', activeGraph)
   if (!creds) return // No connection. Ignore and let browser show connection lost msgs.
   const httpsCreds = getCredentialsForGraph('https', activeGraph)
   const httpCreds = getCredentialsForGraph('http', activeGraph)
-  const kerberos = isKerberosEnabled(activeGraph)
-  if (kerberos !== false) {
-    creds.password = await getKerberosTicket(kerberos.servicePrincipal)
-  }
   const restApi =
     httpsCreds && httpsCreds.enabled
       ? `https://${httpsCreds.host}:${httpsCreds.port}`
@@ -87,28 +82,7 @@ export async function createConnectionCredentialsObject(
     encrypted: creds.tlsLevel === 'REQUIRED',
     host: creds.url || `bolt://${creds.host}:${creds.port}`,
     restApi,
-    authenticationMethod: kerberos ? KERBEROS : NATIVE
+    authenticationMethod: NATIVE
   }
   return connectionCreds
-}
-
-const isKerberosEnabled = (activeGraph: any) => {
-  if (!activeGraph || typeof activeGraph.connection === 'undefined') {
-    return false
-  }
-  if (!activeGraph.connection) return null
-  const { configuration = null } = activeGraph.connection
-  if (!configuration) {
-    return false
-  }
-  if (
-    !configuration.authenticationMethods ||
-    !configuration.authenticationMethods.kerberos
-  ) {
-    return false
-  }
-  if (!configuration.authenticationMethods.kerberos.enabled) {
-    return false
-  }
-  return configuration.authenticationMethods.kerberos
 }
