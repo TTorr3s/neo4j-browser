@@ -19,7 +19,7 @@
  */
 import { saveAs } from 'file-saver'
 import { map } from 'lodash'
-import { Record as Neo4jRecord } from 'neo4j-driver'
+import { QueryResult, Record as Neo4jRecord } from 'neo4j-driver'
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { Dispatch } from 'redux'
@@ -92,6 +92,10 @@ import {
   getMaxRows,
   shouldAutoComplete
 } from 'shared/modules/settings/settingsDuck'
+
+function isQueryResult(result: BrowserRequestResult): result is QueryResult {
+  return result !== null && result !== undefined && 'summary' in result
+}
 
 export type CypherFrameProps = BaseFrameProps & {
   autoComplete: boolean
@@ -458,18 +462,20 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
     saveAs(blob, 'records.json')
   }
 
-  hasStringPlan = (): boolean =>
-    // @ts-ignore driver types don't have string-representation yet
-    !!this.props.request?.result?.summary?.plan?.arguments?.[
-      'string-representation'
-    ]
+  hasStringPlan = (): boolean => {
+    const result = this.props.request?.result
+    if (!isQueryResult(result)) return false
+    const plan = result.summary?.plan
+    if (!plan) return false
+    return !!plan.arguments?.['string-representation']
+  }
 
   exportStringPlan = (): void => {
-    const data =
-      // @ts-ignore driver types don't have string-representation yet
-      this.props.request?.result?.summary?.plan?.arguments?.[
-        'string-representation'
-      ]
+    const result = this.props.request?.result
+    if (!isQueryResult(result)) return
+    const plan = result.summary?.plan
+    if (!plan) return
+    const data = plan.arguments?.['string-representation']
     if (data) {
       const blob = new Blob([data], {
         type: 'text/plain;charset=utf-8'
