@@ -2215,10 +2215,10 @@
     "@babel/runtime" "^7.20.13"
     "@neo4j-cypher/antlr4-browser" "1.0.0"
 
-"@neo4j-cypher/editor-support@1.0.1", "@neo4j-cypher/editor-support@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@neo4j-cypher/editor-support/-/editor-support-1.0.1.tgz"
-  integrity sha512-3F4J1YezeNF9zTLdN/bYw+tXgfjGPSvPYHY3GhExTZSoPs4ngPpMpTCUnPDIas5mOs4OF3QlpTrdVjMqk8ryRw==
+"@neo4j-cypher/editor-support@1.0.2", "@neo4j-cypher/editor-support@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@neo4j-cypher/editor-support/-/editor-support-1.0.2.tgz#ea4183e868808a64a8a92a07f1de0a7ecd187f2b"
+  integrity sha512-XdlGB5p1vI+f+Mh8NlALayoHWSjBms3aXGFYEaNqF7e75cOWu3q804x+MQk1U+zp0+UqvF82gryqwwgU5s6LUg==
   dependencies:
     "@babel/runtime" "^7.20.13"
     "@neo4j-cypher/antlr4" "1.0.0"
@@ -2226,14 +2226,14 @@
     lodash.find "^4.6.0"
     lodash.includes "^4.3.0"
 
-"@neo4j-cypher/extract-statements@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@neo4j-cypher/extract-statements/-/extract-statements-1.0.1.tgz"
-  integrity sha512-TIr+A4sPOTtpKEgz1UqtfWlJtSXexYPHpuQ5Y08P2TYFwimTJtqrE/twuFM6d7UL24d1cXrAzEKGx2g+WcjVjw==
+"@neo4j-cypher/extract-statements@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@neo4j-cypher/extract-statements/-/extract-statements-1.0.2.tgz#6d87cf76cd53093f50ccdcd379419fedf6aa2868"
+  integrity sha512-Ns9C5x4v6odPiVBCrL4inNmIYAVlCpVrccMhIDvEmEFEuEV2iE9GCM7ru4af3RlmtKkP4oBooGhU7yhyClnnLg==
   dependencies:
     "@babel/runtime" "^7.20.13"
     "@neo4j-cypher/antlr4-simple" "1.0.0"
-    "@neo4j-cypher/editor-support" "1.0.1"
+    "@neo4j-cypher/editor-support" "1.0.2"
 
 "@neo4j-devtools/word-color@^0.0.8":
   version "0.0.8"
