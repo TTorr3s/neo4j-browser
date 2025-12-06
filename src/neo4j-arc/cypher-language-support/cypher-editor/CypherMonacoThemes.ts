@@ -19,26 +19,32 @@
  */
 import { editor } from 'monaco-editor/esm/vs/editor/editor.api'
 
-// colors from cypher-editor/cypher-codemirror/src/css/_solarized.css
+// Custom color palette for Cypher syntax highlighting (Dracula-inspired)
 const cypherColorFallback = {
   black: '#000000',
-  blue: '#268bd2',
-  cyan: '#83acf7',
-  cyan_grey: '#586e75',
-  green: '#48b2d8',
-  light_grey: '#93a1a1',
-  magenta: '#d33682',
-  orange: '#cb4b16',
-  red: '#dc322f',
-  violet: '#6c71c4',
-  white: '#efebde',
-  yellow: '#35af38'
+  blue: '#4FC1FF', // Node labels and relationship types (vivid blue)
+  cyan: '#56D4DD', // Numbers (vivid cyan)
+  cyan_grey: '#6A9955',
+  green: '#6A9955',
+  light_grey: '#6272A4', // Comments (muted purple-gray)
+  magenta: '#FF79C6', // Magenta (vivid)
+  orange: '#FF9E64', // Orange (vivid)
+  red: '#FF6B6B', // Red (vivid)
+  violet: '#BD93F9', // Functions and procedures (vivid violet)
+  white: '#F8F8F2',
+  yellow: '#50FA7B', // String quotes (vivid green)
+  string_content: '#2E9B4E', // String content (darker green)
+  light_blue: '#8BE9FD', // Variables (vivid light blue/cyan)
+  keyword_orange: '#FFB86C', // Keywords (vivid orange)
+  property_color: '#E6DB74' // Properties (vivid yellow/gold)
 }
 
 export type CypherColorFallback = typeof cypherColorFallback
 
 const comments: string[] = ['comment']
 const strings: string[] = ['stringliteral', 'urlhex']
+const stringQuotes: string[] = ['stringquote']
+const stringContents: string[] = ['stringcontent']
 const numbers: string[] = [
   'hexinteger',
   'decimalinteger',
@@ -290,19 +296,17 @@ const keywords: string[] = [
   'xor',
   'yield'
 ]
-const labels: string[] = []
-const relationshipTypes: string[] = []
-const variables: string[] = []
+const labels: string[] = ['label']
+const relationshipTypes: string[] = ['relationshiptype']
+const variables: string[] = ['variable']
+const properties: string[] = ['property']
 const procedures: string[] = []
 const functions: string[] = []
 const parameters: string[] = []
-const properties: string[] = []
 const consoleCommands: string[] = []
 const procedureOutput: string[] = []
 const tokensWithoutSyntaxHighlighting: string[] = [
   'escapedchar',
-  'unescapedsymbolicname',
-  'escapedsymbolicname',
   'sp',
   'whitespace',
   'error_token'
@@ -321,22 +325,28 @@ export const getMonacoThemes = (
     foreground
   })
 
-  // syntax highlighting from cypher-editor/cypher-codemirror/src/css/syntax.css
+  // Custom syntax highlighting for Cypher
   const sharedRules: editor.ITokenThemeRule[] = [
     ...strings.map(token =>
       makeCypherTokenThemeRule(token, cypherColor.yellow)
     ),
+    ...stringQuotes.map(token =>
+      makeCypherTokenThemeRule(token, cypherColor.yellow)
+    ),
+    ...stringContents.map(token =>
+      makeCypherTokenThemeRule(token, cypherColor.string_content)
+    ),
     ...numbers.map(token => makeCypherTokenThemeRule(token, cypherColor.cyan)),
 
     ...keywords.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.green)
+      makeCypherTokenThemeRule(token, cypherColor.keyword_orange)
     ),
-    ...labels.map(token => makeCypherTokenThemeRule(token, cypherColor.orange)),
+    ...labels.map(token => makeCypherTokenThemeRule(token, cypherColor.blue)),
     ...relationshipTypes.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.orange)
+      makeCypherTokenThemeRule(token, cypherColor.blue)
     ),
     ...variables.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.blue)
+      makeCypherTokenThemeRule(token, cypherColor.light_blue)
     ),
     ...procedures.map(token =>
       makeCypherTokenThemeRule(token, cypherColor.violet)
@@ -352,14 +362,14 @@ export const getMonacoThemes = (
     ),
     ...procedureOutput.map(token =>
       makeCypherTokenThemeRule(token, cypherColor.blue)
+    ),
+    ...properties.map(token =>
+      makeCypherTokenThemeRule(token, cypherColor.property_color)
     )
   ]
   const darkThemeRules = [
     ...sharedRules,
     ...comments.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.cyan_grey)
-    ),
-    ...properties.map(token =>
       makeCypherTokenThemeRule(token, cypherColor.light_grey)
     ),
     ...tokensWithoutSyntaxHighlighting.map(token =>
@@ -374,9 +384,6 @@ export const getMonacoThemes = (
     ...comments.map(token =>
       makeCypherTokenThemeRule(token, cypherColor.light_grey)
     ),
-    ...properties.map(token =>
-      makeCypherTokenThemeRule(token, cypherColor.cyan_grey)
-    ),
     ...tokensWithoutSyntaxHighlighting.map(token =>
       makeCypherTokenThemeRule(token, cypherColor.black)
     ),
@@ -385,10 +392,31 @@ export const getMonacoThemes = (
     )
   ]
 
+  // Additional rules to override vs-dark theme defaults for strings
+  const stringOverrideRules: editor.ITokenThemeRule[] = [
+    { token: 'string', foreground: cypherColor.string_content },
+    { token: 'string.cypher', foreground: cypherColor.string_content },
+    { token: 'string.quote', foreground: cypherColor.yellow },
+    { token: 'string.quote.cypher', foreground: cypherColor.yellow },
+    { token: 'string.delimiter', foreground: cypherColor.yellow },
+    { token: 'string.delimiter.cypher', foreground: cypherColor.yellow },
+    // Override punctuation colors that may affect quotes
+    { token: 'punctuation', foreground: cypherColor.yellow },
+    { token: 'punctuation.definition.string', foreground: cypherColor.yellow },
+    {
+      token: 'punctuation.definition.string.begin',
+      foreground: cypherColor.yellow
+    },
+    {
+      token: 'punctuation.definition.string.end',
+      foreground: cypherColor.yellow
+    }
+  ]
+
   const monacoDarkTheme: editor.IStandaloneThemeData = {
     base: 'vs-dark',
     inherit: true,
-    rules: darkThemeRules,
+    rules: [...darkThemeRules, ...stringOverrideRules],
     colors: {
       'editor.background': '#070818ff',
       'editorCursor.foreground': '#585a61',
