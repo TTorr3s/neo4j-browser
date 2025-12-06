@@ -26,8 +26,6 @@ import appWindowCode from './svgs/app-window-code.svg'
 import arrowLeft from './svgs/arrow-left.svg'
 import arrowRight from './svgs/arrow-right.svg'
 import backArrow from './svgs/back-arrow.svg'
-import cannyFeedback from './svgs/canny-feedback.svg'
-import cannyNotifications from './svgs/canny-notifications.svg'
 import cog from './svgs/cog.svg'
 import databaseCheck from './svgs/database-check.svg'
 import saveFavorite from './svgs/favorite.svg'
@@ -366,14 +364,6 @@ export const SavedScriptsExpandMenuRightIcon = (): JSX.Element => (
 
 export const SavedScriptsCollapseMenuIcon = (): JSX.Element => (
   <IconContainer className="fa fa-caret-down" />
-)
-
-export const CannyFeedbackIcon = (): JSX.Element => (
-  <IconContainer icon={cannyFeedback} />
-)
-
-export const CannyNotificationsIcon = (): JSX.Element => (
-  <IconContainer icon={cannyNotifications} />
 )
 
 export const BackIcon = ({ width }: WidthProps): JSX.Element => (

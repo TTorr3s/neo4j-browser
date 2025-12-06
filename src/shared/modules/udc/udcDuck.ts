@@ -51,10 +51,6 @@ import {
   TRACK_OPT_OUT_USER_STATS,
   getSettings
 } from 'shared/modules/settings/settingsDuck'
-import {
-  TRACK_CANNY_CHANGELOG,
-  TRACK_CANNY_FEATURE_REQUEST
-} from 'shared/modules/sidebar/sidebarDuck'
 import cmdHelper from 'shared/services/commandInterpreterHelper'
 import { PREVIEW_EVENT } from '../preview/previewDuck'
 
@@ -273,8 +269,6 @@ const actionsOfInterest = [
   UDC_STARTUP,
   UNPIN,
   UPDATE_FAVORITE_CONTENT,
-  TRACK_CANNY_FEATURE_REQUEST,
-  TRACK_CANNY_CHANGELOG,
   TRACK_OPT_OUT_USER_STATS,
   TRACK_OPT_OUT_CRASH_REPORTS,
   CONNECT,

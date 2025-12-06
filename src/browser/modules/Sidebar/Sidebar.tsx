@@ -122,8 +122,7 @@ const Sidebar = ({
       icon: function docsIcon(isOpen: boolean): JSX.Element {
         return <DocumentsIcon isOpen={isOpen} title="Help &amp; Resources" />
       },
-      content: DocumentsDrawer,
-      enableCannyBadge: true
+      content: DocumentsDrawer
     },
     {
       name: 'Settings',

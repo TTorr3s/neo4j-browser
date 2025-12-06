@@ -28,7 +28,6 @@ import {
 } from './styled'
 import {
   NavigationButtonContainer,
-  StyledCannyBadgeAnchor,
   StyledNavigationButton
 } from 'browser-components/buttons'
 import { Resizable } from 're-resizable'
@@ -51,7 +50,6 @@ export interface NavItem {
   title: string
   icon: (isOpen: boolean) => JSX.Element
   content: any
-  enableCannyBadge?: boolean
 }
 
 interface NavigationProps {
@@ -132,24 +130,17 @@ class Navigation extends Component<NavigationProps, NavigationState> {
       list.map(item => {
         const isOpen = item.name.toLowerCase() === selectedDrawerName
         return (
-          <div key={item.name}>
-            {item.enableCannyBadge ? (
-              <StyledCannyBadgeAnchor
-                data-testid={`navigationCanny${item.name}`}
-                data-canny-changelog
-              />
-            ) : null}
-            <NavigationButtonContainer
-              title={item.title}
-              data-testid={`navigation${item.name}`}
-              onClick={() => onNavClick(item.name.toLowerCase())}
-              isOpen={isOpen}
-            >
-              <StyledNavigationButton name={item.name}>
-                {item.icon(isOpen)}
-              </StyledNavigationButton>
-            </NavigationButtonContainer>
-          </div>
+          <NavigationButtonContainer
+            key={item.name}
+            title={item.title}
+            data-testid={`navigation${item.name}`}
+            onClick={() => onNavClick(item.name.toLowerCase())}
+            isOpen={isOpen}
+          >
+            <StyledNavigationButton name={item.name}>
+              {item.icon(isOpen)}
+            </StyledNavigationButton>
+          </NavigationButtonContainer>
         )
       })
 

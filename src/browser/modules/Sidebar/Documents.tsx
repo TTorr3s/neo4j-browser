@@ -17,31 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Dispatch, useEffect } from 'react'
+import React from 'react'
 import { connect } from 'react-redux'
-import { Action } from 'redux'
 import semver from 'semver'
-
-import {
-  CannyFeedbackIcon,
-  CannyNotificationsIcon
-} from 'browser-components/icons/LegacyIcons'
 
 import DocumentItems from './DocumentItems'
 import { formatDocVersion } from './docsUtils'
-import {
-  StyledFeedbackButton,
-  StyledFullSizeDrawerBody,
-  StyledHeaderContainer
-} from './styled'
+import { StyledFullSizeDrawerBody } from './styled'
 import { Drawer, DrawerHeader } from 'browser-components/drawer/drawer-styled'
-import { CANNY_FEATURE_REQUEST_URL, cannyOptions } from 'browser-services/canny'
 import { GlobalState } from 'shared/globalState'
 import { getRawVersion } from 'shared/modules/dbMeta/dbMetaDuck'
-import {
-  TRACK_CANNY_CHANGELOG,
-  TRACK_CANNY_FEATURE_REQUEST
-} from 'shared/modules/sidebar/sidebarDuck'
 
 export const shouldLinkToNewRefs = (v: string): boolean => {
   if (!semver.valid(v)) return true
@@ -134,46 +119,16 @@ const useful = [
 type DocumentsProps = {
   version: string
   urlVersion: string
-  trackCannyChangelog: () => void
-  trackCannyFeatureRequest: () => void
 }
 
 const Documents = (props: DocumentsProps) => {
-  useEffect(() => {
-    window.Canny && window.Canny('initChangelog', cannyOptions)
-
-    return () => {
-      window.Canny && window.Canny('closeChangelog')
-    }
-  }, [])
-
   const { docs, other, graphAcademy } = getReferences(
     props.version,
     props.urlVersion
   )
   return (
     <Drawer id="db-documents">
-      <StyledHeaderContainer>
-        <DrawerHeader>Help &amp; Learn</DrawerHeader>
-        {window.Canny && (
-          <a
-            data-canny-changelog
-            data-testid="documentDrawerCanny"
-            onClick={props.trackCannyChangelog}
-          >
-            <CannyNotificationsIcon />
-          </a>
-        )}
-      </StyledHeaderContainer>
-      <StyledFeedbackButton
-        onClick={() => {
-          props.trackCannyFeatureRequest()
-          window.open(CANNY_FEATURE_REQUEST_URL, '_blank')
-        }}
-      >
-        <CannyFeedbackIcon />
-        &nbsp; Send Feedback
-      </StyledFeedbackButton>
+      <DrawerHeader>Help &amp; Learn</DrawerHeader>
       <StyledFullSizeDrawerBody>
         <DocumentItems header="Useful commands" items={useful} />
         <DocumentItems header="Documentation links" items={docs} />
@@ -195,13 +150,4 @@ const mapStateToProps = (state: GlobalState) => {
   }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch<Action>) => ({
-  trackCannyChangelog: () => {
-    dispatch({ type: TRACK_CANNY_CHANGELOG })
-  },
-  trackCannyFeatureRequest: () => {
-    dispatch({ type: TRACK_CANNY_FEATURE_REQUEST })
-  }
-})
-
-export default connect(mapStateToProps, mapDispatchToProps)(Documents)
+export default connect(mapStateToProps)(Documents)

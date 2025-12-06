@@ -48,8 +48,7 @@ describe('<Navigation />', () => {
       name: 'Documents',
       title: 'Help &amp; Resources',
       icon: div('documents-icon'),
-      content: div('documents-content'),
-      enableCannyBadge: true
+      content: div('documents-content')
     }
   ]
 

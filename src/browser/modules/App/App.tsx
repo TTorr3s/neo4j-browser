@@ -45,7 +45,6 @@ import {
   getDesktopTheme
 } from 'browser-components/desktop-api/desktop-api.handlers'
 import useDerivedTheme from 'browser-hooks/useDerivedTheme'
-import { CannyLoader } from 'browser-services/canny'
 import * as themes from 'browser/styles/themes'
 import packageJson from 'project-root/package.json'
 import { isRunningE2ETest } from 'services/utils'
@@ -232,15 +231,12 @@ export function App(props: any) {
             <StyledWrapper className={wrapperClassNames}>
               <UserInteraction />
               {loadExternalScripts && (
-                <>
-                  <Segment
-                    segmentKey={SEGMENT_KEY}
-                    setTrackCallback={(fn: any) =>
-                      (segmentTrackCallback.current = fn)
-                    }
-                  />
-                  <CannyLoader />
-                </>
+                <Segment
+                  segmentKey={SEGMENT_KEY}
+                  setTrackCallback={(fn: any) =>
+                    (segmentTrackCallback.current = fn)
+                  }
+                />
               )}
               <StyledApp>
                 <StyledBody>

@@ -102,53 +102,6 @@ export const StyledFullSizeDrawerBody = styled(DrawerBody)`
   padding: 0 0 12px 0;
 `
 
-export const StyledHeaderContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-
-  a {
-    cursor: pointer;
-    margin-right: 10px;
-
-    .Canny_BadgeContainer .Canny_Badge {
-      position: absolute;
-      top: -1px;
-      right: -1px;
-      border-radius: 10px;
-      background-color: #df4d3b;
-      padding: 4px;
-      border: 1px solid #df4d3b;
-    }
-  }
-`
-
-export const StyledFeedbackButton = styled.button`
-  background: #55acee;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  max-width: fit-content;
-  margin: 0 0 25px 25px;
-  min-height: fit-content;
-  outline: 0;
-  border: none;
-  vertical-align: baseline;
-  font-family: 'Open Sans', 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  padding: 0.78571429em 1.5em 0.78571429em;
-  font-size: 1rem;
-  line-height: 1em;
-  border-radius: 0.28571429rem;
-
-  :hover {
-    background-color: #35a2f4;
-  }
-
-  :active {
-    background-color: #2795e9;
-  }
-`
-
 export const StyledCommand = styled(DrawerBrowserCommand)`
   max-width: 45%;
 `

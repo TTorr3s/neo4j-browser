@@ -65,24 +65,6 @@ export const StyledMainEditorButtonsContainer = styled.div`
   align-items: center;
 `
 
-export const StyledCannyBadgeAnchor = styled.div`
-  pointer-events: none;
-
-  .Canny_BadgeContainer {
-    pointer-events: none;
-
-    .Canny_Badge {
-      pointer-events: none;
-      top: 10px;
-      right: 10px;
-      border-radius: 10px;
-      background-color: #df4d3b;
-      padding: 4px;
-      border: 1px solid #df4d3b;
-    }
-  }
-`
-
 export const StyledNavigationButton = styled.button`
   background: transparent;
   border: 0;
