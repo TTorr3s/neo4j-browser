@@ -361,12 +361,6 @@ export class CypherEditor extends React.Component<
       tabIndex: this.props.tabIndex
     })
 
-    // Set the details to be visible by default
-    this.editor
-      .getContribution('editor.contrib.suggestController')
-      // @ts-ignore this is an internal API
-      ?.widget?.value?._setDetailsVisible(true)
-
     const { KeyCode, KeyMod } = monaco
     if (this.props.onExecute) {
       this.editor.addCommand(
@@ -391,7 +385,6 @@ export class CypherEditor extends React.Component<
     this.editor.addCommand(KeyMod.Shift | KeyCode.Enter, this.newLine)
     if (this.props.onExecute) {
       this.editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, this.execute)
-      this.editor.addCommand(KeyMod.WinCtrl | KeyCode.Enter, this.execute)
     }
     this.editor.addCommand(
       KeyMod.CtrlCmd | KeyCode.UpArrow,
@@ -430,47 +423,6 @@ export class CypherEditor extends React.Component<
     )
 
     this.resizeObserver.observe(this.container)
-
-    /*
-     * This moves the the command palette widget out of of the overflow-guard div where overlay widgets
-     * are located, into the overflowing content widgets div.
-     * This solves the command palette being squashed when the cypher editor is only a few lines high.
-     * The workaround is based on a suggestion found in the github issue: https://github.com/microsoft/monaco-editor/issues/70
-     */
-    const quickInputContribution = this.editor.getContribution<
-      {
-        widget: { domNode: HTMLElement; quickInputList?: any }
-      } & monaco.editor.IEditorContribution
-    >('editor.controller.quickInput')
-    if (quickInputContribution) {
-      const quickInputDOMNode = quickInputContribution.widget.domNode
-      // @ts-ignore since we use internal APIs
-      this.editor._modelData.view._contentWidgets.overflowingContentWidgetsDomNode.domNode.appendChild(
-        quickInputDOMNode.parentNode?.removeChild(quickInputDOMNode)
-      )
-
-      // Patch the QuickInputList layout method to ensure minimum height
-      // @ts-ignore accessing internal API
-      const quickInputList = quickInputContribution.widget.quickInputList
-      if (
-        quickInputList &&
-        quickInputList.constructor &&
-        quickInputList.constructor.prototype
-      ) {
-        const originalLayout = quickInputList.constructor.prototype.layout
-        quickInputList.constructor.prototype.layout = function (
-          maxHeight: number
-        ) {
-          if (this.list && this.list.getHTMLElement) {
-            this.list.getHTMLElement().style.maxHeight =
-              maxHeight < 200 ? '200px' : Math.floor(maxHeight) + 'px'
-            this.list.layout()
-          } else if (originalLayout) {
-            originalLayout.call(this, maxHeight)
-          }
-        }
-      }
-    }
   }
 
   render(): JSX.Element {
