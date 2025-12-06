@@ -2800,11 +2800,6 @@
   resolved "https://registry.npmjs.org/@types/json5/-/json5-0.0.29.tgz"
   integrity "sha1-7ihweulOEdK4J7y+UnC86n8+ce4= sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ=="
 
-"@types/jsonic@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.npmjs.org/@types/jsonic/-/jsonic-0.3.0.tgz"
-  integrity "sha1-L1DWE7FIW/Uzk85VzqrLU1j5CBQ= sha512-B0uFjLYhK+4+b1otYOQ4SdTwi/Z2uhJnw6PRdguVVGvTDAyCS9nUQKJy1KyY19FH5tgCn/eAQYVx+ZO0s6ioYQ=="
-
 "@types/lodash-es@^4.17.6":
   version "4.17.6"
   resolved "https://registry.npmjs.org/@types/lodash-es/-/lodash-es-4.17.6.tgz"
@@ -8575,10 +8570,10 @@ jsonfile@^6.0.1:
   optionalDependencies:
     graceful-fs "^4.1.6"
 
-jsonic@^0.3.0:
-  version "0.3.1"
-  resolved "https://registry.npmjs.org/jsonic/-/jsonic-0.3.1.tgz"
-  integrity "sha1-2jBhhdxjW2Sa2TTj9oJhiMrXO9s= sha512-5Md4EK3vPAMvP2sXY6M3/vQEPeX3LxEQBJuF979uypddXjsUlEoAI9/Nojh8tbw+YU5FjMoqSElO6oyjrAuprw=="
+jsonic@2.18.0:
+  version "2.18.0"
+  resolved "https://registry.yarnpkg.com/jsonic/-/jsonic-2.18.0.tgz#c1dda79b1be6ca7a821a692bac88351d218d5846"
+  integrity sha512-9TLqqYFWsaJdTZhHys2zHSmFUAareegiPrhxXCLkSP4iaA4Zj8+5Q/fTFVkqPyNSZFSbFCwdwb2YJrqE4VwN0Q==
 
 jsprim@^1.2.2:
   version "1.4.1"

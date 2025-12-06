@@ -62,11 +62,7 @@ describe('commandsDuck config helper', () => {
 
     // Then
     return expect(p)
-      .rejects.toEqual(
-        new Error(
-          'Could not parse input. Usage: `:config "x": 2`. SyntaxError: Expected ":" but "x" found.'
-        )
-      )
+      .rejects.toThrow('Could not parse input. Usage: `:config "x": 2`.')
       .then(() => expect(put).not.toHaveBeenCalled())
   })
   test('handles :config "x": 2 and calls the update action creator', () => {
