@@ -80,7 +80,7 @@ import {
   FULLSCREEN_SHORTCUT,
   printShortcut
 } from 'browser/modules/App/keyboardShortcuts'
-import { KeyCode } from 'monaco-editor'
+import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
 
 type EditorFrameProps = {
   bus: Bus

@@ -63,7 +63,7 @@ import { base, stopIconColor } from 'browser-styles/themes'
 import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
 import { QueryResult } from 'neo4j-driver'
 import { CypherEditor } from 'neo4j-arc/cypher-language-support'
-import { KeyCode } from 'monaco-editor'
+import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
 
 type FrameEditorBaseProps = {
   frame: Frame
