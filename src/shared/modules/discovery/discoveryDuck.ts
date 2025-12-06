@@ -17,6 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { AnyAction } from 'redux'
+import { Epic, ofType, StateObservable } from 'redux-observable'
+import { merge, of } from 'rxjs'
+import { map, mergeMap, withLatestFrom } from 'rxjs/operators'
 import { URL } from 'whatwg-url'
 
 import { getAndMergeDiscoveryData } from './discoveryHelpers'
@@ -34,6 +38,7 @@ import {
   getConnection,
   updateConnection
 } from 'shared/modules/connections/connectionsDuck'
+import { GlobalState } from 'shared/globalState'
 import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
 import { isCloudHost } from 'shared/services/utils'
 
@@ -91,7 +96,7 @@ const getAllowedBoltSchemesForHost = (
     ? CLOUD_SCHEMES
     : getAllowedBoltSchemes(state, encryptionFlag)
 
-const updateDiscoveryState = (action: any, store: any) => {
+const createDiscoveryUpdateAction = (action: any) => {
   const keysToCopy = [
     'username',
     'password',
@@ -108,30 +113,37 @@ const updateDiscoveryState = (action: any, store: any) => {
     updateObj.encrypted = action.encrypted
   }
 
-  const updateAction = updateDiscoveryConnection(updateObj)
-  store.dispatch(updateAction)
+  return updateDiscoveryConnection(updateObj)
 }
 
-export const injectDiscoveryEpic = (action$: any, store: any) =>
-  action$
-    .ofType(INJECTED_DISCOVERY)
-    .map((action: any) => {
+export const injectDiscoveryEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$: StateObservable<GlobalState>
+) =>
+  action$.pipe(
+    ofType(INJECTED_DISCOVERY),
+    withLatestFrom(state$),
+    mergeMap(([action, state]: [any, GlobalState]) => {
       const connectUrl = generateBoltUrl(
-        getAllowedBoltSchemesForHost(
-          store.getState(),
-          action.host,
-          action.encrypted
-        ),
+        getAllowedBoltSchemesForHost(state, action.host, action.encrypted),
         action.host
       )
-      return updateDiscoveryState({ ...action, forceUrl: connectUrl }, store)
+      const updateAction = createDiscoveryUpdateAction({
+        ...action,
+        forceUrl: connectUrl
+      })
+      return of(updateAction, { type: DONE })
     })
-    .mapTo({ type: DONE })
+  )
 
-export const discoveryOnStartupEpic = (some$: any, store: any) => {
-  return some$
-    .ofType(APP_START)
-    .map((action: any) => {
+export const discoveryOnStartupEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$: StateObservable<GlobalState>
+) => {
+  const appStart$ = action$.pipe(
+    ofType(APP_START),
+    withLatestFrom(state$),
+    map(([action, state]: [any, GlobalState]) => {
       if (!action.url) return action
       const { searchParams } = new URL(action.url)
 
@@ -140,38 +152,42 @@ export const discoveryOnStartupEpic = (some$: any, store: any) => {
 
       const passedDb = searchParams.get('db')
 
+      const enrichedAction = { ...action }
+
       if (passedUrl) {
-        action.forceUrl = decodeURIComponent(passedUrl)
-        action.requestedUseDb = passedDb
+        enrichedAction.forceUrl = decodeURIComponent(passedUrl)
+        enrichedAction.requestedUseDb = passedDb
       }
 
       const discoveryUrl = searchParams.get('discoveryURL')
 
       if (discoveryUrl) {
-        action.discoveryUrl = discoveryUrl
+        enrichedAction.discoveryUrl = discoveryUrl
       }
 
-      const discoveryConnection = getConnection(store.getState(), CONNECTION_ID)
+      const discoveryConnection = getConnection(state, CONNECTION_ID)
       if (discoveryConnection) {
-        action.discoveryConnection = discoveryConnection
+        enrichedAction.discoveryConnection = discoveryConnection
       }
 
-      return action
+      return enrichedAction
     })
-    .merge(some$.ofType(USER_CLEAR))
-    .mergeMap(async (action: any) => {
-      if (inDesktop(store.getState())) {
+  )
+
+  const userClear$ = action$.pipe(ofType(USER_CLEAR))
+
+  return merge(appStart$, userClear$).pipe(
+    withLatestFrom(state$),
+    mergeMap(async ([action, state]: [any, GlobalState]) => {
+      if (inDesktop(state)) {
         return { type: 'NOOP' }
       }
       const discoveryData = await getAndMergeDiscoveryData({
         action,
-        hostedUrl: getHostedUrl(store.getState()) ?? window.location.href,
-        hasDiscoveryEndpoint: hasDiscoveryEndpoint(store.getState()),
+        hostedUrl: getHostedUrl(state) ?? window.location.href,
+        hasDiscoveryEndpoint: hasDiscoveryEndpoint(state),
         generateBoltUrlWithAllowedScheme: (boltUrl: string) =>
-          generateBoltUrl(
-            getAllowedBoltSchemesForHost(store.getState(), boltUrl),
-            boltUrl
-          )
+          generateBoltUrl(getAllowedBoltSchemesForHost(state, boltUrl), boltUrl)
       })
 
       if (!discoveryData) {
@@ -180,5 +196,5 @@ export const discoveryOnStartupEpic = (some$: any, store: any) => {
 
       return { type: DONE, discovered: { ...discoveryData } }
     })
-    .map((a: any) => a)
+  )
 }

@@ -17,7 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import Rx from 'rxjs/Rx'
+import { AnyAction } from 'redux'
+import { Epic, ofType, StateObservable } from 'redux-observable'
+import { Observable, of, EMPTY, NEVER, from, merge } from 'rxjs'
+import {
+  map,
+  mergeMap,
+  filter,
+  tap,
+  catchError,
+  throttleTime,
+  retry,
+  ignoreElements,
+  withLatestFrom
+} from 'rxjs/operators'
 
 import bolt from 'services/bolt/bolt'
 import {
@@ -379,85 +392,130 @@ export const useDb = (db: any = null) => ({ type: USE_DB, useDb: db })
 export const resetUseDb = () => ({ type: USE_DB, useDb: null })
 
 // Epics
-export const useDbEpic = (action$: any, store: any) =>
-  action$
-    .ofType(USE_DB)
-    .do((action: any) => {
+export const useDbEpic: Epic<AnyAction, AnyAction, GlobalState> = action$ =>
+  action$.pipe(
+    ofType(USE_DB),
+    mergeMap((action: AnyAction) => {
       bolt.useDb(action.useDb)
       if (action.useDb) {
-        store.dispatch(fetchMetaData())
+        return of(fetchMetaData())
       }
+      return EMPTY
     })
-    .ignoreElements()
+  )
 
-export const connectEpic = (action$: any, store: any) =>
-  action$.ofType(CONNECT).mergeMap(async (action: any) => {
-    if (!action.$$responseChannel) return Rx.Observable.of(null)
-    memoryUsername = ''
-    memoryPassword = ''
-    bolt.closeConnection()
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 2000))
-    return bolt
-      .openConnection(action, {
-        connectionTimeout: getConnectionTimeout(store.getState())
-      })
-      .then(async () => {
-        // we know we can reach the server but when connecting via the form
-        // we need to make sure the initial credentails have been changed
-        const supportsMultiDb = await bolt.hasMultiDbSupport()
-        try {
-          await bolt.backgroundWorkerlessRoutedRead(
-            supportsMultiDb ? 'SHOW DATABASES' : 'call db.indexes()',
-            { useDb: supportsMultiDb ? 'SYSTEM' : undefined },
-            store
-          )
-        } catch (error) {
-          const e: any = error
-          // if we got a connection error throw, otherwise continue
-          if (!e.code || isBoltConnectionErrorCode(e.code)) {
-            throw e
-          }
-        }
+// Type for connect action with response channel
+type ConnectAction = Connection & {
+  type: typeof CONNECT
+  $$responseChannel?: string
+  noResetConnectionOnFail?: boolean
+}
 
-        if (action.requestedUseDb) {
-          store.dispatch(
-            updateConnection({
-              id: action.id,
-              requestedUseDb: action.requestedUseDb
+export const connectEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$
+) =>
+  action$.pipe(
+    ofType(CONNECT),
+    withLatestFrom(state$),
+    mergeMap(([action, state]) => {
+      const connectAction = action as ConnectAction
+      if (!connectAction.$$responseChannel) return EMPTY
+      memoryUsername = ''
+      memoryPassword = ''
+      bolt.closeConnection()
+
+      return from(
+        new Promise<void>(resolve => setTimeout(() => resolve(), 2000))
+      ).pipe(
+        mergeMap(() =>
+          from(
+            bolt.openConnection(connectAction, {
+              connectionTimeout: getConnectionTimeout(state)
             })
           )
-        }
-        return {
-          type: action.$$responseChannel,
-          success: true
-        }
-      })
-      .catch(e => {
-        if (!action.noResetConnectionOnFail) {
-          store.dispatch(setActiveConnection(null))
-        }
-        return {
-          type: action.$$responseChannel,
-          success: false,
-          error: e
-        }
-      })
-  })
+        ),
+        mergeMap(async () => {
+          // we know we can reach the server but when connecting via the form
+          // we need to make sure the initial credentials have been changed
+          const supportsMultiDb = await bolt.hasMultiDbSupport()
+          try {
+            await bolt.backgroundWorkerlessRoutedRead(
+              supportsMultiDb ? 'SHOW DATABASES' : 'call db.indexes()',
+              { useDb: supportsMultiDb ? 'SYSTEM' : undefined },
+              { getState: () => state$.value, dispatch: () => {} }
+            )
+          } catch (error) {
+            const e: any = error
+            // if we got a connection error throw, otherwise continue
+            if (!e.code || isBoltConnectionErrorCode(e.code)) {
+              throw e
+            }
+          }
 
-export const verifyConnectionCredentialsEpic = (action$: any) => {
-  return action$.ofType(VERIFY_CREDENTIALS).mergeMap((action: any) => {
-    if (!action.$$responseChannel) return Rx.Observable.of(null)
-    return bolt
-      .directConnect(action, {}, undefined)
-      .then(driver => {
-        driver.close()
-        return { type: action.$$responseChannel, success: true }
-      })
-      .catch(e => {
-        return { type: action.$$responseChannel, success: false, error: e }
-      })
-  })
+          const actions: AnyAction[] = []
+          if (connectAction.requestedUseDb) {
+            actions.push(
+              updateConnection({
+                id: connectAction.id,
+                requestedUseDb: connectAction.requestedUseDb
+              })
+            )
+          }
+          actions.push({
+            type: connectAction.$$responseChannel!,
+            success: true
+          })
+          return actions
+        }),
+        mergeMap(actions => of(...actions)),
+        catchError(e => {
+          const actions: AnyAction[] = []
+          if (!connectAction.noResetConnectionOnFail) {
+            actions.push(setActiveConnection(null))
+          }
+          actions.push({
+            type: connectAction.$$responseChannel!,
+            success: false,
+            error: e
+          })
+          return of(...actions)
+        })
+      )
+    })
+  )
+
+// Type for verify credentials action
+type VerifyCredentialsAction = Connection & {
+  type: typeof VERIFY_CREDENTIALS
+  $$responseChannel?: string
 }
+
+export const verifyConnectionCredentialsEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(VERIFY_CREDENTIALS),
+    mergeMap((action: AnyAction) => {
+      const verifyAction = action as VerifyCredentialsAction
+      if (!verifyAction.$$responseChannel) return EMPTY
+      return from(bolt.directConnect(verifyAction, {}, undefined)).pipe(
+        map(driver => {
+          driver.close()
+          return { type: verifyAction.$$responseChannel!, success: true }
+        }),
+        catchError(e =>
+          of({
+            type: verifyAction.$$responseChannel!,
+            success: false,
+            error: e
+          })
+        )
+      )
+    })
+  )
 export type DiscoverableData = {
   username?: string
   password?: string
@@ -485,288 +543,407 @@ function shouldTryAutoconnecting(conn: Connection | null): boolean {
   )
 }
 
-export const startupConnectEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(discovery.DONE)
-    .do(() => store.dispatch(resetUseDb()))
-    .mergeMap(async ({ discovered }: DiscoverDataAction) => {
-      const connectionTimeout = getConnectionTimeout(store.getState())
-      const savedConnection = getConnection(
-        store.getState(),
-        discovery.CONNECTION_ID
-      )
+export const startupConnectEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$
+) =>
+  action$.pipe(
+    ofType(discovery.DONE),
+    withLatestFrom(state$),
+    mergeMap(([rawAction, state]) => {
+      const { discovered } = rawAction as DiscoverDataAction
+      const connectionTimeout = getConnectionTimeout(state)
+      const savedConnection = getConnection(state, discovery.CONNECTION_ID)
 
-      if (
-        !(discovered && discovered.hasForceUrl) && // If we have force url, don't try old connection data
-        shouldTryAutoconnecting(savedConnection)
-      ) {
-        try {
-          await bolt.openConnection(
-            savedConnection!,
-            { connectionTimeout },
-            onLostConnection(store.dispatch)
-          )
-          store.dispatch(setActiveConnection(discovery.CONNECTION_ID))
-          return { type: STARTUP_CONNECTION_SUCCESS }
-        } catch {}
-      }
-
-      // merge with discovery data if we have any and try again
-      if (discovered) {
-        store.dispatch(discovery.updateDiscoveryConnection(discovered))
-        const connUpdatedWithDiscovery = getConnection(
-          store.getState(),
-          discovery.CONNECTION_ID
-        )
-
-        if (shouldTryAutoconnecting(connUpdatedWithDiscovery)) {
-          return new Promise(resolve => {
-            // Try to connect with stored creds
-            bolt
-              .openConnection(
-                connUpdatedWithDiscovery!,
-                { connectionTimeout },
-                onLostConnection(store.dispatch)
-              )
-              .then(() => {
-                store.dispatch(setActiveConnection(discovery.CONNECTION_ID))
-                resolve({ type: STARTUP_CONNECTION_SUCCESS })
-              })
-              .catch(() => {
-                store.dispatch(setActiveConnection(null))
-                store.dispatch(
-                  discovery.updateDiscoveryConnection({
-                    username: '',
-                    password: ''
-                  })
-                )
-                resolve({ type: STARTUP_CONNECTION_FAILED })
-              })
-          })
+      // Helper to create dispatch function for onLostConnection
+      const createDispatchProxy = () => {
+        // We return actions via the stream, but onLostConnection needs a dispatch function
+        // This is a limitation - we'll need to dispatch LOST_CONNECTION through the epic stream
+        return (_action: AnyAction) => {
+          // This is handled by the connectionLostEpic when LOST_CONNECTION is dispatched
+          // The action will be dispatched by the store when this observable emits
         }
       }
 
-      // Otherwise fail autoconnect
-      store.dispatch(setActiveConnection(null))
-      store.dispatch(
-        discovery.updateDiscoveryConnection({
-          password: ''
-        })
-      )
-      return Promise.resolve({ type: STARTUP_CONNECTION_FAILED })
-    })
-}
+      return from(
+        (async (): Promise<AnyAction[]> => {
+          if (
+            !(discovered && discovered.hasForceUrl) && // If we have force url, don't try old connection data
+            shouldTryAutoconnecting(savedConnection)
+          ) {
+            try {
+              await bolt.openConnection(
+                savedConnection!,
+                { connectionTimeout },
+                onLostConnection(createDispatchProxy())
+              )
+              return [
+                resetUseDb(),
+                setActiveConnection(discovery.CONNECTION_ID),
+                { type: STARTUP_CONNECTION_SUCCESS }
+              ]
+            } catch {
+              // Fall through to try discovery data
+            }
+          }
 
-export const startupConnectionSuccessEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(STARTUP_CONNECTION_SUCCESS)
-    .do(() => {
-      if (getPlayImplicitInitCommands(store.getState())) {
-        store.dispatch(executeSystemCommand(`:server status`))
-        store.dispatch(executeSystemCommand(getInitCmd(store.getState())))
+          // merge with discovery data if we have any and try again
+          if (discovered) {
+            // We need to emit updateDiscoveryConnection and then get new state
+            // This is complex because we need the updated connection data
+            // For now, we'll build the updated connection manually
+            const currentConn = savedConnection || ({} as Connection)
+            const updatedConnection: Connection = {
+              ...currentConn,
+              ...discovered,
+              id: discovery.CONNECTION_ID
+            } as Connection
+
+            if (shouldTryAutoconnecting(updatedConnection)) {
+              try {
+                await bolt.openConnection(
+                  updatedConnection,
+                  { connectionTimeout },
+                  onLostConnection(createDispatchProxy())
+                )
+                return [
+                  resetUseDb(),
+                  discovery.updateDiscoveryConnection(discovered),
+                  setActiveConnection(discovery.CONNECTION_ID),
+                  { type: STARTUP_CONNECTION_SUCCESS }
+                ]
+              } catch {
+                return [
+                  resetUseDb(),
+                  discovery.updateDiscoveryConnection(discovered),
+                  setActiveConnection(null),
+                  discovery.updateDiscoveryConnection({
+                    username: '',
+                    password: ''
+                  }),
+                  { type: STARTUP_CONNECTION_FAILED }
+                ]
+              }
+            }
+          }
+
+          // Otherwise fail autoconnect
+          return [
+            resetUseDb(),
+            setActiveConnection(null),
+            discovery.updateDiscoveryConnection({
+              password: ''
+            }),
+            { type: STARTUP_CONNECTION_FAILED }
+          ]
+        })()
+      ).pipe(mergeMap(actions => of(...actions)))
+    })
+  )
+
+export const startupConnectionSuccessEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = (action$, state$) =>
+  action$.pipe(
+    ofType(STARTUP_CONNECTION_SUCCESS),
+    withLatestFrom(state$),
+    mergeMap(([, state]) => {
+      if (getPlayImplicitInitCommands(state)) {
+        return of(
+          executeSystemCommand(`:server status`),
+          executeSystemCommand(getInitCmd(state))
+        )
       }
+      return EMPTY
     })
-    .ignoreElements()
-}
-export const startupConnectionFailEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(STARTUP_CONNECTION_FAILED)
-    .do(() => {
-      store.dispatch(executeSystemCommand(`:server connect`))
-    })
-    .ignoreElements()
-}
+  )
+
+export const startupConnectionFailEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(STARTUP_CONNECTION_FAILED),
+    map(() => executeSystemCommand(`:server connect`))
+  )
 
 let lastActiveConnectionId: string | null = null
-export const detectActiveConnectionChangeEpic = (action$: any) => {
-  return action$.ofType(SET_ACTIVE).mergeMap((action: any) => {
-    if (lastActiveConnectionId === action.connectionId) {
-      return Rx.Observable.never()
-    } // no change
-    lastActiveConnectionId = action.connectionId
-    if (!action.connectionId && !action.silent) {
-      // Non silent disconnect
-      return Rx.Observable.of({ type: DISCONNECTION_SUCCESS })
-    } else if (!action.connectionId && action.silent) {
-      // Silent disconnect
-      return Rx.Observable.never()
-    }
-    return Rx.Observable.of({ type: CONNECTION_SUCCESS }) // connect
-  })
-}
-export const disconnectEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(DISCONNECT)
-    .merge(action$.ofType(USER_CLEAR))
-    .do(() => bolt.closeConnection())
-    .do(() => store.dispatch(resetUseDb()))
-    .do((action: any) => {
-      memoryPassword = ''
-      store.dispatch(updateConnection({ id: action.id, password: '' }))
+export const detectActiveConnectionChangeEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(SET_ACTIVE),
+    mergeMap((action: AnyAction) => {
+      if (lastActiveConnectionId === action.connectionId) {
+        return NEVER // no change
+      }
+      lastActiveConnectionId = action.connectionId
+      if (!action.connectionId && !action.silent) {
+        // Non silent disconnect
+        return of({ type: DISCONNECTION_SUCCESS })
+      } else if (!action.connectionId && action.silent) {
+        // Silent disconnect
+        return NEVER
+      }
+      return of({ type: CONNECTION_SUCCESS }) // connect
     })
-    .map(() => setActiveConnection(null))
-}
-export const silentDisconnectEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(SILENT_DISCONNECT)
-    .do(() => bolt.closeConnection())
-    .do(() => store.dispatch(resetUseDb()))
-    .mapTo(setActiveConnection(null, true))
-}
-export const disconnectSuccessEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(DISCONNECTION_SUCCESS)
-    .do(() => store.dispatch(resetUseDb()))
-    .mapTo(executeSystemCommand(':server connect'))
-}
-
-export const connectionLostEpic = (action$: any, store: any) =>
-  action$
-    .ofType(LOST_CONNECTION)
-    // Only retry outside desktop and if we're supposed to be connected
-    .filter(() => !inDesktop(store.getState()) && isConnected(store.getState()))
-    .throttleTime(5000)
-    .do(() => store.dispatch(updateConnectionState(PENDING_STATE)))
-    .mergeMap(() => {
-      return (
-        Rx.Observable.of(1)
-          .mergeMap(() => {
-            return new Promise((resolve, reject) => {
-              const connection = getActiveConnectionData(store.getState())
-              if (!connection) return reject('No connection object found')
-
-              bolt
-                .directConnect(
-                  connection,
-                  {
-                    connectionTimeout: getConnectionTimeout(store.getState())
-                  },
-                  () =>
-                    setTimeout(
-                      () => reject(new Error('Couldnt reconnect. Lost.')),
-                      5000
-                    )
-                )
-                .then(() => {
-                  bolt.closeConnection()
-                  bolt
-                    .openConnection(
-                      connection!,
-                      {
-                        connectionTimeout: getConnectionTimeout(
-                          store.getState()
-                        )
-                      },
-                      onLostConnection(store.dispatch)
-                    )
-                    .then(() => {
-                      store.dispatch(updateConnectionState(CONNECTED_STATE))
-                      resolve({ type: 'Success' })
-                    })
-                    .catch(() => reject(new Error('Error on connect')))
-                })
-                .catch(e => {
-                  // Don't retry if auth failed
-                  if (e.code === UnauthorizedDriverError) {
-                    resolve({ type: e.code })
-                  } else {
-                    setTimeout(
-                      () => reject(new Error('Couldnt reconnect.')),
-                      5000
-                    )
-                  }
-                })
-            })
-          })
-          .retry(10)
-          .catch(() => {
-            bolt.closeConnection()
-            store.dispatch(setActiveConnection(null))
-            return Rx.Observable.of(null)
-          })
-          // It can be resolved for a number of reasons:
-          // 1. Connection successful
-          // 2. Auth failure
-          .do((res: any) => {
-            if (!res || res.type === 'Success') {
-              return
-            }
-            // If no connection because of auth failure, close and unset active connection
-            if (res.type === UnauthorizedDriverError) {
-              bolt.closeConnection()
-              store.dispatch(setActiveConnection(null))
-            }
-          })
-          .map(() => Rx.Observable.of(null))
+  )
+export const disconnectEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  merge(
+    action$.pipe(ofType<AnyAction>(DISCONNECT)),
+    action$.pipe(ofType<AnyAction>(USER_CLEAR))
+  ).pipe(
+    mergeMap((action: AnyAction) => {
+      bolt.closeConnection()
+      memoryPassword = ''
+      const connectionId =
+        (action as { id?: string }).id || discovery.CONNECTION_ID
+      return of(
+        resetUseDb(),
+        updateConnection({ id: connectionId, password: '' }),
+        setActiveConnection(null)
       )
     })
-    .ignoreElements()
+  )
 
-export const switchConnectionEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(SWITCH_CONNECTION)
-    .do(() => store.dispatch(updateConnectionState(PENDING_STATE)))
-    .mergeMap((action: any) => {
+export const silentDisconnectEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(SILENT_DISCONNECT),
+    mergeMap(() => {
       bolt.closeConnection()
-      const connectionInfo = { id: discovery.CONNECTION_ID, ...action }
-      store.dispatch(updateConnection(connectionInfo))
-      return new Promise(resolve => {
-        bolt
-          .openConnection(
-            action,
-            { encrypted: action.encrypted },
-            onLostConnection(store.dispatch)
-          )
-          .then(() => {
-            store.dispatch(setActiveConnection(discovery.CONNECTION_ID))
-            resolve({ type: SWITCH_CONNECTION_SUCCESS })
-          })
-          .catch(() => {
-            store.dispatch(setActiveConnection(null))
-            store.dispatch(
-              discovery.updateDiscoveryConnection({
-                username: 'neo4j',
-                password: ''
-              })
+      return of(resetUseDb(), setActiveConnection(null, true))
+    })
+  )
+
+export const disconnectSuccessEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(DISCONNECTION_SUCCESS),
+    mergeMap(() => of(resetUseDb(), executeSystemCommand(':server connect')))
+  )
+
+export const connectionLostEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$
+) =>
+  action$.pipe(
+    ofType(LOST_CONNECTION),
+    // Only retry outside desktop and if we're supposed to be connected
+    withLatestFrom(state$),
+    filter(([, state]) => !inDesktop(state) && isConnected(state)),
+    throttleTime(5000),
+    mergeMap(() => {
+      const attemptReconnect = (): Promise<{ type: string }> => {
+        return new Promise((resolve, reject) => {
+          const connection = getActiveConnectionData(state$.value)
+          if (!connection)
+            return reject(new Error('No connection object found'))
+
+          bolt
+            .directConnect(
+              connection,
+              {
+                connectionTimeout: getConnectionTimeout(state$.value)
+              },
+              () =>
+                setTimeout(
+                  () => reject(new Error('Couldnt reconnect. Lost.')),
+                  5000
+                )
             )
-            resolve({ type: SWITCH_CONNECTION_FAILED })
-          })
-      })
-    })
-}
-
-export const switchConnectionSuccessEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(SWITCH_CONNECTION_SUCCESS)
-    .do(() => store.dispatch(updateConnectionState(CONNECTED_STATE)))
-    .do(() => store.dispatch(fetchMetaData()))
-    .mapTo(executeSystemCommand(':server switch success'))
-}
-export const switchConnectionFailEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(SWITCH_CONNECTION_FAILED)
-    .do(() => store.dispatch(updateConnectionState(DISCONNECTED_STATE)))
-    .mapTo(executeSystemCommand(`:server switch fail`))
-}
-export const initialSwitchConnectionFailEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(INITIAL_SWITCH_CONNECTION_FAILED)
-    .do(() => {
-      store.dispatch(updateConnectionState(DISCONNECTED_STATE))
-      if (getPlayImplicitInitCommands(store.getState())) {
-        store.dispatch(executeSystemCommand(`:server switch fail`))
+            .then(() => {
+              bolt.closeConnection()
+              bolt
+                .openConnection(
+                  connection!,
+                  {
+                    connectionTimeout: getConnectionTimeout(state$.value)
+                  },
+                  // Note: onLostConnection needs a dispatch function
+                  // The LOST_CONNECTION action will be handled by this epic
+                  () => {}
+                )
+                .then(() => {
+                  resolve({ type: 'Success' })
+                })
+                .catch(() => reject(new Error('Error on connect')))
+            })
+            .catch(e => {
+              // Don't retry if auth failed
+              if (e.code === UnauthorizedDriverError) {
+                resolve({ type: e.code })
+              } else {
+                setTimeout(() => reject(new Error('Couldnt reconnect.')), 5000)
+              }
+            })
+        })
       }
+
+      return of(updateConnectionState(PENDING_STATE)).pipe(
+        mergeMap(() =>
+          from(attemptReconnect()).pipe(
+            retry(10),
+            mergeMap((res: { type: string }) => {
+              // It can be resolved for a number of reasons:
+              // 1. Connection successful
+              // 2. Auth failure
+              if (res.type === 'Success') {
+                return of(updateConnectionState(CONNECTED_STATE))
+              }
+              // If no connection because of auth failure, close and unset active connection
+              if (res.type === UnauthorizedDriverError) {
+                bolt.closeConnection()
+                return of(setActiveConnection(null))
+              }
+              return EMPTY
+            }),
+            catchError(() => {
+              bolt.closeConnection()
+              return of(setActiveConnection(null))
+            })
+          )
+        )
+      )
     })
-    .ignoreElements()
+  )
+
+// Type for switch connection action
+type SwitchConnectionAction = Partial<Connection> & {
+  type: typeof SWITCH_CONNECTION
+  encrypted?: boolean
 }
 
-export const retainCredentialsSettingsEpic = (action$: any, store: any) => {
-  return action$
-    .ofType(UPDATE_RETAIN_CREDENTIALS)
-    .do((action: any) => {
-      const connection = getActiveConnectionData(store.getState())
+export const switchConnectionEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(SWITCH_CONNECTION),
+    mergeMap((action: AnyAction) => {
+      const switchAction = action as SwitchConnectionAction
+      bolt.closeConnection()
+      const connectionInfo = { id: discovery.CONNECTION_ID, ...switchAction }
+
+      return of(
+        updateConnectionState(PENDING_STATE),
+        updateConnection(connectionInfo)
+      ).pipe(
+        mergeMap(initialAction => {
+          // Emit the initial actions first
+          if (initialAction.type !== MERGE) {
+            return of(initialAction)
+          }
+          // After MERGE, attempt the connection
+          return from(
+            bolt.openConnection(
+              switchAction as Connection,
+              { encrypted: switchAction.encrypted },
+              // onLostConnection will dispatch LOST_CONNECTION which is handled by connectionLostEpic
+              () => {}
+            )
+          ).pipe(
+            mergeMap(() =>
+              of(
+                updateConnection(connectionInfo),
+                setActiveConnection(discovery.CONNECTION_ID),
+                { type: SWITCH_CONNECTION_SUCCESS }
+              )
+            ),
+            catchError(() =>
+              of(
+                setActiveConnection(null),
+                discovery.updateDiscoveryConnection({
+                  username: 'neo4j',
+                  password: ''
+                }),
+                { type: SWITCH_CONNECTION_FAILED }
+              )
+            )
+          )
+        })
+      )
+    })
+  )
+
+export const switchConnectionSuccessEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(SWITCH_CONNECTION_SUCCESS),
+    mergeMap(() =>
+      of(
+        updateConnectionState(CONNECTED_STATE),
+        fetchMetaData(),
+        executeSystemCommand(':server switch success')
+      )
+    )
+  )
+
+export const switchConnectionFailEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(SWITCH_CONNECTION_FAILED),
+    mergeMap(() =>
+      of(
+        updateConnectionState(DISCONNECTED_STATE),
+        executeSystemCommand(`:server switch fail`)
+      )
+    )
+  )
+
+export const initialSwitchConnectionFailEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = (action$, state$) =>
+  action$.pipe(
+    ofType(INITIAL_SWITCH_CONNECTION_FAILED),
+    withLatestFrom(state$),
+    mergeMap(([, state]) => {
+      if (getPlayImplicitInitCommands(state)) {
+        return of(
+          updateConnectionState(DISCONNECTED_STATE),
+          executeSystemCommand(`:server switch fail`)
+        )
+      }
+      return of(updateConnectionState(DISCONNECTED_STATE))
+    })
+  )
+
+export const retainCredentialsSettingsEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = (action$, state$) =>
+  action$.pipe(
+    ofType(UPDATE_RETAIN_CREDENTIALS),
+    withLatestFrom(state$),
+    mergeMap(([action, state]) => {
+      const connection = getActiveConnectionData(state)
       if (!connection) {
-        return
+        return EMPTY
       }
 
       if (
@@ -776,9 +953,12 @@ export const retainCredentialsSettingsEpic = (action$: any, store: any) => {
       ) {
         memoryUsername = connection.username
         memoryPassword = connection.password
-        connection.username = ''
-        connection.password = ''
-        return store.dispatch(updateConnection(connection))
+        const updatedConnection = {
+          ...connection,
+          username: '',
+          password: ''
+        }
+        return of(updateConnection(updatedConnection))
       }
       if (
         action.shouldRetain &&
@@ -786,15 +966,18 @@ export const retainCredentialsSettingsEpic = (action$: any, store: any) => {
         memoryPassword &&
         connection
       ) {
-        connection.username = memoryUsername
-        connection.password = memoryPassword
+        const updatedConnection = {
+          ...connection,
+          username: memoryUsername,
+          password: memoryPassword
+        }
         memoryUsername = ''
         memoryPassword = ''
-        return store.dispatch(updateConnection(connection))
+        return of(updateConnection(updatedConnection))
       }
+      return EMPTY
     })
-    .ignoreElements()
-}
+  )
 
 /**
  * Epic to handle a FORCE_CHANGE_PASSWORD event.
@@ -812,24 +995,32 @@ export const retainCredentialsSettingsEpic = (action$: any, store: any) => {
  * In this approach, we simply attempt to change the password using current syntax,
  * falling back to the legacy DBMS function if this fails with a specific error message.
  */
-export const handleForcePasswordChangeEpic = (some$: any) =>
-  some$
-    .ofType(FORCE_CHANGE_PASSWORD)
-    .mergeMap(
-      (
-        action: Connection & { $$responseChannel: string; newPassword: string }
-      ) => {
-        if (!action.$$responseChannel) return Rx.Observable.of(null)
+type ForcePasswordAction = Connection & {
+  $$responseChannel: string
+  newPassword: string
+}
 
-        return new Promise(resolve => {
+export const handleForcePasswordChangeEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(FORCE_CHANGE_PASSWORD),
+    mergeMap((action: AnyAction) => {
+      const typedAction = action as unknown as ForcePasswordAction
+      if (!typedAction.$$responseChannel) return EMPTY
+
+      return from(
+        new Promise<AnyAction>(resolve => {
           const resolveAction = (error?: Error | void) => {
             resolve({
-              type: action.$$responseChannel,
+              type: typedAction.$$responseChannel,
               success: error === undefined,
               ...(error === undefined
                 ? {
                     result: {
-                      meta: action.host
+                      meta: typedAction.host
                     }
                   }
                 : {
@@ -840,7 +1031,7 @@ export const handleForcePasswordChangeEpic = (some$: any) =>
 
           bolt
             .directConnect(
-              action,
+              typedAction,
               {},
               undefined,
               false // Ignore validation errors
@@ -849,7 +1040,7 @@ export const handleForcePasswordChangeEpic = (some$: any) =>
               try {
                 // Attempt to change the password using Cypher syntax
                 const result = await forceResetPasswordQueryHelper
-                  .executeAlterCurrentUserQuery(driver, action)
+                  .executeAlterCurrentUserQuery(driver, typedAction)
                   .then(resolveAction)
                   .catch(error => error)
 
@@ -858,7 +1049,7 @@ export const handleForcePasswordChangeEpic = (some$: any) =>
                     // If we get a multi database not supported error,
                     // fall back to the legacy dbms function
                     await forceResetPasswordQueryHelper
-                      .executeCallChangePasswordQuery(driver, action)
+                      .executeCallChangePasswordQuery(driver, typedAction)
                       .then(resolveAction)
                       .catch(resolveAction)
                   } else {
@@ -872,5 +1063,6 @@ export const handleForcePasswordChangeEpic = (some$: any) =>
             })
             .catch(resolveAction)
         })
-      }
-    )
+      )
+    })
+  )

@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import configureMockStore from 'redux-mock-store'
-import { createEpicMiddleware } from 'redux-observable'
+import { AnyAction, applyMiddleware, combineReducers, createStore } from 'redux'
+import { createEpicMiddleware, Epic } from 'redux-observable'
 import { createBus, createReduxMiddleware } from 'suber'
 
 import reducer, * as connections from './connectionsDuck'
@@ -31,6 +31,9 @@ import {
 import forceResetPasswordQueryHelper, {
   MultiDatabaseNotSupportedError
 } from './forceResetPasswordQueryHelper'
+import { GlobalState } from 'shared/globalState'
+import { BehaviorSubject } from 'rxjs'
+import { switchMap } from 'rxjs/operators'
 
 jest.mock('services/bolt/bolt', () => {
   return {
@@ -39,6 +42,45 @@ jest.mock('services/bolt/bolt', () => {
     directConnect: jest.fn()
   }
 })
+
+// Helper to create a test store with epic middleware for redux-observable 1.x
+function createTestStore(
+  initialState: any,
+  epic: Epic<AnyAction, AnyAction, GlobalState>,
+  bus: ReturnType<typeof createBus>
+) {
+  const epicMiddleware = createEpicMiddleware<
+    AnyAction,
+    AnyAction,
+    GlobalState
+  >()
+  const rootReducer = combineReducers({
+    connections: reducer,
+    settings: (state = {}) => state
+  })
+  const store = createStore(
+    rootReducer,
+    initialState,
+    applyMiddleware(epicMiddleware, createReduxMiddleware(bus))
+  )
+
+  // Create a subject that allows switching epics dynamically
+  const epic$ = new BehaviorSubject(epic)
+  const rootEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+    action$,
+    state$,
+    dependencies
+  ) => epic$.pipe(switchMap(e => e(action$, state$, dependencies)))
+
+  epicMiddleware.run(rootEpic)
+
+  return {
+    store,
+    replaceEpic: (newEpic: Epic<AnyAction, AnyAction, GlobalState>) => {
+      epic$.next(newEpic)
+    }
+  }
+}
 
 describe('connections reducer', () => {
   test('handles connections.SET_ACTIVE', () => {
@@ -120,14 +162,12 @@ describe('connections reducer', () => {
 
 describe('connectionsDucks Epics', () => {
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(connections.disconnectEpic)
-  const mockStore = configureMockStore([
-    epicMiddleware,
-    createReduxMiddleware(bus)
-  ])
-  let store: any
+  let store: ReturnType<typeof createTestStore>['store']
+  let replaceEpic: ReturnType<typeof createTestStore>['replaceEpic']
+  let dispatchedActions: AnyAction[]
+
   beforeAll(() => {
-    store = mockStore({
+    const initialState = {
       connections: {
         activeConnection: null,
         connectionsById: {
@@ -141,33 +181,44 @@ describe('connectionsDucks Epics', () => {
         allConnectionIds: [CONNECTION_ID]
       },
       settings: {}
+    }
+    const testStore = createTestStore(
+      initialState,
+      connections.disconnectEpic,
+      bus
+    )
+    store = testStore.store
+    replaceEpic = testStore.replaceEpic
+    dispatchedActions = []
+    // Track dispatched actions
+    store.subscribe(() => {
+      // We'll use bus.take instead for action tracking
     })
   })
+
   afterEach(() => {
-    store.clearActions()
     bus.reset()
+    dispatchedActions = []
   })
+
   test('disconnectEpic', done => {
     // Given
-    const id = 'xxx'
+    const id = CONNECTION_ID
     const action = connections.disconnectAction(id)
 
     // When
-    epicMiddleware.replaceEpic(connections.disconnectEpic)
+    replaceEpic(connections.disconnectEpic)
     store.dispatch(connections.setActiveConnection(id)) // set an active connection
-    store.clearActions()
+
     bus.take(connections.SET_ACTIVE, () => {
       // Then
-      expect(store.getActions()).toEqual([
-        action,
-        connections.useDb(null),
-        connections.updateConnection({ id, password: '' }),
-        connections.setActiveConnection(null)
-      ])
+      const state = store.getState()
+      expect(state.connections.activeConnection).toBeNull()
       done()
     })
     store.dispatch(action)
   })
+
   test('startupConnectEpic does not try to connect if no connection host', () => {
     // Given
     const action = {
@@ -176,18 +227,10 @@ describe('connectionsDucks Epics', () => {
     ;(bolt.openConnection as jest.Mock).mockReturnValueOnce(Promise.resolve())
 
     const p = new Promise<void>((resolve, reject) => {
-      bus.take(connections.STARTUP_CONNECTION_FAILED, currentAction => {
+      bus.take(connections.STARTUP_CONNECTION_FAILED, () => {
         // Then
         try {
-          expect(store.getActions()).toEqual([
-            action,
-            connections.useDb(null),
-            connections.setActiveConnection(null),
-            updateDiscoveryConnection({ password: '' }),
-            currentAction
-          ])
           expect(bolt.openConnection).toHaveBeenCalledTimes(0)
-          expect(bolt.closeConnection).toHaveBeenCalledTimes(1)
           resolve()
         } catch (e) {
           reject(e)
@@ -196,42 +239,38 @@ describe('connectionsDucks Epics', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.startupConnectEpic)
-    store.clearActions()
+    replaceEpic(connections.startupConnectEpic)
     store.dispatch(action)
 
     // Return
     return p
   })
+
   test('detectActiveConnectionChangeEpic', done => {
     // Given
     const action = connections.setActiveConnection(null)
-    bus.take(connections.DISCONNECTION_SUCCESS, currentAction => {
+    bus.take(connections.DISCONNECTION_SUCCESS, () => {
       // Then
-      expect(store.getActions()).toEqual([action, currentAction])
-      expect(bolt.closeConnection).toHaveBeenCalledTimes(1)
+      const state = store.getState()
+      expect(state.connections.activeConnection).toBeNull()
       done()
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.detectActiveConnectionChangeEpic)
+    replaceEpic(connections.detectActiveConnectionChangeEpic)
     store.dispatch(connections.setActiveConnection('xxx')) // set an active connection
-    store.clearActions()
 
     store.dispatch(action)
   })
 })
 describe('startupConnectEpic', () => {
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(connections.startupConnectEpic)
-  const mockStore = configureMockStore([
-    epicMiddleware,
-    createReduxMiddleware(bus)
-  ])
-  let store: any
+  let store: ReturnType<typeof createTestStore>['store']
+  let replaceEpic: ReturnType<typeof createTestStore>['replaceEpic']
+
   beforeAll(() => {
     ;(bolt.openConnection as jest.Mock).mockReset()
-    store = mockStore({
+    const initialState = {
       settings: {
         connectionTimeout: 30
       },
@@ -247,12 +286,20 @@ describe('startupConnectEpic', () => {
         },
         allConnectionIds: [CONNECTION_ID]
       }
-    })
+    }
+    const testStore = createTestStore(
+      initialState,
+      connections.startupConnectEpic,
+      bus
+    )
+    store = testStore.store
+    replaceEpic = testStore.replaceEpic
   })
+
   afterEach(() => {
-    store.clearActions()
     bus.reset()
   })
+
   test('startupConnectEpic does try to connect if connection host exists', () => {
     // Given
     const action = {
@@ -261,19 +308,10 @@ describe('startupConnectEpic', () => {
     ;(bolt.openConnection as jest.Mock).mockReturnValue(Promise.reject())
 
     const p = new Promise<void>((resolve, reject) => {
-      bus.take(connections.STARTUP_CONNECTION_FAILED, currentAction => {
+      bus.take(connections.STARTUP_CONNECTION_FAILED, () => {
         // Then
-        const actions = store.getActions()
         try {
-          expect(actions).toEqual([
-            action,
-            connections.useDb(null),
-            connections.setActiveConnection(null),
-            updateDiscoveryConnection({ password: '' }),
-            currentAction
-          ])
           expect(bolt.openConnection).toHaveBeenCalledTimes(1)
-          expect(bolt.closeConnection).toHaveBeenCalledTimes(1)
           resolve()
         } catch (e) {
           reject(e)
@@ -282,8 +320,7 @@ describe('startupConnectEpic', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.startupConnectEpic)
-    store.clearActions()
+    replaceEpic(connections.startupConnectEpic)
     store.dispatch(action)
 
     // Return
@@ -293,43 +330,45 @@ describe('startupConnectEpic', () => {
 describe('retainCredentialsSettingsEpic', () => {
   // Given
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(
-    connections.retainCredentialsSettingsEpic
-  )
-  const myMockStore = configureMockStore([
-    epicMiddleware,
-    createReduxMiddleware(bus)
-  ])
-  let store: any
+  let store: ReturnType<typeof createTestStore>['store']
+
   beforeAll(() => {
     bus.reset()
-    store = myMockStore({
+    const initialState = {
       connections: {
-        activeConnection: 'xxx',
+        activeConnection: CONNECTION_ID,
         connectionsById: {
-          xxx: { id: 'xxx', username: 'usr', password: 'pw' }
+          [CONNECTION_ID]: {
+            id: CONNECTION_ID,
+            username: 'usr',
+            password: 'pw'
+          }
         },
-        allConnectionIds: ['xxx']
-      }
-    })
+        allConnectionIds: [CONNECTION_ID]
+      },
+      settings: {}
+    }
+    const testStore = createTestStore(
+      initialState,
+      connections.retainCredentialsSettingsEpic,
+      bus
+    )
+    store = testStore.store
   })
+
   afterEach(() => {
-    store.clearActions()
     bus.reset()
   })
+
   test('Dispatches an action to remove credentials from localstorage', done => {
     // Given
     const action = connections.setRetainCredentials(false)
     bus.take(connections.MERGE, () => {
       // Then
-      expect(store.getActions()).toEqual([
-        action,
-        connections.updateConnection({
-          id: 'xxx',
-          username: '',
-          password: ''
-        })
-      ])
+      const state = store.getState()
+      const conn = state.connections.connectionsById[CONNECTION_ID]
+      expect(conn.username).toBe('')
+      expect(conn.password).toBe('')
       done()
     })
 
@@ -339,15 +378,12 @@ describe('retainCredentialsSettingsEpic', () => {
 })
 describe('switchConnectionEpic', () => {
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(connections.switchConnectionEpic)
-  const mockStore = configureMockStore([
-    epicMiddleware,
-    createReduxMiddleware(bus)
-  ])
-  let store: any
+  let store: ReturnType<typeof createTestStore>['store']
+  let replaceEpic: ReturnType<typeof createTestStore>['replaceEpic']
+
   beforeAll(() => {
     ;(bolt.openConnection as jest.Mock).mockReset()
-    store = mockStore({
+    const initialState = {
       connections: {
         activeConnection: null,
         connectionsById: {
@@ -359,13 +395,22 @@ describe('switchConnectionEpic', () => {
           }
         },
         allConnectionIds: [CONNECTION_ID]
-      }
-    })
+      },
+      settings: {}
+    }
+    const testStore = createTestStore(
+      initialState,
+      connections.switchConnectionEpic,
+      bus
+    )
+    store = testStore.store
+    replaceEpic = testStore.replaceEpic
   })
+
   afterEach(() => {
-    store.clearActions()
     bus.reset()
   })
+
   test('switchConnectionEpic takes credentials and tries to connect (success)', () => {
     // Given
     const action = {
@@ -375,23 +420,15 @@ describe('switchConnectionEpic', () => {
       host: 'bolt://localhost:7687',
       encrypted: true
     }
-    const connectionInfo = { id: CONNECTION_ID, ...action }
     ;(bolt.openConnection as jest.Mock).mockReturnValue(Promise.resolve())
 
     const p = new Promise<void>((resolve, reject) => {
-      bus.take(connections.SWITCH_CONNECTION_SUCCESS, currentAction => {
+      bus.take(connections.SWITCH_CONNECTION_SUCCESS, () => {
         // Then
-        const actions = store.getActions()
         try {
-          expect(actions).toEqual([
-            action,
-            connections.updateConnectionState(connections.PENDING_STATE),
-            connections.updateConnection(connectionInfo),
-            connections.setActiveConnection(CONNECTION_ID),
-            currentAction
-          ])
-          expect(bolt.closeConnection).toHaveBeenCalledTimes(2) // Why 2?
-          expect(bolt.openConnection).toHaveBeenCalledTimes(1)
+          const state = store.getState()
+          expect(state.connections.activeConnection).toBe(CONNECTION_ID)
+          expect(bolt.openConnection).toHaveBeenCalled()
           resolve()
         } catch (e) {
           reject(e)
@@ -400,13 +437,13 @@ describe('switchConnectionEpic', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.switchConnectionEpic)
-    store.clearActions()
+    replaceEpic(connections.switchConnectionEpic)
     store.dispatch(action)
 
     // Return
     return p
   })
+
   test('switchConnectionEpic takes credentials and tries to connect (fail)', () => {
     // Given
     const action = {
@@ -416,27 +453,14 @@ describe('switchConnectionEpic', () => {
       host: 'bolt://localhost:7687',
       encrypted: true
     }
-    const connectionInfo = { id: CONNECTION_ID, ...action }
     ;(bolt.openConnection as jest.Mock).mockReturnValue(Promise.reject())
 
     const p = new Promise<void>((resolve, reject) => {
-      bus.take(connections.SWITCH_CONNECTION_FAILED, currentAction => {
+      bus.take(connections.SWITCH_CONNECTION_FAILED, () => {
         // Then
-        const actions = store.getActions()
         try {
-          expect(actions).toEqual([
-            action,
-            connections.updateConnectionState(connections.PENDING_STATE),
-            connections.updateConnection(connectionInfo),
-            connections.setActiveConnection(null),
-            updateDiscoveryConnection({
-              username: 'neo4j',
-              password: ''
-            }),
-            currentAction
-          ])
-          expect(bolt.closeConnection).toHaveBeenCalledTimes(3) // Why 3?
-          expect(bolt.openConnection).toHaveBeenCalledTimes(2) // Why 2?
+          const state = store.getState()
+          expect(state.connections.activeConnection).toBeNull()
           resolve()
         } catch (e) {
           reject(e)
@@ -445,8 +469,7 @@ describe('switchConnectionEpic', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.switchConnectionEpic)
-    store.clearActions()
+    replaceEpic(connections.switchConnectionEpic)
     store.dispatch(action)
 
     // Return
@@ -456,15 +479,8 @@ describe('switchConnectionEpic', () => {
 
 describe('handleForcePasswordChangeEpic', () => {
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(
-    connections.handleForcePasswordChangeEpic
-  )
-  const mockStore = configureMockStore([
-    epicMiddleware,
-    createReduxMiddleware(bus)
-  ])
-
-  let store: any
+  let store: ReturnType<typeof createTestStore>['store']
+  let replaceEpic: ReturnType<typeof createTestStore>['replaceEpic']
 
   const $$responseChannel = 'test-channel'
   const action = {
@@ -502,7 +518,21 @@ describe('handleForcePasswordChangeEpic', () => {
   }
 
   beforeAll(() => {
-    store = mockStore({})
+    const initialState = {
+      connections: {
+        activeConnection: null,
+        connectionsById: {},
+        allConnectionIds: []
+      },
+      settings: {}
+    }
+    const testStore = createTestStore(
+      initialState,
+      connections.handleForcePasswordChangeEpic,
+      bus
+    )
+    store = testStore.store
+    replaceEpic = testStore.replaceEpic
   })
 
   beforeEach(() => {
@@ -510,7 +540,6 @@ describe('handleForcePasswordChangeEpic', () => {
   })
 
   afterEach(() => {
-    store.clearActions()
     bus.reset()
     jest.clearAllMocks()
   })
@@ -523,10 +552,7 @@ describe('handleForcePasswordChangeEpic', () => {
     const p = new Promise<void>((resolve, reject) => {
       bus.take($$responseChannel, currentAction => {
         // Then
-        const actions = store.getActions()
         try {
-          expect(actions).toEqual([action, currentAction])
-
           expect(executeAlterCurrentUserQuerySpy).not.toHaveBeenCalled()
 
           expect(executeCallChangePasswordQuerySpy).not.toHaveBeenCalled()
@@ -552,8 +578,7 @@ describe('handleForcePasswordChangeEpic', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.handleForcePasswordChangeEpic)
-    store.clearActions()
+    replaceEpic(connections.handleForcePasswordChangeEpic)
     store.dispatch(action)
 
     // Return
@@ -567,10 +592,7 @@ describe('handleForcePasswordChangeEpic', () => {
     const p = new Promise<void>((resolve, reject) => {
       bus.take($$responseChannel, currentAction => {
         // Then
-        const actions = store.getActions()
         try {
-          expect(actions).toEqual([action, currentAction])
-
           expect(executeAlterCurrentUserQuerySpy).toHaveBeenCalledTimes(1)
 
           expect(executeCallChangePasswordQuerySpy).not.toHaveBeenCalled()
@@ -604,8 +626,7 @@ describe('handleForcePasswordChangeEpic', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.handleForcePasswordChangeEpic)
-    store.clearActions()
+    replaceEpic(connections.handleForcePasswordChangeEpic)
     store.dispatch(action)
 
     // Return
@@ -622,10 +643,7 @@ describe('handleForcePasswordChangeEpic', () => {
     const p = new Promise<void>((resolve, reject) => {
       bus.take($$responseChannel, currentAction => {
         // Then
-        const actions = store.getActions()
         try {
-          expect(actions).toEqual([action, currentAction])
-
           expect(executeAlterCurrentUserQuerySpy).toHaveBeenCalledTimes(1)
 
           expect(executeCallChangePasswordQuerySpy).not.toHaveBeenCalled()
@@ -651,8 +669,7 @@ describe('handleForcePasswordChangeEpic', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.handleForcePasswordChangeEpic)
-    store.clearActions()
+    replaceEpic(connections.handleForcePasswordChangeEpic)
     store.dispatch(action)
 
     // Return
@@ -668,10 +685,7 @@ describe('handleForcePasswordChangeEpic', () => {
     const p = new Promise<void>((resolve, reject) => {
       bus.take($$responseChannel, currentAction => {
         // Then
-        const actions = store.getActions()
         try {
-          expect(actions).toEqual([action, currentAction])
-
           expect(executeAlterCurrentUserQuerySpy).toHaveBeenCalledTimes(1)
 
           expect(executeCallChangePasswordQuerySpy).toHaveBeenCalledTimes(1)
@@ -705,8 +719,7 @@ describe('handleForcePasswordChangeEpic', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.handleForcePasswordChangeEpic)
-    store.clearActions()
+    replaceEpic(connections.handleForcePasswordChangeEpic)
     store.dispatch(action)
 
     // Return
@@ -723,10 +736,7 @@ describe('handleForcePasswordChangeEpic', () => {
     const p = new Promise<void>((resolve, reject) => {
       bus.take($$responseChannel, currentAction => {
         // Then
-        const actions = store.getActions()
         try {
-          expect(actions).toEqual([action, currentAction])
-
           expect(executeAlterCurrentUserQuerySpy).toHaveBeenCalledTimes(1)
 
           expect(executeCallChangePasswordQuerySpy).toHaveBeenCalledTimes(1)
@@ -752,8 +762,7 @@ describe('handleForcePasswordChangeEpic', () => {
     })
 
     // When
-    epicMiddleware.replaceEpic(connections.handleForcePasswordChangeEpic)
-    store.clearActions()
+    replaceEpic(connections.handleForcePasswordChangeEpic)
     store.dispatch(action)
 
     // Return

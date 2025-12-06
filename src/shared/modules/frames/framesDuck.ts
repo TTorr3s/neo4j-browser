@@ -17,10 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Action } from 'redux'
-import { Epic } from 'redux-observable'
-import 'rxjs/add/operator/do'
-import 'rxjs/add/operator/mapTo'
+import { AnyAction } from 'redux'
+import { Epic, ofType, StateObservable } from 'redux-observable'
+import { map, withLatestFrom } from 'rxjs/operators'
 import { v1 as uuidv1 } from 'uuid'
 
 import { Database } from '../dbMeta/dbMetaDuck'
@@ -411,15 +410,19 @@ type StreamActions =
   | SetExpandedByDefaultAction
 
 // Epics
-export const ensureMaxFramesEpic: Epic<Action, GlobalState> = (
+export const ensureMaxFramesEpic: Epic<AnyAction, AnyAction, GlobalState> = (
   action$,
-  store
+  state$: StateObservable<GlobalState>
 ) =>
-  action$.ofType(SETTINGS_UPDATE, ADD).map(() => {
-    const maxFrames = getMaxFrames(store.getState())
-    const maxFramesAction: EnsureMaxFramesAction = {
-      type: ENSURE_MAX_FRAMES,
-      maxFrames
-    }
-    return maxFramesAction
-  })
+  action$.pipe(
+    ofType(SETTINGS_UPDATE, ADD),
+    withLatestFrom(state$),
+    map(([, state]) => {
+      const maxFrames = getMaxFrames(state)
+      const maxFramesAction: EnsureMaxFramesAction = {
+        type: ENSURE_MAX_FRAMES,
+        maxFrames
+      }
+      return maxFramesAction
+    })
+  )

@@ -18,9 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { QueryResult } from 'neo4j-driver'
-import { Action } from 'redux'
-import { Epic } from 'redux-observable'
-import 'rxjs'
+import { AnyAction } from 'redux'
+import { Epic, ofType } from 'redux-observable'
+import { from } from 'rxjs'
+import { mergeMap } from 'rxjs/operators'
 
 import bolt from 'services/bolt/bolt'
 import { BrowserError } from 'services/exceptions'
@@ -166,12 +167,21 @@ const canceled = (id: string): CanceledAction => ({
   id
 })
 
-export const cancelRequestEpic: Epic<Action, GlobalState> = action$ =>
-  action$.ofType(CANCEL_REQUEST).mergeMap(
-    action =>
-      new Promise(resolve => {
-        bolt.cancelTransaction((action as CancelAction).id, () => {
-          resolve(canceled((action as CancelAction).id))
+export const cancelRequestEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(CANCEL_REQUEST),
+    mergeMap((action: AnyAction) => {
+      const cancelAction = action as CancelAction
+      return from(
+        new Promise<CanceledAction>(resolve => {
+          bolt.cancelTransaction(cancelAction.id, () => {
+            resolve(canceled(cancelAction.id))
+          })
         })
-      })
+      )
+    })
   )

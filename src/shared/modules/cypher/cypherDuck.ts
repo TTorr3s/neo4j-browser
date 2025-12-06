@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import neo4j, { QueryResult } from 'neo4j-driver'
-import Rx from 'rxjs'
+import Rx from 'rxjs/Rx'
 
 import { getClusterAddresses } from './queriesProcedureHelper'
 import bolt from 'services/bolt/bolt'

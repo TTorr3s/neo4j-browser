@@ -61,9 +61,30 @@ applyKeys(
 
 // Create suber bus
 const bus = createBus()
+
+// Epic dependencies - these will be populated after store creation
+// This allows epics to access dispatch/getState for complex async flows
+export type EpicDependencies = {
+  dispatch: (action: AnyAction) => void
+  getState: () => GlobalState
+}
+const epicDependencies: EpicDependencies = {
+  dispatch: () => {
+    throw new Error('Store not initialized')
+  },
+  getState: () => {
+    throw new Error('Store not initialized')
+  }
+}
+
 // Define Redux middlewares
 const suberMiddleware = createSuberReduxMiddleware(bus)
-const epicMiddleware = createEpicMiddleware(epics)
+const epicMiddleware = createEpicMiddleware<
+  AnyAction,
+  AnyAction,
+  GlobalState,
+  EpicDependencies
+>({ dependencies: epicDependencies })
 const localStorageMiddleware = createReduxMiddleware()
 
 const reducer = combineReducers<GlobalState>({ ...(reducers as any) })
@@ -116,6 +137,13 @@ const store = createStore<GlobalState>(
   getAll() as GlobalState, // rehydrate from local storage on app start
   enhancer
 )
+
+// Populate epic dependencies now that store is created
+epicDependencies.dispatch = store.dispatch
+epicDependencies.getState = store.getState
+
+// Run the root epic after store creation (redux-observable 1.x API)
+epicMiddleware.run(epics)
 
 // Send everything from suber into Redux
 bus.applyMiddleware(

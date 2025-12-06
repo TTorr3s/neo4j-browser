@@ -25,9 +25,18 @@ import {
   toProcedure,
   toRelationshipType
 } from 'neo4j-arc/cypher-language-support'
-import { Action } from 'redux'
-import { Epic } from 'redux-observable'
-import Rx from 'rxjs/Rx'
+import { AnyAction } from 'redux'
+import { Epic, ofType } from 'redux-observable'
+import { of, NEVER } from 'rxjs'
+import {
+  mergeMap,
+  filter,
+  tap,
+  take,
+  delay,
+  ignoreElements,
+  withLatestFrom
+} from 'rxjs/operators'
 
 import consoleCommands from 'browser/modules/Editor/consoleCommands'
 import { getUrlParamValue } from 'services/utils'
@@ -95,25 +104,28 @@ export const editContent = (
   directory: null
 })
 
-export const populateEditorFromUrlEpic: Epic<any, GlobalState> = some$ => {
-  return some$
-    .ofType(APP_START)
-    .merge(some$.ofType(URL_ARGUMENTS_CHANGE))
-    .delay(1) // Timing issue. Needs to be detached like this
-    .mergeMap(action => {
+export const populateEditorFromUrlEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ => {
+  return action$.pipe(
+    ofType(APP_START, URL_ARGUMENTS_CHANGE),
+    delay(1), // Timing issue. Needs to be detached like this
+    mergeMap(action => {
       if (!action.url) {
-        return Rx.Observable.never()
+        return NEVER
       }
       const cmdParam = getUrlParamValue('cmd', action.url)
 
       // No URL command param found
       if (!cmdParam || !cmdParam[0]) {
-        return Rx.Observable.never()
+        return NEVER
       }
 
       // Not supported URL param command
       if (!Object.keys(validCommandTypes).includes(cmdParam[0])) {
-        return Rx.Observable.of({
+        return of({
           type: NOT_SUPPORTED_URL_PARAM_COMMAND,
           command: cmdParam[0]
         })
@@ -133,39 +145,43 @@ export const populateEditorFromUrlEpic: Epic<any, GlobalState> = some$ => {
       // When running the explicit command, also set flag to skip any implicit init commands
 
       if (['play', 'guide'].includes(commandType)) {
-        return [
-          executeCommand(fullCommand, { source: commandSources.url }),
-          { type: DISABLE_IMPLICIT_INIT_COMMANDS }
-        ]
+        return of(executeCommand(fullCommand, { source: commandSources.url }), {
+          type: DISABLE_IMPLICIT_INIT_COMMANDS
+        })
       }
 
-      return Rx.Observable.of(setContent(fullCommand))
+      return of(setContent(fullCommand))
     })
+  )
 }
 
 export const initializeCypherEditorEpic: Epic<
-  { type: typeof APP_START },
+  AnyAction,
+  AnyAction,
   GlobalState
-> = actions$ => {
-  return actions$
-    .ofType(APP_START)
-    .take(1)
-    .do(() => {
+> = action$ => {
+  return action$.pipe(
+    ofType(APP_START),
+    take(1),
+    tap(() => {
       initalizeCypherSupport()
       setupAutocomplete({
         consoleCommands
       })
-    })
-    .ignoreElements()
+    }),
+    ignoreElements()
+  )
 }
-export const updateEditorSupportSchemaEpic: Epic<Action, GlobalState> = (
-  actions$,
-  store
-) =>
-  actions$
-    .filter(isOfType([DB_META_DONE, UPDATE_PARAMS]))
-    .do(() => {
-      const { params, meta } = store.getState()
+export const updateEditorSupportSchemaEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = (action$, state$) =>
+  action$.pipe(
+    filter(isOfType([DB_META_DONE, UPDATE_PARAMS])),
+    withLatestFrom(state$),
+    tap(([, state]) => {
+      const { params, meta } = state
 
       setupAutocomplete({
         consoleCommands,
@@ -176,5 +192,6 @@ export const updateEditorSupportSchemaEpic: Epic<Action, GlobalState> = (
         propertyKeys: meta.properties,
         relationshipTypes: meta.relationshipTypes.map(toRelationshipType)
       })
-    })
-    .ignoreElements()
+    }),
+    ignoreElements()
+  )

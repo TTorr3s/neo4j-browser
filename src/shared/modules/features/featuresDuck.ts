@@ -17,6 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { AnyAction } from 'redux'
+import { Epic, ofType } from 'redux-observable'
+import { map } from 'rxjs/operators'
+
+import { GlobalState } from 'shared/globalState'
 import { APP_START } from 'shared/modules/app/appDuck'
 import { DISCONNECTION_SUCCESS } from 'shared/modules/connections/connectionsDuck'
 
@@ -81,5 +86,12 @@ export const setClientConfig = (isAvailable: any) => {
   }
 }
 
-export const clearOnDisconnectEpic = (some$: any) =>
-  some$.ofType(DISCONNECTION_SUCCESS).mapTo({ type: CLEAR })
+export const clearOnDisconnectEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(DISCONNECTION_SUCCESS),
+    map(() => ({ type: CLEAR }))
+  )

@@ -17,6 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { AnyAction } from 'redux'
+import { Epic, ofType } from 'redux-observable'
+import { merge, from } from 'rxjs'
+import { map, mergeMap, throttleTime } from 'rxjs/operators'
+
 import {
   DB_META_DONE,
   SERVER_VERSION_READ,
@@ -34,6 +39,7 @@ import {
   DISCONNECTION_SUCCESS,
   getAuthEnabled
 } from 'shared/modules/connections/connectionsDuck'
+import { GlobalState } from 'shared/globalState'
 
 export const NAME = 'user'
 export const UPDATE_CURRENT_USER = `${NAME}/UPDATE_CURRENT_USER`
@@ -86,34 +92,40 @@ export function forceFetch() {
 }
 
 // Epics
-export const getCurrentUserEpic = (some$: any, store: any) =>
-  some$
-    .ofType(SERVER_VERSION_READ)
-    .merge(some$.ofType(DB_META_DONE))
-    .throttleTime(5000)
-    .mergeMap(() => {
-      return new Promise(async resolve => {
-        const authEnabled = getAuthEnabled(store.getState())
-        if (!authEnabled) {
-          return resolve(null)
-        }
-        try {
-          const hasMultidb = supportsMultiDb(store.getState())
-          const res = await bolt.backgroundWorkerlessRoutedRead(
-            getShowCurrentUserProcedure(
-              hasMultidb ? FIRST_MULTI_DB_SUPPORT : FIRST_NO_MULTI_DB_SUPPORT
-            ),
-            { useDb: hasMultidb ? SYSTEM_DB : undefined },
-            store
-          )
+export const getCurrentUserEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$
+) =>
+  merge(
+    action$.pipe(ofType<AnyAction>(SERVER_VERSION_READ)),
+    action$.pipe(ofType<AnyAction>(DB_META_DONE))
+  ).pipe(
+    throttleTime(5000),
+    mergeMap(() => {
+      return from(
+        new Promise(async resolve => {
+          const authEnabled = getAuthEnabled(state$.value)
+          if (!authEnabled) {
+            return resolve(null)
+          }
+          try {
+            const hasMultidb = supportsMultiDb(state$.value)
+            const res = await bolt.backgroundWorkerlessRoutedRead(
+              getShowCurrentUserProcedure(
+                hasMultidb ? FIRST_MULTI_DB_SUPPORT : FIRST_NO_MULTI_DB_SUPPORT
+              ),
+              { useDb: hasMultidb ? SYSTEM_DB : undefined },
+              { getState: () => state$.value }
+            )
 
-          return resolve(res)
-        } catch (e) {
-          return resolve(null)
-        }
-      })
-    })
-    .map((result: any) => {
+            return resolve(res)
+          } catch (e) {
+            return resolve(null)
+          }
+        })
+      )
+    }),
+    map((result: any) => {
       if (!result) return { type: CLEAR }
       const keys = result.records[0].keys
 
@@ -126,6 +138,14 @@ export const getCurrentUserEpic = (some$: any, store: any) =>
 
       return updateCurrentUser(username, roles)
     })
+  )
 
-export const clearCurrentUserOnDisconnectEpic = (some$: any) =>
-  some$.ofType(DISCONNECTION_SUCCESS).mapTo({ type: CLEAR })
+export const clearCurrentUserOnDisconnectEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(DISCONNECTION_SUCCESS),
+    map(() => ({ type: CLEAR }))
+  )

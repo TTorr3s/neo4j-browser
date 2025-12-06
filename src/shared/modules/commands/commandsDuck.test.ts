@@ -43,11 +43,41 @@ import {
 } from 'shared/modules/settings/settingsDuck'
 
 jest.mock('shared/services/bolt/boltWorker')
+jest.mock('services/bolt/bolt', () => ({
+  default: {
+    routedWriteTransaction: jest.fn(() => [
+      'id',
+      Promise.resolve({ records: [] })
+    ]),
+    routedReadTransaction: jest.fn(() => Promise.resolve({ records: [] })),
+    directTransaction: jest.fn(() => Promise.resolve({ records: [] })),
+    closeConnection: jest.fn(),
+    openConnection: jest.fn(() => Promise.resolve()),
+    directConnect: jest.fn(() => Promise.resolve())
+  },
+  routedWriteTransaction: jest.fn(() => [
+    'id',
+    Promise.resolve({ records: [] })
+  ])
+}))
 
 const originalRoutedWriteTransaction = bolt.routedWriteTransaction
 
 const bus = createBus()
-const epicMiddleware = createEpicMiddleware(commands.handleSingleCommandEpic)
+
+// Epic dependencies for redux-observable 1.x
+// These will be populated with the actual store's dispatch/getState in beforeAll
+const epicDependencies: {
+  dispatch: (action: any) => void
+  getState: () => any
+} = {
+  dispatch: () => {},
+  getState: () => ({})
+}
+
+const epicMiddleware = createEpicMiddleware({
+  dependencies: epicDependencies
+})
 const mockStore = configureMockStore([
   epicMiddleware,
   createReduxMiddleware(bus)
@@ -79,6 +109,11 @@ describe('commandsDuck', () => {
         }
       }
     })
+    // Populate epic dependencies with store methods
+    epicDependencies.dispatch = store.dispatch
+    epicDependencies.getState = store.getState
+    // Run the epic after store creation (redux-observable 1.x API)
+    epicMiddleware.run(commands.handleSingleCommandEpic as any)
   })
   afterEach(() => {
     store.clearActions()

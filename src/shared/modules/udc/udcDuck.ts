@@ -17,8 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Action } from 'redux'
-import { Epic } from 'redux-observable'
+import { AnyAction } from 'redux'
+import { Epic, ofType, StateObservable } from 'redux-observable'
+import { EMPTY, merge, of } from 'rxjs'
+import { filter, map, mergeMap, withLatestFrom } from 'rxjs/operators'
 import { v4 } from 'uuid'
 
 import { USER_CLEAR } from '../app/appDuck'
@@ -167,15 +169,20 @@ export const updateUdcData = (obj: Partial<UdcState>): UpdateDataAction => {
 }
 
 // Epics
-export const udcStartupEpic: Epic<Action, GlobalState> = (action$, store) =>
-  action$
-    .ofType(UDC_STARTUP)
-    .do(() => {
-      if (!aWeekSinceLastSnapshot(store.getState())) {
-        return
+export const udcStartupEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$: StateObservable<GlobalState>
+) =>
+  action$.pipe(
+    ofType(UDC_STARTUP),
+    withLatestFrom(state$),
+    mergeMap(([, state]) => {
+      if (!aWeekSinceLastSnapshot(state)) {
+        return EMPTY
       }
 
-      const settings = getSettings(store.getState())
+      const actions: AnyAction[] = []
+      const settings = getSettings(state)
       const nonSensitiveSettings: Array<keyof SettingsState> = [
         'maxHistory',
         'theme',
@@ -198,15 +205,15 @@ export const udcStartupEpic: Epic<Action, GlobalState> = (action$, store) =>
           (acc, curr) => ({ ...acc, [curr]: settings[curr] }),
           {}
         )
-        store.dispatch(
+        actions.push(
           metricsEvent({ category: 'settings', label: 'snapshot', data })
         )
       }
-      const favorites = getFavorites(store.getState())
+      const favorites = getFavorites(state)
 
       if (favorites) {
         const count = favorites.filter(script => !script.isStatic).length
-        store.dispatch(
+        actions.push(
           metricsEvent({
             category: 'favorites',
             label: 'snapshot',
@@ -214,40 +221,52 @@ export const udcStartupEpic: Epic<Action, GlobalState> = (action$, store) =>
           })
         )
       }
-      store.dispatch(
+      actions.push(
         updateUdcData({ lastSnapshot: Math.round(Date.now() / 1000) })
       )
-    })
-    .ignoreElements()
 
-export const trackCommandUsageEpic: Epic<Action, GlobalState> = action$ =>
-  action$.ofType(COMMAND_QUEUED).map((action: any) => {
-    const cmd: string = action.cmd
-    const isCypher = !cmd.startsWith(':')
-    const estimatedNumberOfStatements = cmd.split(';').filter(a => a).length
-    if (isCypher) {
+      return merge(...actions.map(action => of(action)))
+    })
+  )
+
+export const trackCommandUsageEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(COMMAND_QUEUED),
+    map((action: any) => {
+      const cmd: string = action.cmd
+      const isCypher = !cmd.startsWith(':')
+      const estimatedNumberOfStatements = cmd
+        .split(';')
+        .filter((a: string) => a).length
+      if (isCypher) {
+        return metricsEvent({
+          category: 'command',
+          label: 'cypher',
+          data: {
+            type: 'cypher',
+            source: action.source || 'unknown',
+            averageWordCount:
+              cmd.split(' ').length / estimatedNumberOfStatements,
+            averageLineCount:
+              cmd.split('\n').length / estimatedNumberOfStatements,
+            estimatedNumberOfStatements
+          }
+        })
+      }
+
+      const type = cmdHelper.interpret(action.cmd.slice(1))?.name
+
       return metricsEvent({
         category: 'command',
-        label: 'cypher',
-        data: {
-          type: 'cypher',
-          source: action.source || 'unknown',
-          averageWordCount: cmd.split(' ').length / estimatedNumberOfStatements,
-          averageLineCount:
-            cmd.split('\n').length / estimatedNumberOfStatements,
-          estimatedNumberOfStatements
-        }
+        label: 'non-cypher',
+        data: { source: action.source || 'unknown', type }
       })
-    }
-
-    const type = cmdHelper.interpret(action.cmd.slice(1))?.name
-
-    return metricsEvent({
-      category: 'command',
-      label: 'non-cypher',
-      data: { source: action.source || 'unknown', type }
     })
-  })
+  )
 
 const actionsOfInterest = [
   ADD_FAVORITE,
@@ -267,25 +286,31 @@ const actionsOfInterest = [
   CYPHER_SUCCEEDED,
   CYPHER_FAILED
 ]
-export const trackReduxActionsEpic: Epic<Action, GlobalState> = action$ =>
-  action$
-    .filter(action => actionsOfInterest.includes(action.type))
-    .map(action => {
+export const trackReduxActionsEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    filter(action => actionsOfInterest.includes(action.type)),
+    map(action => {
       const [category, label] = action.type.split('/')
       return metricsEvent({ category, label })
     })
+  )
 
-export const trackErrorFramesEpic: Epic<Action, GlobalState> = (
-  action$,
-  store
-) =>
-  action$
-    .ofType(ADD)
-    .do((action: any) => {
+export const trackErrorFramesEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(ADD),
+    mergeMap((action: any) => {
       const error = action.state.error
       if (error) {
         const { code, type } = error
-        store.dispatch(
+        return of(
           metricsEvent({
             category: 'stream',
             label: 'errorframe',
@@ -293,15 +318,22 @@ export const trackErrorFramesEpic: Epic<Action, GlobalState> = (
           })
         )
       }
+      return EMPTY
     })
-    .ignoreElements()
+  )
 
-export const trackPreviewEpic: Epic<Action, GlobalState> = action$ => {
-  return action$.ofType(PREVIEW_EVENT).map((action: any) => {
-    return metricsEvent({
-      category: 'preview',
-      label: action.label,
-      data: action.data
-    })
-  })
-}
+export const trackPreviewEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(PREVIEW_EVENT),
+    map((action: any) =>
+      metricsEvent({
+        category: 'preview',
+        label: action.label,
+        data: action.data
+      })
+    )
+  )

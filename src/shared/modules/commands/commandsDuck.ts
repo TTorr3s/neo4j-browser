@@ -17,8 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { AnyAction } from 'redux'
+import { Epic, ofType } from 'redux-observable'
+import { merge } from 'rxjs'
+import { map, mergeMap, tap, take, ignoreElements } from 'rxjs/operators'
 import { v4 } from 'uuid'
 
+import { GlobalState } from 'shared/globalState'
 import { CONNECTION_SUCCESS } from '../connections/connectionsDuck'
 import { getAvailableSettings, UPDATE_SETTINGS } from '../dbMeta/dbMetaDuck'
 import { addHistory } from '../history/historyDuck'
@@ -186,20 +191,31 @@ export const unsuccessfulCypher = (query: any) => ({
 
 // Epics
 
-export const handleCommandEpic = (action$: any, store: any) =>
-  action$
-    .ofType(COMMAND_QUEUED)
-    .do((action: any) => {
+// Type for epic dependencies (dispatch/getState for complex async flows)
+type EpicDependencies = {
+  dispatch: (action: AnyAction) => void
+  getState: () => GlobalState
+}
+
+export const handleCommandEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState,
+  EpicDependencies
+> = (action$, _state$, { dispatch, getState }) =>
+  action$.pipe(
+    ofType(COMMAND_QUEUED),
+    tap((action: AnyAction) => {
+      const cmdAction = action as ExecuteCommandAction
       // Map some commands to the help command
-      if (['?', 'help', ':'].includes(action.cmd)) {
-        action.cmd = ':help'
+      let cmd = cmdAction.cmd
+      if (['?', 'help', ':'].includes(cmd)) {
+        cmd = ':help'
       }
 
-      store.dispatch(clearErrorMessage())
-      const maxHistory = getMaxHistory(store.getState())
-      store.dispatch(addHistory(action.cmd, maxHistory))
-
-      const { cmd } = action
+      dispatch(clearErrorMessage())
+      const maxHistory = getMaxHistory(getState())
+      dispatch(addHistory(cmd, maxHistory))
 
       // extractStatementsFromString is _very_ slow. So we check if we can
       // skip it. If there are no semi colons apart from the final character
@@ -211,7 +227,7 @@ export const handleCommandEpic = (action$: any, store: any) =>
       const useMultiStatement =
         couldBeMultistatement &&
         !cmd.startsWith(':style') &&
-        shouldEnableMultiStatementMode(store.getState())
+        shouldEnableMultiStatementMode(getState())
 
       const statements = useMultiStatement
         ? extractStatementsFromString(cmd)
@@ -222,19 +238,28 @@ export const handleCommandEpic = (action$: any, store: any) =>
       }
       if (statements.length === 1) {
         // Single command
-        return store.dispatch(executeSingleCommand(cmd, action))
+        dispatch(
+          executeSingleCommand(cmd, {
+            id: cmdAction.id,
+            requestId: cmdAction.requestId,
+            useDb: cmdAction.useDb,
+            isRerun: cmdAction.isRerun
+          })
+        )
+        return
       }
-      const parentId = (action.isRerun ? action.id : action.parentId) || v4()
-      store.dispatch(
+      const parentId =
+        (cmdAction.isRerun ? cmdAction.id : cmdAction.parentId) || v4()
+      dispatch(
         addFrame({
           type: 'cypher-script',
           id: parentId,
           cmd,
-          isRerun: action.isRerun
+          isRerun: cmdAction.isRerun
         } as any)
       )
-      const jobs = statements.map((cmd: any) => {
-        const cleanCmd = cleanCommand(cmd)
+      const jobs = statements.map((stmtCmd: string) => {
+        const cleanCmd = cleanCommand(stmtCmd)
         const requestId = v4()
         const cmdId = v4()
         const allowlistedCommands = allowlistedMultiCommands()
@@ -245,39 +270,47 @@ export const handleCommandEpic = (action$: any, store: any) =>
         // Ignore client commands that aren't allowlisted
         const ignore = cleanCmd.startsWith(':') && !isAllowlisted
 
-        const { action, interpreted } = buildCommandObject(
+        const { action: builtAction, interpreted } = buildCommandObject(
           { cmd: cleanCmd, ignore },
           helper.interpret
         )
-        action.requestId = requestId
-        action.parentId = parentId
-        action.id = cmdId
-        store.dispatch(
-          addFrame({ ...action, requestId, type: interpreted.name })
+        builtAction.requestId = requestId
+        builtAction.parentId = parentId
+        builtAction.id = cmdId
+        dispatch(
+          addFrame({ ...builtAction, requestId, type: interpreted.name })
         )
-        store.dispatch(updateQueryResult(requestId, null, 'waiting'))
+        dispatch(updateQueryResult(requestId, null, 'waiting'))
+        // Create a store-like object for interpreted.exec compatibility
+        const storeCompat = { dispatch, getState }
         return {
-          workFn: () => interpreted.exec(action, store.dispatch, store),
+          workFn: () => interpreted.exec(builtAction, dispatch, storeCompat),
           onStart: () => {
             /* no op */
           },
-          onSkip: () =>
-            store.dispatch(updateQueryResult(requestId, null, 'skipped'))
+          onSkip: () => dispatch(updateQueryResult(requestId, null, 'skipped'))
         }
       })
 
       serialExecution(...jobs).catch(() => {})
-    })
-    .ignoreElements()
+    }),
+    ignoreElements()
+  )
 
-export const handleSingleCommandEpic = (action$: any, store: any) =>
-  action$
-    .ofType(SINGLE_COMMAND_QUEUED)
-    .merge(action$.ofType(SYSTEM_COMMAND_QUEUED))
-    .map((action: any) => buildCommandObject(action, helper.interpret))
-    .mergeMap(({ action, interpreted }: any) => {
-      return new Promise(resolve => {
-        const noop = { type: 'NOOP' }
+export const handleSingleCommandEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState,
+  EpicDependencies
+> = (action$, _state$, { dispatch, getState }) =>
+  merge(
+    action$.pipe(ofType<AnyAction>(SINGLE_COMMAND_QUEUED)),
+    action$.pipe(ofType<AnyAction>(SYSTEM_COMMAND_QUEUED))
+  ).pipe(
+    map((action: AnyAction) => buildCommandObject(action, helper.interpret)),
+    mergeMap(({ action, interpreted }: any) => {
+      return new Promise<AnyAction>(resolve => {
+        const noop: AnyAction = { type: 'NOOP' }
         if (!(action.cmd || '').trim().length) {
           resolve(noop)
           return
@@ -286,7 +319,9 @@ export const handleSingleCommandEpic = (action$: any, store: any) =>
           action.cmd = cleanCommand(action.cmd)
         }
         action.ts = new Date().getTime()
-        const res = interpreted.exec(action, store.dispatch, store)
+        // Create a store-like object for interpreted.exec compatibility
+        const storeCompat = { dispatch, getState }
+        const res = interpreted.exec(action, dispatch, storeCompat)
         if (!res || !res.then) {
           resolve(noop)
         } else {
@@ -298,27 +333,36 @@ export const handleSingleCommandEpic = (action$: any, store: any) =>
         }
       })
     })
+  )
 
-export const postConnectCmdEpic = (some$: any, store: any) =>
-  some$.ofType(CONNECTION_SUCCESS).mergeMap(() =>
-    some$
-      .ofType(UPDATE_SETTINGS)
-      .map(() => {
-        const serverSettings = getAvailableSettings(store.getState())
-        if (serverSettings && serverSettings.postConnectCmd) {
-          const cmds = extractPostConnectCommandsFromServerConfig(
-            serverSettings.postConnectCmd
-          )
-          const playImplicitInitCommands = getPlayImplicitInitCommands(
-            store.getState()
-          )
-          if (playImplicitInitCommands && cmds !== undefined) {
-            cmds.forEach((cmd: any) => {
-              store.dispatch(executeSystemCommand(`:${cmd}`))
-            })
+export const postConnectCmdEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState,
+  EpicDependencies
+> = (action$, _state$, { dispatch, getState }) =>
+  action$.pipe(
+    ofType(CONNECTION_SUCCESS),
+    mergeMap(() =>
+      action$.pipe(
+        ofType(UPDATE_SETTINGS),
+        take(1),
+        map(() => {
+          const serverSettings = getAvailableSettings(getState())
+          if (serverSettings && serverSettings.postConnectCmd) {
+            const cmds = extractPostConnectCommandsFromServerConfig(
+              serverSettings.postConnectCmd
+            )
+            const playImplicitInitCommands =
+              getPlayImplicitInitCommands(getState())
+            if (playImplicitInitCommands && cmds !== undefined) {
+              cmds.forEach((cmd: any) => {
+                dispatch(executeSystemCommand(`:${cmd}`))
+              })
+            }
           }
-        }
-        return { type: 'NOOP' }
-      })
-      .take(1)
+          return { type: 'NOOP' } as AnyAction
+        })
+      )
+    )
   )

@@ -17,7 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { USER_CLEAR } from 'shared/modules/app/appDuck'
+import { AnyAction } from 'redux'
+import { Epic, ofType, StateObservable } from 'redux-observable'
+import { of } from 'rxjs'
+import { mergeMap } from 'rxjs/operators'
+
+import { GlobalState } from 'shared/globalState'
+import { USER_CLEAR, UserClearAction } from 'shared/modules/app/appDuck'
 import {
   disconnectAction,
   getActiveConnection
@@ -27,11 +33,19 @@ export const NAME = 'localstorage'
 export const CLEAR_LOCALSTORAGE = `${NAME}/CLEAR_LOCALSTORAGE`
 
 // Epics
-export const clearLocalstorageEpic = (some$: any, store: any) =>
-  some$.ofType(CLEAR_LOCALSTORAGE).map(() => {
-    const activeConnection = getActiveConnection(store.getState())
-    if (activeConnection) {
-      store.dispatch(disconnectAction(activeConnection))
-    }
-    return { type: USER_CLEAR }
-  })
+export const clearLocalstorageEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$: StateObservable<GlobalState>
+) =>
+  action$.pipe(
+    ofType(CLEAR_LOCALSTORAGE),
+    mergeMap(() => {
+      const actions: AnyAction[] = []
+      const activeConnection = getActiveConnection(state$.value)
+      if (activeConnection) {
+        actions.push(disconnectAction(activeConnection))
+      }
+      actions.push({ type: USER_CLEAR } as UserClearAction)
+      return of(...actions)
+    })
+  )
