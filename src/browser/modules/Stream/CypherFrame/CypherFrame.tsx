@@ -67,6 +67,7 @@ import { CypherFrameButton } from 'browser-components/buttons'
 import { StyledFrameBody } from 'browser/modules/Frame/styled'
 import { csvFormat, stringModifier } from 'services/bolt/cypherTypesFormatting'
 import { downloadPNGFromSVG, downloadSVG } from 'services/exporting/imageUtils'
+import { ExportType, GraphElement } from 'services/exporting/svgUtils'
 import { CSVSerializer } from 'services/serializer'
 import { stringifyMod } from 'services/utils'
 import { GlobalState } from 'shared/globalState'
@@ -113,9 +114,9 @@ export type PlanExpand = 'EXPAND' | 'COLLAPSE'
 
 export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
   visElement: null | {
-    svgElement: unknown
-    graphElement: unknown
-    type: 'plan' | 'graph'
+    svgElement: SVGElement
+    graphElement: GraphElement
+    type: ExportType
   } = null
   state: CypherFrameState = {
     openView: undefined,
@@ -245,17 +246,18 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
           <TableIcon />
         </CypherFrameButton>
       )}
-      {resultHasRows(this.props.request) && !resultIsError(this.props.request) && (
-        <CypherFrameButton
-          data-testid="cypherFrameSidebarAscii"
-          selected={this.state.openView === ViewTypes.TEXT}
-          onClick={() => {
-            this.changeView(ViewTypes.TEXT)
-          }}
-        >
-          <AsciiIcon />
-        </CypherFrameButton>
-      )}
+      {resultHasRows(this.props.request) &&
+        !resultIsError(this.props.request) && (
+          <CypherFrameButton
+            data-testid="cypherFrameSidebarAscii"
+            selected={this.state.openView === ViewTypes.TEXT}
+            onClick={() => {
+              this.changeView(ViewTypes.TEXT)
+            }}
+          >
+            <AsciiIcon />
+          </CypherFrameButton>
+        )}
       {resultHasPlan(this.props.request) && (
         <CypherFrameButton
           data-testid="cypherFrameSidebarPlan"
@@ -350,7 +352,10 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
             result={result}
             updated={this.props.request.updated}
             isFullscreen={this.props.isFullscreen}
-            assignVisElement={(svgElement: any, graphElement: any) => {
+            assignVisElement={(
+              svgElement: SVGElement,
+              graphElement: GraphElement
+            ) => {
               this.visElement = { svgElement, graphElement, type: 'plan' }
               this.setState({ hasVis: true })
             }}
@@ -364,7 +369,10 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
             isFullscreen={this.props.isFullscreen}
             result={result}
             updated={this.props.request.updated}
-            assignVisElement={(svgElement: any, graphElement: any) => {
+            assignVisElement={(
+              svgElement: SVGElement,
+              graphElement: GraphElement
+            ) => {
               this.visElement = { svgElement, graphElement, type: 'graph' }
               this.setState({ hasVis: true })
             }}

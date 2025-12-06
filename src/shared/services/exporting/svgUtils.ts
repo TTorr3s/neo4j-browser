@@ -17,30 +17,42 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { select as d3Select } from 'd3-selection'
+import { select as d3Select, Selection } from 'd3-selection'
+
+export type ExportType = 'plan' | 'graph'
+
+export interface BoundingBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface GraphElement {
+  boundingBox: () => BoundingBox
+}
+
+interface SvgDimensions {
+  width: number
+  height: number
+  viewBox: string
+}
+
+type SvgSelection = Selection<SVGSVGElement, unknown, null, undefined>
 
 export const prepareForExport = (
   svgElement: SVGElement,
-  graphElement: any,
-  type: any
-) => {
+  graphElement: GraphElement
+): SvgSelection => {
   const dimensions = getSvgDimensions(graphElement)
-  let svg = d3Select(
+  const svg = d3Select(
     document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   )
 
   svg.append('title').text('Neo4j Graph Visualization')
   svg.append('desc').text('Created using Neo4j (http://www.neo4j.com/)')
 
-  switch (type) {
-    case 'plan': {
-      svg = appendPlanLayers(svgElement, svg)
-      break
-    }
-    case 'graph':
-    default:
-      svg = appendGraphLayers(svgElement, svg)
-  }
+  appendLayers(svgElement, svg)
 
   svg.selectAll('.overlay, .ring').remove()
   svg.selectAll('.context-menu-item').remove()
@@ -55,9 +67,9 @@ export const prepareForExport = (
   return svg
 }
 
-const getSvgDimensions = (view: any) => {
-  const boundingBox = view.boundingBox()
-  const dimensions = {
+const getSvgDimensions = (graphElement: GraphElement): SvgDimensions => {
+  const boundingBox = graphElement.boundingBox()
+  return {
     width: boundingBox.width,
     height: boundingBox.height,
     viewBox: [
@@ -67,30 +79,27 @@ const getSvgDimensions = (view: any) => {
       boundingBox.height
     ].join(' ')
   }
-  return dimensions
 }
 
-const appendGraphLayers = (svgElement: SVGElement, svg: any) => {
+const appendLayers = (
+  svgElement: SVGElement,
+  svg: SvgSelection
+): SvgSelection => {
+  const svgNode = svg.node()
+  if (!svgNode) {
+    return svg
+  }
+
   d3Select(svgElement)
-    .selectAll('g.layer')
+    .selectAll<SVGGElement, unknown>('g.layer')
     .each(function () {
-      svg.node().appendChild(
-        d3Select<SVGGElement, unknown>(this as SVGGElement)
-          .node()
-          ?.cloneNode(true)
-      )
+      const clonedNode = d3Select<SVGGElement, unknown>(this)
+        .node()
+        ?.cloneNode(true)
+      if (clonedNode) {
+        svgNode.appendChild(clonedNode)
+      }
     })
-  return svg
-}
-const appendPlanLayers = (svgElement: SVGElement, svg: any) => {
-  d3Select(svgElement)
-    .selectAll('g.layer')
-    .each(function () {
-      svg.node().appendChild(
-        d3Select<SVGGElement, unknown>(this as SVGGElement)
-          .node()
-          ?.cloneNode(true)
-      )
-    })
+
   return svg
 }

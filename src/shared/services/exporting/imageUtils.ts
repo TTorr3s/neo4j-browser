@@ -18,76 +18,96 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { Canvg } from 'canvg'
-import FileSaver from 'file-saver'
+import * as FileSaver from 'file-saver'
 
-import { prepareForExport } from './svgUtils'
+import { prepareForExport, ExportType, GraphElement } from './svgUtils'
 
-export const downloadPNGFromSVG = (svg: any, graph: any, type: any) => {
-  const svgObj = prepareForExport(svg, graph, type)
+export const downloadPNGFromSVG = (
+  svg: SVGElement,
+  graph: GraphElement,
+  type: ExportType
+): void => {
+  const svgObj = prepareForExport(svg, graph)
   const svgDefaultWidth = parseInt(svgObj.attr('width'), 10)
   const svgDefaultHeight = parseInt(svgObj.attr('height'), 10)
 
-  // Make PNGs a bit bigger than the default zoom (to lose less quality when resizing)
-  const EXTRA_SIZE = 1.5
-  // also adjust for screen resolutions (to avoid blurry text)
-  svgObj.attr('width', svgDefaultWidth * window.devicePixelRatio * EXTRA_SIZE)
-  svgObj.attr('height', svgDefaultHeight * window.devicePixelRatio * EXTRA_SIZE)
-  const svgData = htmlCharacterRefToNumericalRef(svgObj.node())
+  const EXTRA_SIZE = 5.0
+  const scaledWidth = svgDefaultWidth * window.devicePixelRatio * EXTRA_SIZE
+  const scaledHeight = svgDefaultHeight * window.devicePixelRatio * EXTRA_SIZE
+
+  svgObj.attr('width', scaledWidth)
+  svgObj.attr('height', scaledHeight)
+
+  const svgNode = svgObj.node()
+  if (!svgNode) {
+    return
+  }
+
+  const svgData = htmlCharacterRefToNumericalRef(svgNode)
 
   const canvas = document.createElement('canvas')
-  canvas.width = parseInt(svgObj.attr('width'), 10)
-  canvas.height = parseInt(svgObj.attr('height'), 10)
+  canvas.width = scaledWidth
+  canvas.height = scaledHeight
   const ctx = canvas.getContext('2d')
 
-  if (ctx) {
-    const v = Canvg.fromString(ctx, svgData)
-    // Resize down to smaller canvas, but higher resolution
-    v.resize(canvas.width / devicePixelRatio, canvas.height / devicePixelRatio)
-    v.render()
-      .then(() =>
-        downloadWithDataURI(`${type}.png`, canvas.toDataURL('image/png'))
-      )
-      .catch(() => {
-        /* unhandled */
-      })
-  } else {
-    /* unhandled */
+  if (!ctx) {
+    return
   }
+
+  const canvgInstance = Canvg.fromString(ctx, svgData)
+  canvgInstance.resize(
+    canvas.width / window.devicePixelRatio,
+    canvas.height / window.devicePixelRatio
+  )
+  canvgInstance
+    .render()
+    .then(() => {
+      downloadWithDataURI(`${type}.png`, canvas.toDataURL('image/png'))
+    })
+    .catch(() => {
+      /* unhandled */
+    })
 }
 
-export const downloadSVG = (svg: any, graph: any, type: any) => {
-  const svgObj = prepareForExport(svg, graph, type)
-  const svgData = htmlCharacterRefToNumericalRef(svgObj.node())
+export const downloadSVG = (
+  svg: SVGElement,
+  graph: GraphElement,
+  type: ExportType
+): void => {
+  const svgObj = prepareForExport(svg, graph)
+  const svgNode = svgObj.node()
 
-  return download(`${type}.svg`, 'image/svg+xml;charset=utf-8', svgData)
+  if (!svgNode) {
+    return
+  }
+
+  const svgData = htmlCharacterRefToNumericalRef(svgNode)
+  download(`${type}.svg`, 'image/svg+xml;charset=utf-8', svgData)
 }
 
-const htmlCharacterRefToNumericalRef = (node: any) =>
+const htmlCharacterRefToNumericalRef = (node: Node): string =>
   new window.XMLSerializer()
     .serializeToString(node)
     .replace(/&nbsp;/g, '&#160;')
 
-const download = (filename: any, mime: any, data: any) => {
+const download = (filename: string, mime: string, data: BlobPart): void => {
   const blob = new Blob([data], { type: mime })
-  return FileSaver.saveAs(blob, filename)
+  FileSaver.saveAs(blob, filename)
 }
 
-const downloadWithDataURI = (filename: any, dataURI: any) => {
-  let byteString, i, j, ref
-  byteString = null
-  if (dataURI.split(',')[0].indexOf('base64') >= 0) {
-    byteString = window.atob(dataURI.split(',')[1])
-  } else {
-    byteString = unescape(dataURI.split(',')[1])
+const downloadWithDataURI = (filename: string, dataURI: string): void => {
+  const [header, encodedData] = dataURI.split(',')
+  const isBase64 = header.includes('base64')
+  const byteString = isBase64
+    ? window.atob(encodedData)
+    : decodeURIComponent(encodedData)
+
+  const mimeString = header.split(':')[1].split(';')[0]
+  const byteArray = new Uint8Array(byteString.length)
+
+  for (let i = 0; i < byteString.length; i++) {
+    byteArray[i] = byteString.charCodeAt(i)
   }
-  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
-  const ia = new Uint8Array(byteString.length)
-  for (
-    i = j = 0, ref = byteString.length;
-    ref >= 0 ? j <= ref : j >= ref;
-    i = ref >= 0 ? ++j : --j
-  ) {
-    ia[i] = byteString.charCodeAt(i)
-  }
-  return download(filename, mimeString, ia)
+
+  download(filename, mimeString, byteArray)
 }
