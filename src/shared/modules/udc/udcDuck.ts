@@ -268,7 +268,8 @@ export const trackCommandUsageEpic: Epic<
     })
   )
 
-const actionsOfInterest = [
+// Lazy evaluation to avoid circular dependency issues
+const getActionsOfInterest = () => [
   ADD_FAVORITE,
   GENERATE_SET_MISSING_PARAMS_TEMPLATE,
   LOAD_FAVORITES,
@@ -292,7 +293,7 @@ export const trackReduxActionsEpic: Epic<
   GlobalState
 > = action$ =>
   action$.pipe(
-    filter(action => actionsOfInterest.includes(action.type)),
+    filter(action => getActionsOfInterest().includes(action.type)),
     map(action => {
       const [category, label] = action.type.split('/')
       return metricsEvent({ category, label })

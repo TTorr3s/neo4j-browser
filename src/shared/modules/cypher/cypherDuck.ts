@@ -18,7 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import neo4j, { QueryResult } from 'neo4j-driver'
-import Rx from 'rxjs/Rx'
+import { AnyAction } from 'redux'
+import { Epic, ofType } from 'redux-observable'
+import { of, from, forkJoin } from 'rxjs'
+import { mergeMap, map, filter } from 'rxjs/operators'
 
 import { getClusterAddresses } from './queriesProcedureHelper'
 import bolt from 'services/bolt/bolt'
@@ -28,6 +31,7 @@ import {
   userActionTxMetadata
 } from 'services/bolt/txMetadata'
 import { flatten } from 'services/utils'
+import { GlobalState } from 'shared/globalState'
 import { getActiveConnectionData } from 'shared/modules/connections/connectionsDuck'
 
 const NAME = 'cypher'
@@ -117,108 +121,154 @@ const routedCypherQueryResultResolver = async (
 }
 
 // Epics
-export const cypherRequestEpic = (some$: any) =>
-  some$.ofType(CYPHER_REQUEST).mergeMap((action: any) => {
-    if (!action.$$responseChannel) return Rx.Observable.of(null)
-    return bolt
-      .directTransaction(action.query, action.params || undefined, {
-        ...getUserTxMetadata(action.queryType),
-        useDb: action.useDb
-      })
-      .then((r: any) => ({
-        type: action.$$responseChannel,
-        success: true,
-        result: r
-      }))
-      .catch((e: any) => ({
-        type: action.$$responseChannel,
-        success: false,
-        error: e
-      }))
-  })
-
-export const routedCypherReadRequestEpic = (some$: any) =>
-  some$.ofType(ROUTED_CYPHER_READ_REQUEST).mergeMap((action: any) => {
-    if (!action.$$responseChannel) return Rx.Observable.of(null)
-
-    const promise = bolt.routedReadTransaction(action.query, action.params, {
-      ...getUserTxMetadata(action.queryType || null),
-      cancelable: true,
-      useDb: action.useDb
+export const cypherRequestEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(CYPHER_REQUEST),
+    filter((action: any) => !!action.$$responseChannel),
+    mergeMap((action: any) => {
+      return from(
+        bolt
+          .directTransaction(action.query, action.params || undefined, {
+            ...getUserTxMetadata(action.queryType),
+            useDb: action.useDb
+          })
+          .then((r: any) => ({
+            type: action.$$responseChannel,
+            success: true,
+            result: r
+          }))
+          .catch((e: any) => ({
+            type: action.$$responseChannel,
+            success: false,
+            error: e
+          }))
+      )
     })
+  )
 
-    return routedCypherQueryResultResolver(action, promise)
-  })
-
-export const routedCypherWriteRequestEpic = (some$: any) =>
-  some$.ofType(ROUTED_CYPHER_WRITE_REQUEST).mergeMap((action: any) => {
-    if (!action.$$responseChannel) return Rx.Observable.of(null)
-
-    const [_id, promise] = bolt.routedWriteTransaction(
-      action.query,
-      action.params,
-      {
+export const routedCypherReadRequestEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(ROUTED_CYPHER_READ_REQUEST),
+    filter((action: any) => !!action.$$responseChannel),
+    mergeMap((action: any) => {
+      const promise = bolt.routedReadTransaction(action.query, action.params, {
         ...getUserTxMetadata(action.queryType || null),
         cancelable: true,
         useDb: action.useDb
+      })
+
+      return from(routedCypherQueryResultResolver(action, promise))
+    })
+  )
+
+export const routedCypherWriteRequestEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = action$ =>
+  action$.pipe(
+    ofType(ROUTED_CYPHER_WRITE_REQUEST),
+    filter((action: any) => !!action.$$responseChannel),
+    mergeMap((action: any) => {
+      const [_id, promise] = bolt.routedWriteTransaction(
+        action.query,
+        action.params,
+        {
+          ...getUserTxMetadata(action.queryType || null),
+          cancelable: true,
+          useDb: action.useDb
+        }
+      )
+
+      return from(routedCypherQueryResultResolver(action, promise))
+    })
+  )
+
+export const adHocCypherRequestEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  action$,
+  state$
+) =>
+  action$.pipe(
+    ofType(AD_HOC_CYPHER_REQUEST),
+    mergeMap((action: any) => {
+      const connection = getActiveConnectionData(state$.value)
+      const tempConnection = {
+        ...connection,
+        host: action.host
       }
-    )
-
-    return routedCypherQueryResultResolver(action, promise)
-  })
-
-export const adHocCypherRequestEpic = (some$: any, store: any) =>
-  some$.ofType(AD_HOC_CYPHER_REQUEST).mergeMap((action: any) => {
-    const connection = getActiveConnectionData(store.getState())
-    const tempConnection = {
-      ...connection,
-      host: action.host
-    }
-    return callClusterMember(tempConnection, action)
-  })
-
-export const clusterCypherRequestEpic = (some$: any, store: any) =>
-  some$
-    .ofType(CLUSTER_CYPHER_REQUEST)
-    .mergeMap((action: any) => {
-      if (!action.$$responseChannel) return Rx.Observable.of(null)
-      return bolt
-        .directTransaction(getClusterAddresses, {}, userActionTxMetadata)
-        .then((res: any) => {
-          const addresses = flatten(
-            res.records.map((record: any) => record.get('addresses'))
-          ).filter((address: any) => address.startsWith('bolt://'))
-          return {
-            action,
-            observables: addresses.map((host: any) => {
-              const connection = getActiveConnectionData(store.getState())
-              const tempConnection = {
-                ...connection,
-                host
-              }
-              return Rx.Observable.fromPromise(
-                callClusterMember(tempConnection, action)
-              )
-            })
-          }
-        })
-        .catch((error: any) => {
-          return Rx.Observable.of({ action, error })
-        })
+      return from(
+        callClusterMember(tempConnection, action) as Promise<AnyAction>
+      )
     })
-    .flatMap(({ action, observables, value }: any) => {
-      if (value) return Rx.Observable.of(value)
-      observables.push(Rx.Observable.of(action))
-      return Rx.Observable.forkJoin(...observables)
-    })
-    .map((value: any) => {
-      if (value && value.error) {
+  )
+
+export const clusterCypherRequestEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState
+> = (action$, state$) =>
+  action$.pipe(
+    ofType(CLUSTER_CYPHER_REQUEST),
+    filter((action: any) => !!action.$$responseChannel),
+    mergeMap((action: any) => {
+      return from(
+        bolt
+          .directTransaction(getClusterAddresses, {}, userActionTxMetadata)
+          .then((res: any) => {
+            const addresses = flatten(
+              res.records.map((record: any) => record.get('addresses'))
+            ).filter((address: any) => address.startsWith('bolt://'))
+            return {
+              action,
+              observables: addresses.map((host: any) => {
+                const connection = getActiveConnectionData(state$.value)
+                const tempConnection = {
+                  ...connection,
+                  host
+                }
+                return from(callClusterMember(tempConnection, action))
+              })
+            }
+          })
+          .catch((error: any) => {
+            return { action, error, isError: true }
+          })
+      )
+    }),
+    mergeMap((result: any) => {
+      if (result.isError) return of(result)
+      const { action, observables } = result
+      if (!observables || observables.length === 0) {
+        return of({ action, value: [] })
+      }
+      // Add action to the end for later extraction
+      return forkJoin([...observables, of(action)])
+    }),
+    map((value: any) => {
+      if (value && value.isError) {
         return {
           type: value.action.$$responseChannel,
           success: false,
           error: value.error
         }
       }
+      // Handle case where we get an object with action and value
+      if (value && value.action && value.value) {
+        return {
+          type: value.action.$$responseChannel,
+          success: true,
+          result: { records: value.value }
+        }
+      }
+      // Handle forkJoin result (array)
       const action = value.pop()
       const records = value.reduce(
         (acc: any, { result, success, error, host }: any) => {
@@ -247,3 +297,4 @@ export const clusterCypherRequestEpic = (some$: any, store: any) =>
         result: { records }
       }
     })
+  )

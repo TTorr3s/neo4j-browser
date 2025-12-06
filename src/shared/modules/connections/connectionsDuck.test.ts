@@ -43,17 +43,34 @@ jest.mock('services/bolt/bolt', () => {
   }
 })
 
+// Type for epic dependencies
+type EpicDependencies = {
+  dispatch: (action: AnyAction) => void
+  getState: () => GlobalState
+}
+
 // Helper to create a test store with epic middleware for redux-observable 1.x
 function createTestStore(
   initialState: any,
-  epic: Epic<AnyAction, AnyAction, GlobalState>,
+  epic: Epic<AnyAction, AnyAction, GlobalState, EpicDependencies>,
   bus: ReturnType<typeof createBus>
 ) {
+  // Create dependencies placeholder that will be populated after store creation
+  const dependencies: EpicDependencies = {
+    dispatch: () => {
+      throw new Error('Store not initialized')
+    },
+    getState: () => {
+      throw new Error('Store not initialized')
+    }
+  }
+
   const epicMiddleware = createEpicMiddleware<
     AnyAction,
     AnyAction,
-    GlobalState
-  >()
+    GlobalState,
+    EpicDependencies
+  >({ dependencies })
   const rootReducer = combineReducers({
     connections: reducer,
     settings: (state = {}) => state
@@ -64,19 +81,25 @@ function createTestStore(
     applyMiddleware(epicMiddleware, createReduxMiddleware(bus))
   )
 
+  // Populate dependencies now that store is created
+  dependencies.dispatch = store.dispatch
+  dependencies.getState = store.getState as () => GlobalState
+
   // Create a subject that allows switching epics dynamically
   const epic$ = new BehaviorSubject(epic)
-  const rootEpic: Epic<AnyAction, AnyAction, GlobalState> = (
+  const rootEpic: Epic<AnyAction, AnyAction, GlobalState, EpicDependencies> = (
     action$,
     state$,
-    dependencies
-  ) => epic$.pipe(switchMap(e => e(action$, state$, dependencies)))
+    deps
+  ) => epic$.pipe(switchMap(e => e(action$, state$, deps)))
 
   epicMiddleware.run(rootEpic)
 
   return {
     store,
-    replaceEpic: (newEpic: Epic<AnyAction, AnyAction, GlobalState>) => {
+    replaceEpic: (
+      newEpic: Epic<AnyAction, AnyAction, GlobalState, EpicDependencies>
+    ) => {
       epic$.next(newEpic)
     }
   }

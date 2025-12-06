@@ -411,10 +411,18 @@ type ConnectAction = Connection & {
   noResetConnectionOnFail?: boolean
 }
 
-export const connectEpic: Epic<AnyAction, AnyAction, GlobalState> = (
-  action$,
-  state$
-) =>
+// Type for epic dependencies (dispatch/getState for complex async flows)
+type EpicDependencies = {
+  dispatch: (action: AnyAction) => void
+  getState: () => GlobalState
+}
+
+export const connectEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState,
+  EpicDependencies
+> = (action$, state$, { dispatch }) =>
   action$.pipe(
     ofType(CONNECT),
     withLatestFrom(state$),
@@ -443,7 +451,7 @@ export const connectEpic: Epic<AnyAction, AnyAction, GlobalState> = (
             await bolt.backgroundWorkerlessRoutedRead(
               supportsMultiDb ? 'SHOW DATABASES' : 'call db.indexes()',
               { useDb: supportsMultiDb ? 'SYSTEM' : undefined },
-              { getState: () => state$.value, dispatch: () => {} }
+              { getState: () => state$.value, dispatch }
             )
           } catch (error) {
             const e: any = error
@@ -543,10 +551,12 @@ function shouldTryAutoconnecting(conn: Connection | null): boolean {
   )
 }
 
-export const startupConnectEpic: Epic<AnyAction, AnyAction, GlobalState> = (
-  action$,
-  state$
-) =>
+export const startupConnectEpic: Epic<
+  AnyAction,
+  AnyAction,
+  GlobalState,
+  EpicDependencies
+> = (action$, state$, { dispatch }) =>
   action$.pipe(
     ofType(discovery.DONE),
     withLatestFrom(state$),
@@ -554,16 +564,6 @@ export const startupConnectEpic: Epic<AnyAction, AnyAction, GlobalState> = (
       const { discovered } = rawAction as DiscoverDataAction
       const connectionTimeout = getConnectionTimeout(state)
       const savedConnection = getConnection(state, discovery.CONNECTION_ID)
-
-      // Helper to create dispatch function for onLostConnection
-      const createDispatchProxy = () => {
-        // We return actions via the stream, but onLostConnection needs a dispatch function
-        // This is a limitation - we'll need to dispatch LOST_CONNECTION through the epic stream
-        return (_action: AnyAction) => {
-          // This is handled by the connectionLostEpic when LOST_CONNECTION is dispatched
-          // The action will be dispatched by the store when this observable emits
-        }
-      }
 
       return from(
         (async (): Promise<AnyAction[]> => {
@@ -575,7 +575,7 @@ export const startupConnectEpic: Epic<AnyAction, AnyAction, GlobalState> = (
               await bolt.openConnection(
                 savedConnection!,
                 { connectionTimeout },
-                onLostConnection(createDispatchProxy())
+                onLostConnection(dispatch)
               )
               return [
                 resetUseDb(),
@@ -604,7 +604,7 @@ export const startupConnectEpic: Epic<AnyAction, AnyAction, GlobalState> = (
                 await bolt.openConnection(
                   updatedConnection,
                   { connectionTimeout },
-                  onLostConnection(createDispatchProxy())
+                  onLostConnection(dispatch)
                 )
                 return [
                   resetUseDb(),
@@ -832,8 +832,9 @@ type SwitchConnectionAction = Partial<Connection> & {
 export const switchConnectionEpic: Epic<
   AnyAction,
   AnyAction,
-  GlobalState
-> = action$ =>
+  GlobalState,
+  EpicDependencies
+> = (action$, _state$, { dispatch }) =>
   action$.pipe(
     ofType(SWITCH_CONNECTION),
     mergeMap((action: AnyAction) => {
@@ -855,8 +856,8 @@ export const switchConnectionEpic: Epic<
             bolt.openConnection(
               switchAction as Connection,
               { encrypted: switchAction.encrypted },
-              // onLostConnection will dispatch LOST_CONNECTION which is handled by connectionLostEpic
-              () => {}
+              // onLostConnection dispatches LOST_CONNECTION which is handled by connectionLostEpic
+              onLostConnection(dispatch)
             )
           ).pipe(
             mergeMap(() =>
