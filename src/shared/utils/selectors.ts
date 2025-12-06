@@ -21,13 +21,9 @@ import {
   SYSTEM_DB,
   VERSION_FOR_CLUSTER_ROLE_IN_SHOW_DB
 } from 'shared/modules/dbMeta/dbMetaDuck'
-import {
-  getAllowCrashReports,
-  getAllowUserStats
-} from 'shared/modules/settings/settingsDuck'
+import { getAllowUserStats } from 'shared/modules/settings/settingsDuck'
 import {
   allowUdcInAura,
-  getAllowCrashReportsInDesktop,
   getAllowUserStatsInDesktop
 } from 'shared/modules/udc/udcDuck'
 
@@ -102,40 +98,25 @@ function usedTelemetrySettingSource(
 
 export type TelemetrySettings = {
   allowUserStats: boolean
-  allowCrashReporting: boolean
   source: TelemetrySettingSource
 }
 export const getTelemetrySettings = (state: GlobalState): TelemetrySettings => {
   const source = usedTelemetrySettingSource(state)
-  const confAllowsUdc =
-    getAllowOutgoingConnections(state) && getClientsAllowTelemetry(state)
-  const auraAllowsUdc = allowUdcInAura(state) === 'ALLOW'
 
-  const rules: Record<
-    TelemetrySettingSource,
-    {
-      allowUserStats: boolean
-      allowCrashReporting: boolean
-    }
-  > = {
+  const rules: Record<TelemetrySettingSource, { allowUserStats: boolean }> = {
     SETTINGS_NOT_LOADED: {
-      allowCrashReporting: false,
       allowUserStats: false
     },
     DESKTOP_SETTING: {
-      allowCrashReporting: false,
       allowUserStats: false
     },
     AURA: {
-      allowCrashReporting: false,
       allowUserStats: false
     },
     BROWSER_SETTING: {
-      allowCrashReporting: false,
       allowUserStats: false
     },
     NEO4J_CONF: {
-      allowCrashReporting: false,
       allowUserStats: false
     }
   }

@@ -45,7 +45,6 @@ test('Settings renders with strange characters in display name', () => {
       visualSettings={visualSettings}
       telemetrySettings={{
         allowUserStats: false,
-        allowCrashReporting: false,
         source: 'BROWSER_SETTING'
       }}
     />

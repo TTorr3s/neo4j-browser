@@ -2,7 +2,6 @@
 
 exports[`settings reducer handles REPLACE 1`] = `
 {
-  "allowCrashReports": true,
   "allowUserStats": true,
   "autoComplete": true,
   "codeFontLigatures": true,

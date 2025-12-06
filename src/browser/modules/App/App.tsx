@@ -175,13 +175,10 @@ export function App(props: any) {
     <ErrorBoundary>
       <DesktopApi
         onMount={(...args: any[]) => {
-          const { allowSendStats, allowSendReports, trackingId } = args[1]
-            ?.global?.settings || {
-            allowSendReports: false,
+          const { allowSendStats, trackingId } = args[1]?.global?.settings || {
             allowSendStats: false
           }
           updateDesktopUDCSettings({
-            allowCrashReportsInDesktop: allowSendReports,
             allowUserStatsInDesktop: allowSendStats,
             desktopTrackingId: trackingId
           })
@@ -209,13 +206,10 @@ export function App(props: any) {
           bus.send(URL_ARGUMENTS_CHANGE, { url: `?${argsString}` })
         }}
         onApplicationSettingsSaved={(...args: any[]) => {
-          const { allowSendStats, allowSendReports, trackingId } = args[1]
-            ?.global?.settings || {
-            allowSendReports: false,
+          const { allowSendStats, trackingId } = args[1]?.global?.settings || {
             allowSendStats: false
           }
           updateDesktopUDCSettings({
-            allowCrashReportsInDesktop: allowSendReports,
             allowUserStatsInDesktop: allowSendStats,
             desktopTrackingId: trackingId
           })
@@ -311,7 +305,6 @@ const mapStateToProps = (state: GlobalState) => {
 }
 type DesktopTrackingSettings = {
   allowUserStatsInDesktop: boolean
-  allowCrashReportsInDesktop: boolean
   desktopTrackingId?: string
 }
 const mapDispatchToProps = (dispatch: any) => {
@@ -324,13 +317,11 @@ const mapDispatchToProps = (dispatch: any) => {
     },
     updateDesktopUDCSettings: ({
       allowUserStatsInDesktop,
-      allowCrashReportsInDesktop,
       desktopTrackingId
     }: DesktopTrackingSettings) => {
       dispatch(
         updateUdcData({
           allowUserStatsInDesktop,
-          allowCrashReportsInDesktop,
           desktopTrackingId
         })
       )

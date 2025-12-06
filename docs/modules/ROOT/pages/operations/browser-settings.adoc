@@ -38,7 +38,6 @@ To view all currently configured settings, run `:config`.
   "enableMultiStatementMode": false,
   "connectionTimeout": 30000,
   "showPerformanceOverlay": false,
-  "allowCrashReports": true,
   "allowUserStats": true,
   "showWheelZoomInfo": true,
   "useReadTransactions": false,
@@ -162,11 +161,6 @@ The Bolt+routing feature on Neo4j drivers discovers a cluster member (drivers ha
 | `showPerformanceOverlay`
 | `false`
 | Internal setting, used for showing a performance overlay (FPS and memory usage).
-| no
-
-| `allowCrashReports`
-| `true`
-| Allow crash reports to be sent, can be changed from Desktop.
 | no
 
 | `allowUserStats`

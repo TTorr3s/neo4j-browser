@@ -47,7 +47,6 @@ import {
 } from 'shared/modules/frames/framesDuck'
 import {
   SettingsState,
-  TRACK_OPT_OUT_CRASH_REPORTS,
   TRACK_OPT_OUT_USER_STATS,
   getSettings
 } from 'shared/modules/settings/settingsDuck'
@@ -70,9 +69,6 @@ export const getDesktopTrackingId = (state: GlobalState): string | undefined =>
   state[NAME].desktopTrackingId
 export const getAllowUserStatsInDesktop = (state: GlobalState): boolean =>
   state[NAME].allowUserStatsInDesktop ?? initialState.allowUserStatsInDesktop
-export const getAllowCrashReportsInDesktop = (state: GlobalState): boolean =>
-  state[NAME].allowCrashReportsInDesktop ??
-  initialState.allowCrashReportsInDesktop
 export const getConsentBannerShownCount = (state: GlobalState): number =>
   state[NAME].consentBannerShownCount || initialState.consentBannerShownCount
 export const allowUdcInAura = (
@@ -107,7 +103,6 @@ export interface UdcState {
   consentBannerShownCount: number
   desktopTrackingId?: string
   allowUserStatsInDesktop: boolean
-  allowCrashReportsInDesktop: boolean
 }
 
 const initialState: UdcState = {
@@ -116,8 +111,7 @@ const initialState: UdcState = {
   uuid: v4(),
   consentBannerShownCount: 0,
   desktopTrackingId: undefined,
-  allowUserStatsInDesktop: false,
-  allowCrashReportsInDesktop: false
+  allowUserStatsInDesktop: false
 }
 
 // Reducer
@@ -270,7 +264,6 @@ const actionsOfInterest = [
   UNPIN,
   UPDATE_FAVORITE_CONTENT,
   TRACK_OPT_OUT_USER_STATS,
-  TRACK_OPT_OUT_CRASH_REPORTS,
   CONNECT,
   CONNECTION_SUCCESS,
   CYPHER_SUCCEEDED,

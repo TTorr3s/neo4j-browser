@@ -17,8 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import * as Sentry from '@sentry/react'
-import React from 'react'
+import React, { Component, ErrorInfo, ReactNode } from 'react'
 import styled from 'styled-components'
 
 import { StyledErrorBoundaryButton } from 'browser-components/buttons/index'
@@ -29,29 +28,60 @@ const ErrorWrapper = styled.div`
   text-align: center;
   color: #da4433;
 `
+
 type ErrorBoundaryProps = {
   caption?: string
-  children: React.ReactNode
+  children: ReactNode
+}
+
+type ErrorBoundaryState = {
+  hasError: boolean
+  error: Error | null
+}
+
+class ErrorBoundaryClass extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    console.error('ErrorBoundary caught an error:', error, errorInfo)
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <ErrorWrapper>
+          <p>
+            Something went wrong:{' '}
+            <em>"{(this.state.error || '').toString()}"</em> and the application
+            can't recover.
+          </p>
+          <div style={{ marginTop: '5px' }}>
+            <StyledErrorBoundaryButton onClick={() => window.location.reload()}>
+              {this.props.caption || 'Reload application'}
+            </StyledErrorBoundaryButton>
+          </div>
+        </ErrorWrapper>
+      )
+    }
+
+    return this.props.children
+  }
 }
 
 export default function ErrorBoundary(props: ErrorBoundaryProps): JSX.Element {
   return (
-    <Sentry.ErrorBoundary
-      fallback={({ error }) => (
-        <ErrorWrapper>
-          <p>
-            Something went wrong: <em>"{(error || '').toString()}"</em> and the
-            application can't recover.
-          </p>
-          <div style={{ marginTop: '5px' }}>
-            <StyledErrorBoundaryButton onClick={() => window.location.reload()}>
-              {props.caption || 'Reload application'}
-            </StyledErrorBoundaryButton>
-          </div>
-        </ErrorWrapper>
-      )}
-    >
+    <ErrorBoundaryClass caption={props.caption}>
       {props.children}
-    </Sentry.ErrorBoundary>
+    </ErrorBoundaryClass>
   )
 }

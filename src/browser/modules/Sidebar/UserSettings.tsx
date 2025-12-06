@@ -188,11 +188,9 @@ const visualSettings = [
 
 function getTelemetryVisualSetting({
   telemetrySettings,
-  trackOptOutCrashReports,
   trackOptOutUserStats
 }: {
   telemetrySettings: TelemetrySettings
-  trackOptOutCrashReports: (optedIn: boolean) => void
   trackOptOutUserStats: (optedIn: boolean) => void
 }) {
   const settingsByFactor: Record<TelemetrySettingSource, any> = {
@@ -212,8 +210,6 @@ function getTelemetryVisualSetting({
           displayName: 'Product Analytics',
           tooltip: `Product usage statistics are ${
             telemetrySettings.allowUserStats ? 'sent' : 'not sent'
-          } and crash reports are ${
-            telemetrySettings.allowCrashReporting ? 'sent' : 'not sent'
           }. These settings can be changed in Desktop.`,
           type: 'info'
         }
@@ -243,15 +239,6 @@ function getTelemetryVisualSetting({
     ],
     BROWSER_SETTING: [
       {
-        allowCrashReports: {
-          displayName: 'Send anonymous crash reports',
-          tooltip:
-            'Crash reports allow us to quickly diagnose and fix problems. No personal information is collected or sent.',
-          type: 'checkbox',
-          onChange: trackOptOutCrashReports
-        }
-      },
-      {
         allowUserStats: {
           displayName: 'Send anonymous usage statistics',
           tooltip:
@@ -275,7 +262,6 @@ export const UserSettings = ({
   onSettingsSave = () => {},
   onFeatureChange,
   telemetrySettings,
-  trackOptOutCrashReports,
   trackOptOutUserStats
 }: any) => {
   if (!settings) return null
@@ -284,7 +270,6 @@ export const UserSettings = ({
     .concat([
       getTelemetryVisualSetting({
         telemetrySettings,
-        trackOptOutCrashReports,
         trackOptOutUserStats
       })
     ])
@@ -443,11 +428,6 @@ const mapDispatchToProps = (dispatch: any) => {
   return {
     onSettingsSave: (settings: Partial<actions.SettingsState>) => {
       dispatch(actions.update(settings))
-    },
-    trackOptOutCrashReports(optedIn: boolean) {
-      if (!optedIn) {
-        dispatch({ type: actions.TRACK_OPT_OUT_CRASH_REPORTS })
-      }
     },
     trackOptOutUserStats: (optedIn: boolean) => {
       if (!optedIn) {

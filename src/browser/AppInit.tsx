@@ -18,9 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ApolloClient, ApolloProvider, InMemoryCache } from '@apollo/client'
-import { CaptureConsole } from '@sentry/integrations'
-import * as Sentry from '@sentry/react'
-import { Integrations } from '@sentry/tracing'
 import { createUploadLink } from 'apollo-upload-client'
 import {
   removeSearchParamsInBrowserHistory,
@@ -47,16 +44,14 @@ import {
 } from 'suber'
 
 import App from './modules/App/App'
-import packageJson from 'project-root/package.json'
 import { applyKeys, createReduxMiddleware, getAll } from 'services/localstorage'
-import { detectRuntimeEnv, isRunningE2ETest } from 'services/utils'
+import { detectRuntimeEnv } from 'services/utils'
 import { GlobalState } from 'shared/globalState'
 import { APP_START } from 'shared/modules/app/appDuck'
 import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
-import { getUuid, updateUdcData } from 'shared/modules/udc/udcDuck'
+import { updateUdcData } from 'shared/modules/udc/udcDuck'
 import epics from 'shared/rootEpic'
 import reducers from 'shared/rootReducer'
-import { getTelemetrySettings } from 'shared/utils/selectors'
 import { URL } from 'whatwg-url'
 
 // Configure localstorage sync
@@ -138,65 +133,6 @@ bus.applyMiddleware(
     store.dispatch({ ...message, type: channel, ...origin })
   }
 )
-
-function scrubQueryParamsAndUrl(event: Sentry.Event): Sentry.Event {
-  if (event.request?.query_string) {
-    event.request.query_string = ''
-  }
-  if (event.server_name) {
-    event.server_name = '/'
-  }
-  return event
-}
-
-export function setupSentry(): void {
-  if (process.env.NODE_ENV === 'production') {
-    Sentry.init({
-      dsn: 'https://1ea9f7ebd51441cc95906afb2d31d841@o110884.ingest.sentry.io/1232865',
-      release: `neo4j-browser@${packageJson.version}`,
-      integrations: [
-        new Integrations.BrowserTracing(),
-        new CaptureConsole({ levels: ['error'] })
-      ],
-      tracesSampler: context => {
-        const isPerformanceTransaction =
-          context.transactionContext.name.startsWith('performance')
-        if (isPerformanceTransaction) {
-          // 1% of performance reports is enough to build stats, raise if needed
-          return 0.01
-        } else {
-          return 0.2
-        }
-      },
-      beforeSend: event => {
-        const { allowCrashReporting } = getTelemetrySettings(store.getState())
-
-        if (allowCrashReporting && !isRunningE2ETest()) {
-          return scrubQueryParamsAndUrl(event)
-        } else {
-          return null
-        }
-      },
-      environment: 'unset'
-    })
-    Sentry.setUser({ id: getUuid(store.getState()) })
-
-    fetch('./manifest.json')
-      .then(res => res.json())
-      .then(json => {
-        const isCanary = Boolean(
-          json && json.name.toLowerCase().includes('canary')
-        )
-        Sentry.configureScope(scope =>
-          scope.addEventProcessor(event => ({
-            ...event,
-            environment: isCanary ? 'canary' : 'production'
-          }))
-        )
-      })
-      .catch(() => undefined)
-  }
-}
 
 // Introduce environment to be able to fork functionality
 const env = detectRuntimeEnv(window, NEO4J_CLOUD_DOMAINS)

@@ -47,7 +47,6 @@ describe('App', () => {
       store,
       telemetrySettings: {
         allowUserStats: false,
-        allowCrashReporting: false,
         source: 'BROWSER_SETTING'
       }
     }
