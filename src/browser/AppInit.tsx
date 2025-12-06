@@ -17,11 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {
-  removeSearchParamsInBrowserHistory,
-  restoreSearchAndHashParams,
-  wasRedirectedBackFromSSOServer
-} from 'neo4j-client-sso'
 import React from 'react'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
@@ -135,14 +130,6 @@ bus.applyMiddleware(
 // Introduce environment to be able to fork functionality
 const env = detectRuntimeEnv(window, NEO4J_CLOUD_DOMAINS)
 
-// SSO requires a redirect that removes our search parameters
-// To work around this they are stored in sessionStorage before
-// we redirect to the server, and then restore them when we get
-// redirected back
-if (wasRedirectedBackFromSSOServer()) {
-  restoreSearchAndHashParams()
-}
-
 // URL we're on
 const url = window.location.href
 
@@ -157,7 +144,10 @@ store.dispatch({
 
 const auraNtId = searchParams.get('ntid') ?? undefined
 if (auraNtId) {
-  removeSearchParamsInBrowserHistory(['ntid'])
+  // Remove ntid from URL without page reload
+  const newUrl = new URL(window.location.href)
+  newUrl.searchParams.delete('ntid')
+  window.history.replaceState({}, '', newUrl.toString())
 }
 store.dispatch(updateUdcData({ auraNtId }))
 

@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { AUTH_STORAGE_LOGS } from 'neo4j-client-sso'
 import { Action, Dispatch } from 'redux'
 import { v4 } from 'uuid'
 
@@ -362,8 +361,7 @@ const availableCommands = [
       const out = {
         userCapabilities: getUserCapabilities(store.getState()),
         serverConfig: getAvailableSettings(store.getState()),
-        browserSettings: getSettings(store.getState()),
-        ssoLogs: sessionStorage.getItem(AUTH_STORAGE_LOGS)?.trim().split('\n')
+        browserSettings: getSettings(store.getState())
       }
       put(
         frames.add({

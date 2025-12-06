@@ -18,12 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { authLog, authRequestForSSO, downloadAuthLogs } from 'neo4j-client-sso'
 import React, { useEffect, useState } from 'react'
 
 import { toKeyString } from 'neo4j-arc/common'
 
-import { StyledCypherErrorMessage } from '../styled'
 import {
   StyledBoltUrlHintText,
   StyledConnectionForm,
@@ -32,31 +30,23 @@ import {
   StyledConnectionSelect,
   StyledConnectionTextInput,
   StyledFormContainer,
-  StyledSSOButtonContainer,
-  StyledSSOError,
-  StyledSSOLogDownload,
   StyledSegment
 } from './styled'
 import { FormButton } from 'browser-components/buttons'
-import { NATIVE, NO_AUTH, SSO } from 'services/bolt/boltHelpers'
+import { NATIVE, NO_AUTH } from 'services/bolt/boltHelpers'
 import { getScheme, stripScheme } from 'services/boltscheme.utils'
 import {
   AuthenticationMethod,
-  ConnectionProfile,
-  SSOProvider
+  ConnectionProfile
 } from 'shared/modules/connections/connectionsDuck'
-import {
-  AUTH_STORAGE_CONNECT_HOST,
-  AUTH_STORAGE_CONNECTION_PROFILES
-} from 'shared/services/utils'
+import { AUTH_STORAGE_CONNECTION_PROFILES } from 'shared/services/utils'
 import { hasReachableServer, Neo4jError } from 'neo4j-driver'
 import AutoExecButton from '../auto-exec-button'
 import { SmallSpinnerIcon } from 'browser-components/icons/LegacyIcons'
 
 const readableauthenticationMethods: Record<AuthenticationMethod, string> = {
   [NATIVE]: 'Username / Password',
-  [NO_AUTH]: 'No authentication',
-  [SSO]: 'Single Sign On'
+  [NO_AUTH]: 'No authentication'
 }
 
 interface ConnectFormProps {
@@ -75,10 +65,6 @@ interface ConnectFormProps {
   username: string
   used: boolean
   supportsMultiDb: boolean
-  SSOError?: string
-  SSOProviders: SSOProvider[]
-  SSOLoading?: boolean
-  onSSOProviderClicked: () => void
   connecting: boolean
   setIsConnecting: (c: boolean) => void
   onProfileSave: (profile: ConnectionProfile) => void
@@ -265,9 +251,6 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
       }:// for a direct connection to a single instance.`
     : ''
 
-  const { SSOError, SSOProviders, SSOLoading } = props
-  const [SSORedirectError, setRedirectError] = useState('')
-
   const [reachabilityState, setReachablityState] = useState<
     'no_attempt' | 'loading' | 'probablyFailed' | 'failed' | 'succeeded'
   >('no_attempt')
@@ -449,63 +432,28 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
           </StyledConnectionFormEntry>
         )}
 
-        {props.authenticationMethod === SSO &&
-          !SSOLoading &&
-          SSOProviders.filter(provider => {
-            return 'visible' in provider ? provider.visible : true
-          }).map((provider: SSOProvider) => (
-            <StyledSSOButtonContainer key={provider.id}>
-              <FormButton
-                onClick={() => {
-                  props.onSSOProviderClicked()
-                  sessionStorage.setItem(AUTH_STORAGE_CONNECT_HOST, props.host)
-                  authRequestForSSO(provider).catch(e => {
-                    authLog(e.message)
-                    setRedirectError(e.message)
-                  })
-                }}
-                style={{ width: '200px' }}
-              >
-                {provider.name}
-              </FormButton>
-            </StyledSSOButtonContainer>
-          ))}
-        {props.authenticationMethod === SSO &&
-          !SSOLoading &&
-          (SSOError || SSORedirectError) && (
-            <>
-              <StyledSSOError>
-                <StyledCypherErrorMessage>ERROR</StyledCypherErrorMessage>
-                <div>{SSOError || SSORedirectError}</div>
-              </StyledSSOError>
-              <StyledSSOLogDownload onClick={downloadAuthLogs}>
-                Download browser SSO logs
-              </StyledSSOLogDownload>
-            </>
-          )}
-
-        {props.connecting
-          ? 'Connecting...'
-          : props.authenticationMethod !== SSO && (
-              <span
-                title={
-                  reachabilityState === 'succeeded'
-                    ? 'Connect.'
-                    : 'Make sure a neo4j server is reachable at the connect URL.'
-                }
-              >
-                <FormButton
-                  data-testid="connect"
-                  type="submit"
-                  style={{
-                    marginRight: 0,
-                    opacity: reachabilityState === 'succeeded' ? 1 : 0.4
-                  }}
-                >
-                  Connect
-                </FormButton>
-              </span>
-            )}
+        {props.connecting ? (
+          'Connecting...'
+        ) : (
+          <span
+            title={
+              reachabilityState === 'succeeded'
+                ? 'Connect.'
+                : 'Make sure a neo4j server is reachable at the connect URL.'
+            }
+          >
+            <FormButton
+              data-testid="connect"
+              type="submit"
+              style={{
+                marginRight: 0,
+                opacity: reachabilityState === 'succeeded' ? 1 : 0.4
+              }}
+            >
+              Connect
+            </FormButton>
+          </span>
+        )}
       </StyledConnectionForm>
     </StyledFormContainer>
   )

@@ -182,12 +182,8 @@ describe('connectionsDucks Epics', () => {
           expect(store.getActions()).toEqual([
             action,
             connections.useDb(null),
-            updateDiscoveryConnection({
-              SSOProviders: [],
-              SSOError: undefined
-            }),
             connections.setActiveConnection(null),
-            updateDiscoveryConnection({ password: '', SSOError: undefined }),
+            updateDiscoveryConnection({ password: '' }),
             currentAction
           ])
           expect(bolt.openConnection).toHaveBeenCalledTimes(0)
@@ -272,12 +268,8 @@ describe('startupConnectEpic', () => {
           expect(actions).toEqual([
             action,
             connections.useDb(null),
-            updateDiscoveryConnection({
-              SSOProviders: [],
-              SSOError: undefined
-            }),
             connections.setActiveConnection(null),
-            updateDiscoveryConnection({ password: '', SSOError: undefined }),
+            updateDiscoveryConnection({ password: '' }),
             currentAction
           ])
           expect(bolt.openConnection).toHaveBeenCalledTimes(1)

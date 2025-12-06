@@ -63,10 +63,7 @@ describe('discoveryOnStartupEpic', () => {
         action,
         {
           type: discovery.DONE,
-          discovered: {
-            SSOProviders: [],
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT
-          }
+          discovered: {}
         }
       ])
       done()
@@ -87,10 +84,7 @@ describe('discoveryOnStartupEpic', () => {
         action,
         {
           type: discovery.DONE,
-          discovered: {
-            SSOProviders: [],
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT
-          }
+          discovered: {}
         }
       ])
       done()
@@ -113,8 +107,6 @@ describe('discoveryOnStartupEpic', () => {
           type: discovery.DONE,
           discovered: {
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             supportsMultiDb: false
           }
         }
@@ -139,8 +131,6 @@ describe('discoveryOnStartupEpic', () => {
           type: discovery.DONE,
           discovered: {
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             supportsMultiDb: false
           }
         }
@@ -167,8 +157,6 @@ describe('discoveryOnStartupEpic', () => {
           type: discovery.DONE,
           discovered: {
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             supportsMultiDb: false
           }
         }
@@ -198,8 +186,6 @@ describe('discoveryOnStartupEpic', () => {
           type: discovery.DONE,
           discovered: {
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             supportsMultiDb: false
           }
         }
@@ -226,8 +212,6 @@ describe('discoveryOnStartupEpic', () => {
           type: discovery.DONE,
           discovered: {
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             hasForceUrl: true,
             supportsMultiDb: false
           }
@@ -255,8 +239,6 @@ describe('discoveryOnStartupEpic', () => {
           type: discovery.DONE,
           discovered: {
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             supportsMultiDb: false,
             hasForceUrl: true
           }
@@ -286,9 +268,7 @@ describe('discoveryOnStartupEpic', () => {
             host: expectedHost,
             requestedUseDb: 'test',
             hasForceUrl: true,
-            supportsMultiDb: true,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: []
+            supportsMultiDb: true
           }
         }
       ])
@@ -314,8 +294,6 @@ describe('discoveryOnStartupEpic', () => {
           type: discovery.DONE,
           discovered: {
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             supportsMultiDb: false,
             hasForceUrl: true
           }
@@ -344,8 +322,6 @@ describe('discoveryOnStartupEpic', () => {
           discovered: {
             username: 'neo4j',
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             supportsMultiDb: false,
             hasForceUrl: true
           }
@@ -396,8 +372,6 @@ describe('discoveryOnStartupEpic cloud env', () => {
           type: discovery.DONE,
           discovered: {
             host: expectedHost,
-            SSOError: discovery.NO_SSO_PROVIDERS_ERROR_TEXT,
-            SSOProviders: [],
             supportsMultiDb: false
           }
         }

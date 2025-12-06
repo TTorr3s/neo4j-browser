@@ -18,15 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { URL } from 'whatwg-url'
-import {
-  authLog,
-  authRequestForSSO,
-  defaultSearchParamsToRemoveAfterAutoRedirect,
-  getSSOServerIdIfShouldRedirect,
-  handleAuthFromRedirect,
-  removeSearchParamsInBrowserHistory,
-  wasRedirectedBackFromSSOServer
-} from 'neo4j-client-sso'
 
 import { getAndMergeDiscoveryData } from './discoveryHelpers'
 import { generateBoltUrl } from 'services/boltscheme.utils'
@@ -44,7 +35,7 @@ import {
   updateConnection
 } from 'shared/modules/connections/connectionsDuck'
 import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
-import { AUTH_STORAGE_CONNECT_HOST, isCloudHost } from 'shared/services/utils'
+import { isCloudHost } from 'shared/services/utils'
 
 export const NAME = 'discover-bolt-host'
 export const CONNECTION_ID = '$$discovery'
@@ -54,8 +45,6 @@ const initialState = {}
 const SET = `${NAME}/SET`
 export const DONE = `${NAME}/DONE`
 export const INJECTED_DISCOVERY = `${NAME}/INJECTED_DISCOVERY`
-
-export const NO_SSO_PROVIDERS_ERROR_TEXT = 'No SSO providers found'
 
 // Reducer
 export default function reducer(state = initialState, action: any = {}) {
@@ -162,14 +151,6 @@ export const discoveryOnStartupEpic = (some$: any, store: any) => {
         action.discoveryUrl = discoveryUrl
       }
 
-      const sessionStorageHost = sessionStorage.getItem(
-        AUTH_STORAGE_CONNECT_HOST
-      )
-      if (sessionStorageHost) {
-        sessionStorage.removeItem(AUTH_STORAGE_CONNECT_HOST)
-        action.sessionStorageHost = sessionStorageHost
-      }
-
       const discoveryConnection = getConnection(store.getState(), CONNECTION_ID)
       if (discoveryConnection) {
         action.discoveryConnection = discoveryConnection
@@ -194,71 +175,9 @@ export const discoveryOnStartupEpic = (some$: any, store: any) => {
       })
 
       if (!discoveryData) {
-        return {
-          type: DONE,
-          discovered: {
-            SSOProviders: [],
-            SSOError: NO_SSO_PROVIDERS_ERROR_TEXT
-          }
-        }
-      }
-      const SSOProviders = discoveryData.SSOProviders || []
-
-      let SSOError =
-        SSOProviders.length > 0 ? undefined : NO_SSO_PROVIDERS_ERROR_TEXT
-      const SSORedirectId = getSSOServerIdIfShouldRedirect()
-      if (SSORedirectId) {
-        authLog(`Initialized with idpId: "${SSORedirectId}"`)
-
-        removeSearchParamsInBrowserHistory(
-          defaultSearchParamsToRemoveAfterAutoRedirect
-        )
-        const selectedSSOProvider = SSOProviders.find(
-          ({ id }) => id === SSORedirectId
-        )
-        if (selectedSSOProvider)
-          try {
-            await authRequestForSSO(selectedSSOProvider)
-          } catch (e) {
-            if (e instanceof Error) {
-              SSOError = e.message
-              authLog(e.message)
-            }
-          }
-        else {
-          authLog(
-            `No SSO provider with id: "${SSORedirectId}" found in discovery data`
-          )
-        }
-      } else if (wasRedirectedBackFromSSOServer()) {
-        authLog('Initializing auth_flow_step redirect')
-
-        try {
-          const creds = await handleAuthFromRedirect(SSOProviders)
-
-          if (SSOError) {
-            discoveryData.SSOError = SSOError
-          }
-
-          return {
-            type: DONE,
-            discovered: {
-              ...discoveryData,
-              ...creds,
-              attemptSSOLogin: true
-            }
-          }
-        } catch (e) {
-          if (e instanceof Error) {
-            SSOError = e.message
-            authLog(e.message)
-          }
-        }
+        return { type: DONE, discovered: {} }
       }
 
-      if (SSOError) {
-        discoveryData.SSOError = SSOError
-      }
       return { type: DONE, discovered: { ...discoveryData } }
     })
     .map((a: any) => a)

@@ -18,12 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { pick } from 'lodash'
-import {
-  DiscoveryResult,
-  FetchError,
-  authLog,
-  fetchDiscoveryDataFromUrl
-} from 'neo4j-client-sso'
 
 import { getDiscoveryEndpoint } from 'services/bolt/boltHelpers'
 import { boltToHttp, boltUrlsHaveSameHost } from 'services/boltscheme.utils'
@@ -34,17 +28,46 @@ import {
 import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
 import { parseURLWithDefaultProtocol, isCloudHost } from 'shared/services/utils'
 
-type ExtraDiscoveryFields = {
+const FetchError = 'FetchError'
+const Success = 'Success'
+
+type DiscoveryResult = {
+  status: typeof FetchError | typeof Success
   host?: string
   neo4jVersion?: string
   neo4jEdition?: string
+  message?: string
 }
 
-type BrowserDiscoveryResult = DiscoveryResult & ExtraDiscoveryFields
+async function fetchDiscoveryDataFromUrl(
+  url: string
+): Promise<DiscoveryResult & { otherDataDiscovered: Record<string, unknown> }> {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' }
+    })
+    if (!response.ok) {
+      return {
+        status: FetchError,
+        message: `HTTP error: ${response.status}`,
+        otherDataDiscovered: {}
+      }
+    }
+    const data = await response.json()
+    return { status: Success, otherDataDiscovered: data }
+  } catch (e) {
+    return {
+      status: FetchError,
+      message: e instanceof Error ? e.message : 'Unknown error',
+      otherDataDiscovered: {}
+    }
+  }
+}
 
 export async function fetchBrowserDiscoveryDataFromUrl(
   url: string
-): Promise<BrowserDiscoveryResult> {
+): Promise<DiscoveryResult> {
   const res = await fetchDiscoveryDataFromUrl(url)
   const { otherDataDiscovered } = res
 
@@ -75,7 +98,6 @@ export async function fetchBrowserDiscoveryDataFromUrl(
 type DataFromPreviousAction = {
   forceUrl: string
   discoveryUrl: string
-  sessionStorageHost: string | null
   requestedUseDb?: string
   encrypted?: boolean
   restApi?: string
@@ -92,7 +114,8 @@ type TaggedDiscoveryData = DiscoverableData & {
   source: DiscoveryDataSource
   urlMissing: boolean
   host: string
-  onlyCheckForHost: boolean
+  onlyCheckForHost?: boolean
+  status?: string
 }
 
 type DiscoveryDataSource =
@@ -118,7 +141,7 @@ export async function getAndMergeDiscoveryData({
   hasDiscoveryEndpoint,
   generateBoltUrlWithAllowedScheme
 }: GetAndMergeDiscoveryDataParams): Promise<DiscoverableData | null> {
-  const { sessionStorageHost, forceUrl, discoveryConnection } = action
+  const { forceUrl, discoveryConnection } = action
 
   let dataFromForceUrl: DiscoverableData = {}
   let dataFromConnection: DiscoverableData = {}
@@ -149,12 +172,6 @@ export async function getAndMergeDiscoveryData({
     dataFromConnection = onlyTruthyValues(discovered)
   }
 
-  const sessionStorageHostPromise = sessionStorageHost
-    ? fetchBrowserDiscoveryDataFromUrl(
-        boltToHttp(generateBoltUrlWithAllowedScheme(sessionStorageHost))
-      )
-    : Promise.resolve(null)
-
   const forceUrlHostPromise = dataFromForceUrl.host
     ? fetchBrowserDiscoveryDataFromUrl(
         boltToHttp(generateBoltUrlWithAllowedScheme(dataFromForceUrl.host))
@@ -177,13 +194,11 @@ export async function getAndMergeDiscoveryData({
 
   // Promise all is safe since fetchDataFromDiscoveryUrl never rejects
   const [
-    sessionStorageHostData,
     forceUrlHostData,
     discoveryUrlParamData,
     discoveryConnectionHostData,
     discoveryEndpointData
   ] = await Promise.all([
-    sessionStorageHostPromise,
     forceUrlHostPromise,
     discoveryUrlParamPromise,
     discoveryConnectionHostPromise,
@@ -191,70 +206,59 @@ export async function getAndMergeDiscoveryData({
   ])
 
   // Ordered by importance, top-most data takes precedence
-  const normalisedDiscoveryData: TaggedDiscoveryData[] = [
-    {
-      source: CONNECT_FORM,
-      urlMissing: sessionStorageHostData === null,
-      ...sessionStorageHostData,
-      host: sessionStorageHostData?.host || sessionStorageHost
-    },
-    {
-      source: CONNECT_URL,
-      // The "dataFromForceURL" we want to keep regardless if there was a network request or not.
-      // if we're dealing with a pre 4.4 server the disc request will fail even as there's a db present
-      onlyCheckForHost: true,
-      urlMissing: forceUrlHostData === null,
-      ...dataFromForceUrl,
-      ...forceUrlHostData,
-      host: forceUrlHostData?.host || dataFromForceUrl.host
-    },
-    {
-      source: DISCOVERY_URL,
-      urlMissing: discoveryUrlParamData === null,
-      ...discoveryUrlParamData
-    },
-    {
-      source: DISCOVERY_CONNECTION,
-      urlMissing: discoveryConnectionHostData === null,
-      ...discoveryConnectionHostData,
-      host: discoveryConnectionHostData?.host || discoveryConnection?.host
-    },
-    {
-      source: DISCOVERY_ENDPOINT,
-      urlMissing: discoveryEndpointData === null,
-      ...discoveryEndpointData
-    }
-  ].filter((entry): entry is TaggedDiscoveryData => {
+  const normalisedDiscoveryData = (
+    [
+      {
+        source: CONNECT_URL as DiscoveryDataSource,
+        // The "dataFromForceURL" we want to keep regardless if there was a network request or not.
+        // if we're dealing with a pre 4.4 server the disc request will fail even as there's a db present
+        onlyCheckForHost: true,
+        urlMissing: forceUrlHostData === null,
+        ...dataFromForceUrl,
+        ...forceUrlHostData,
+        host: forceUrlHostData?.host || dataFromForceUrl.host
+      },
+      {
+        source: DISCOVERY_URL as DiscoveryDataSource,
+        urlMissing: discoveryUrlParamData === null,
+        ...discoveryUrlParamData,
+        host: discoveryUrlParamData?.host
+      },
+      {
+        source: DISCOVERY_CONNECTION as DiscoveryDataSource,
+        urlMissing: discoveryConnectionHostData === null,
+        ...discoveryConnectionHostData,
+        host: discoveryConnectionHostData?.host || discoveryConnection?.host
+      },
+      {
+        source: DISCOVERY_ENDPOINT as DiscoveryDataSource,
+        urlMissing: discoveryEndpointData === null,
+        ...discoveryEndpointData,
+        host: discoveryEndpointData?.host
+      }
+    ] as Array<Partial<TaggedDiscoveryData>>
+  ).filter((entry): entry is TaggedDiscoveryData => {
     if ('onlyCheckForHost' in entry && !entry.onlyCheckForHost) {
       if (entry.urlMissing || !('status' in entry)) {
-        authLog(`Found no url from source: ${entry.source} to fetch.`)
         return false
       }
 
       if (entry.status === FetchError) {
-        authLog(`Failed to fetch source: ${entry.source}.`)
         return false
       }
     }
 
     if (!('host' in entry) || !entry.host) {
-      authLog(
-        `Couldn't find bolt host to associate with discovery data from source ${entry.source}, dropping.`
-      )
       return false
     }
     return true
   })
 
   if (normalisedDiscoveryData.length === 0) {
-    authLog('No valid discovery data found, aborting SSO flow')
     return null
   }
 
   const [mainDiscoveryData, ...otherDiscoveryData] = normalisedDiscoveryData
-  authLog(
-    `Using host: ${mainDiscoveryData.host} from ${mainDiscoveryData.source} for SSO flow.`
-  )
 
   const keysToCopy: (keyof DiscoverableData)[] = [
     'username',
@@ -264,8 +268,6 @@ export async function getAndMergeDiscoveryData({
     'supportsMultiDb',
     'host',
     'encrypted',
-    'SSOError',
-    'SSOProviders',
     'neo4jVersion',
     'hasForceUrl'
   ]
@@ -273,29 +275,19 @@ export async function getAndMergeDiscoveryData({
   let mergedDiscoveryData = pick(mainDiscoveryData, keysToCopy)
   if (otherDiscoveryData.length > 1) {
     const otherDiscoveryDataWithMatchingHost = otherDiscoveryData.filter(
-      ({ host, source }) => {
+      ({ host }) => {
         if (boltUrlsHaveSameHost(mainDiscoveryData.host, host)) {
           return true
         } else {
-          authLog(
-            `Dropping discovery data from ${source} as it's bolt host: ${host} doesn't match ${mainDiscoveryData.host}.`
-          )
           return false
         }
       }
     )
 
     otherDiscoveryDataWithMatchingHost.forEach(data => {
-      authLog(`Merging discovery data from ${data.source} as hosts match`)
-      const currentSSOProviders = mergedDiscoveryData.SSOProviders || []
-      const currentSSOProviderIds = new Set(currentSSOProviders.map(p => p.id))
-      const newSSOProviders = (data.SSOProviders || []).filter(
-        newProvider => !currentSSOProviderIds.has(newProvider.id)
-      )
       mergedDiscoveryData = {
         ...pick(data, keysToCopy),
-        ...mergedDiscoveryData,
-        SSOProviders: currentSSOProviders.concat(newSSOProviders)
+        ...mergedDiscoveryData
       }
     })
   }

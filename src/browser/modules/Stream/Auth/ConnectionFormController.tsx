@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { debounce } from 'lodash-es'
-import { Success, authLog } from 'neo4j-client-sso'
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
@@ -27,7 +25,7 @@ import ChangePasswordForm from './ChangePasswordForm'
 import ConnectForm from './ConnectForm'
 import ConnectedView from './ConnectedView'
 import { StyledConnectionBody } from './styled'
-import { NATIVE, NO_AUTH, SSO } from 'services/bolt/boltHelpers'
+import { NATIVE, NO_AUTH } from 'services/bolt/boltHelpers'
 import {
   generateBoltUrl,
   getScheme,
@@ -54,18 +52,12 @@ import {
 } from 'shared/modules/connections/connectionsDuck'
 import { shouldRetainConnectionCredentials } from 'shared/modules/dbMeta/dbMetaDuck'
 import { CONNECTION_ID } from 'shared/modules/discovery/discoveryDuck'
-import { fetchBrowserDiscoveryDataFromUrl } from 'shared/modules/discovery/discoveryHelpers'
 import { FOCUS } from 'shared/modules/editor/editorDuck'
 import {
   getInitCmd,
   getPlayImplicitInitCommands
 } from 'shared/modules/settings/settingsDuck'
 import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
-import {
-  boltToHttp,
-  stripQueryString,
-  stripScheme
-} from 'shared/services/boltscheme.utils'
 import {
   AUTH_STORAGE_CONNECTION_PROFILES,
   isCloudHost
@@ -76,7 +68,7 @@ import { GlobalState } from 'shared/globalState'
 const isAuraHost = (host: string) => isCloudHost(host, NEO4J_CLOUD_DOMAINS)
 
 function getAllowedAuthMethodsForHost(host: string): AuthenticationMethod[] {
-  return isAuraHost(host) ? [NATIVE, SSO] : [NATIVE, SSO, NO_AUTH]
+  return isAuraHost(host) ? [NATIVE] : [NATIVE, NO_AUTH]
 }
 
 const getAllowedSchemesForHost = (host: string, allowedSchemes: string[]) =>
@@ -234,52 +226,14 @@ export class ConnectionFormController extends Component<any, any> {
     this.props.error({})
   }
 
-  onSSOProviderClicked = () => {
-    this.props.updateConnection({
-      authenticationMethod: this.state.authenticationMethod
-    })
-  }
-
   onAuthenticationMethodChange(event: any) {
     const authenticationMethod = event.target.value
     const username =
       authenticationMethod === NO_AUTH ? '' : this.state.username || 'neo4j'
     const password = authenticationMethod === NO_AUTH ? '' : this.state.password
     this.setState({ authenticationMethod, username, password })
-    if (authenticationMethod === SSO) {
-      this.fetchHostDiscovery(this.state.host)
-    }
     this.props.error({})
   }
-
-  fetchHostDiscovery = debounce((host: string) => {
-    const discoveryHost = stripScheme(
-      stripQueryString(this.props.discoveredData.host)
-    )
-    const newHost = stripScheme(stripQueryString(host))
-    if (newHost !== discoveryHost) {
-      this.setState({ SSOLoading: true })
-      fetchBrowserDiscoveryDataFromUrl(boltToHttp(host)).then(result => {
-        if (result.status === Success) {
-          this.setState({
-            SSOProviders: result.SSOProviders,
-            SSOError: undefined,
-            SSOLoading: false
-          })
-        } else {
-          const message = `Failed to load SSO providers ${result.message}`
-          authLog(message)
-          this.setState({
-            SSOError: message,
-            SSOLoading: false
-          })
-        }
-      })
-    } else {
-      const { SSOProviders, SSOError } = this.getConnection()
-      this.setState({ SSOProviders, SSOError, SSOLoading: false })
-    }
-  }, 200)
 
   onHostChange(fallbackScheme: any, val: any) {
     const allowedSchemes = getAllowedSchemesForHost(
@@ -291,9 +245,6 @@ export class ConnectionFormController extends Component<any, any> {
       host: url,
       hostInputVal: url
     })
-    if (this.state.authenticationMethod === SSO) {
-      this.fetchHostDiscovery(url)
-    }
     this.props.error({})
   }
 
@@ -456,9 +407,6 @@ export class ConnectionFormController extends Component<any, any> {
             this.setState({ connecting })
           }
           host={host}
-          SSOError={this.state.SSOError}
-          SSOProviders={this.state.SSOProviders || []}
-          SSOLoading={this.state.SSOLoading}
           username={this.state.username}
           password={this.state.password}
           database={this.state.requestedUseDb}
@@ -469,7 +417,6 @@ export class ConnectionFormController extends Component<any, any> {
             this.state.hostInputVal || this.state.host
           )}
           authenticationMethod={this.state.authenticationMethod}
-          onSSOProviderClicked={this.onSSOProviderClicked}
           onProfileSave={this.onProfileSave}
           onProfileSelect={this.onProfileSelect}
           profiles={this.state.profiles}
