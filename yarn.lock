@@ -4707,10 +4707,10 @@ core-js-pure@^3.23.3:
   resolved "https://registry.npmjs.org/core-js-pure/-/core-js-pure-3.29.0.tgz"
   integrity sha512-v94gUjN5UTe1n0yN/opTihJ8QBWD2O8i19RfTZR7foONPWArnjB96QA/wk5ozu1mm6ja3udQCzOzwQXTxi3xOQ==
 
-core-js@3:
-  version "3.6.5"
-  resolved "https://registry.npmjs.org/core-js/-/core-js-3.6.5.tgz"
-  integrity "sha1-c5XcJzrzf7LlDpvT2f6EEoUjHRo= sha512-vZVEEwZoIsI+vPEuoF9Iqf5H7/M3eeQqWlQnYa8FSKKePuYTf5MWnxb5SDAzCa60b3JBRS5g9b+Dq7b1y/RCrA=="
+core-js@3.47.0:
+  version "3.47.0"
+  resolved "https://registry.yarnpkg.com/core-js/-/core-js-3.47.0.tgz#436ef07650e191afeb84c24481b298bd60eb4a17"
+  integrity sha512-c3Q2VVkGAUyupsjRnaNX6u8Dq2vAdzm9iuPj5FW0fRxzlxgq9Q39MDq10IvmQSpLgHQNyQzQmOo6bgGHmH3NNg==
 
 core-js@^2.4.0, core-js@^2.4.1, core-js@^2.6.5:
   version "2.6.11"
