@@ -50,7 +50,8 @@ export function setupAutocomplete({
 }
 
 export function initalizeCypherSupport(
-  cypherColor?: CypherColorFallback
+  cypherColor?: CypherColorFallback,
+  initialTheme: 'dark' | 'light' = 'light'
 ): void {
   languages.register({ id: 'cypher' })
   languages.setTokensProvider('cypher', new CypherTokensProvider())
@@ -152,7 +153,7 @@ export function initalizeCypherSupport(
 
   editor.defineTheme('dark', monacoDarkTheme)
   editor.defineTheme('light', monacoLightTheme)
-  editor.setTheme('light')
+  editor.setTheme(initialTheme)
 }
 
 function encodeNumberAsSortableString(number: number): string {

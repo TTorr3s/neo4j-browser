@@ -46,7 +46,10 @@ import {
   commandSources,
   executeCommand
 } from 'shared/modules/commands/commandsDuck'
-import { DISABLE_IMPLICIT_INIT_COMMANDS } from 'shared/modules/settings/settingsDuck'
+import {
+  DISABLE_IMPLICIT_INIT_COMMANDS,
+  getTheme
+} from 'shared/modules/settings/settingsDuck'
 import { UPDATE_PARAMS } from '../params/paramsDuck'
 import { isOfType } from 'shared/utils/typeSafeActions'
 import { DB_META_DONE } from '../dbMeta/dbMetaDuck'
@@ -159,12 +162,15 @@ export const initializeCypherEditorEpic: Epic<
   AnyAction,
   AnyAction,
   GlobalState
-> = action$ => {
+> = (action$, state$) => {
   return action$.pipe(
     ofType(APP_START),
     take(1),
-    tap(() => {
-      initalizeCypherSupport()
+    withLatestFrom(state$),
+    tap(([, state]) => {
+      const theme = getTheme(state)
+      const monacoTheme = theme === 'dark' ? 'dark' : 'light'
+      initalizeCypherSupport(undefined, monacoTheme)
       setupAutocomplete({
         consoleCommands
       })
