@@ -25,7 +25,7 @@ const tokyoNightStormColors = {
   // Editor colors
   background: '#24283b',
   foreground: '#a9b1d6',
-  foregroundBright: '#c0caf5',
+  foregroundBright: '#70748aff',
   foregroundMuted: '#9aa5ce',
   comment: '#565f89',
   selection: '#414868',
