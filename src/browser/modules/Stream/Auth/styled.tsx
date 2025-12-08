@@ -61,21 +61,38 @@ export const StyledSegment = styled.div`
   position: relative;
   display: flex;
   justify-content: left;
+
   > select {
-    border-radius: 4px;
+    border-radius: 6px;
     width: auto;
     min-width: unset;
     display: inline-block;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     text-align: right;
+    background-color: ${props => props.theme.inputBackground};
     border: ${props => props.theme.formButtonBorder};
     color: ${props => props.theme.inputText};
-    height: 34px;
+    height: 38px;
     font-size: 14px;
-    padding: 7px 12px 6px 12px;
+    padding: 8px 12px;
     vertical-align: bottom;
+    outline: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+
+    &:hover {
+      background-color: ${props => props.theme.inputBackgroundHover};
+      border-color: ${props => props.theme.inputBorderFocus};
+    }
+
+    &:focus {
+      background-color: ${props => props.theme.inputBackgroundFocus};
+      border: 2px solid ${props => props.theme.inputBorderFocus};
+      box-shadow: 0 0 0 3px ${props => props.theme.inputBorderFocus}22;
+    }
   }
+
   > input {
     display: inline-block;
     border-top-left-radius: 0;

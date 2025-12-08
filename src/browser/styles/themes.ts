@@ -87,6 +87,13 @@ export const base = {
   auth: '#182844bf',
   info: '#1d232dbf',
 
+  // Form inputs
+  inputBackground: '#ffffff',
+  inputBackgroundHover: '#fafafa',
+  inputBackgroundFocus: '#ffffff',
+  inputBorderFocus: '#5762d9ff',
+  inputPlaceholder: '#999',
+
   // Buttons
   primaryButtonText: '#ffffff',
   primaryButtonBackground: '#428BCA',
@@ -97,7 +104,7 @@ export const base = {
   secondaryButtonBorderHover: '1px solid #888',
   secondaryButtonBackgroundHover: '#888',
   formButtonBorder: '1px solid #ccc',
-  formButtonBorderHover: '1px solid ##adadad',
+  formButtonBorderHover: '1px solid #adadad',
   formButtonBackgroundHover: '#e6e6e6',
   editModeButtonText: '#ffaf00',
 
@@ -173,6 +180,7 @@ export const dark = {
   secondaryText: tokyoNightStorm.fg,
   headerText: tokyoNightStorm.fgBright,
   primaryHeaderText: tokyoNightStorm.fgBright,
+  inputText: tokyoNightStorm.fgBright,
   link: tokyoNightStorm.blue,
   linkHover: tokyoNightStorm.cyan,
   topicText: tokyoNightStorm.fgBright,
@@ -190,6 +198,16 @@ export const dark = {
   frameCommandBackground: tokyoNightStorm.bgDark,
   runnableBackground: tokyoNightStorm.bgHighlight,
   teaserCardBackground: tokyoNightStorm.bgDark,
+
+  // Form inputs - Tokyo Night Storm
+  inputBackground: tokyoNightStorm.bgHighlight,
+  inputBackgroundHover: tokyoNightStorm.selection,
+  inputBackgroundFocus: tokyoNightStorm.bgDark,
+  inputBorderFocus: tokyoNightStorm.purple,
+  inputPlaceholder: tokyoNightStorm.fgMuted,
+  formButtonBorder: `1px solid ${tokyoNightStorm.selection}`,
+  formButtonBorderHover: `1px solid ${tokyoNightStorm.fgMuted}`,
+  formButtonBackgroundHover: tokyoNightStorm.selection,
 
   // Buttons
   primaryButtonText: tokyoNightStorm.fgBright,

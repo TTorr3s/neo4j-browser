@@ -21,33 +21,65 @@ import React, { Component } from 'react'
 import styled from 'styled-components'
 
 export const StyledSelect = styled.select`
-  background-color: #ffffff;
+  background-color: ${props => props.theme.inputBackground};
   border: ${props => props.theme.formButtonBorder};
-  border-radius: 4px;
+  border-radius: 6px;
   color: ${props => props.theme.inputText};
   display: block;
-  height: 34px;
+  height: 38px;
   font-size: 14px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   min-width: 120px;
   width: 100%;
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background-color: ${props => props.theme.inputBackgroundHover};
+    border-color: ${props => props.theme.inputBorderFocus};
+  }
+
+  &:focus {
+    background-color: ${props => props.theme.inputBackgroundFocus};
+    border: 2px solid ${props => props.theme.inputBorderFocus};
+    box-shadow: 0 0 0 3px ${props => props.theme.inputBorderFocus}22;
+  }
 `
 export const StyledInput = styled.input`
-  background-color: #ffffff;
+  background-color: ${props => props.theme.inputBackground};
   border: ${props => props.theme.formButtonBorder};
-  border-radius: 4px;
+  border-radius: 6px;
   color: ${props => props.theme.inputText};
   display: block;
-  height: 34px;
+  height: 38px;
   font-size: 14px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   width: 100%;
+  outline: none;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: ${props => props.theme.inputPlaceholder};
+  }
+
+  &:hover {
+    background-color: ${props => props.theme.inputBackgroundHover};
+    border-color: ${props => props.theme.inputBorderFocus};
+  }
+
+  &:focus {
+    background-color: ${props => props.theme.inputBackgroundFocus};
+    border: 2px solid ${props => props.theme.inputBorderFocus};
+    box-shadow: 0 0 0 3px ${props => props.theme.inputBorderFocus}22;
+  }
 
   &[type='checkbox'] {
     display: inline-block;
     margin-right: 5px;
     vertical-align: middle;
     width: auto;
+    height: auto;
   }
 `
 
@@ -70,13 +102,10 @@ export const StyledFormElementWrapper = styled.div`
 `
 
 const StyledSettingTextInput = styled(StyledInput)`
-  height: 34px;
-  color: #555;
+  height: 38px;
   font-size: 14px;
-  padding: 6px 12px;
-  background-color: #ffffff;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border-radius: 6px;
   width: 192px;
 `
 
