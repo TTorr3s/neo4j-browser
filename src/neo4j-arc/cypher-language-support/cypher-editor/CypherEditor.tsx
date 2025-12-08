@@ -130,6 +130,10 @@ export class CypherEditor extends React.Component<
   wrapperRef = React.createRef<HTMLDivElement>()
   // Store disposables for keybindings to clean up on unmount
   private commandDisposables: monaco.IDisposable[] = []
+  // Store disposables for editor event listeners
+  private editorEventDisposables: monaco.IDisposable[] = []
+  // Track if component is mounted to prevent state updates after unmount
+  private _isComponentMounted = false
 
   constructor(props: CypherEditorProps) {
     super(props)
@@ -310,8 +314,19 @@ export class CypherEditor extends React.Component<
       this.props
         .sendCypherQuery(EXPLAIN_QUERY_PREFIX + text)
         .then((result: QueryResult) => {
+          // Check if component is still mounted before updating markers
+          // This prevents memory leaks and errors from accessing disposed resources
+          if (!this._isComponentMounted) {
+            return
+          }
+
+          const currentModel = this.editor?.getModel()
+          if (!currentModel) {
+            return
+          }
+
           if (result.summary.notifications.length > 0) {
-            monaco.editor.setModelMarkers(model, this.getMonacoId(), [
+            monaco.editor.setModelMarkers(currentModel, this.getMonacoId(), [
               ...monaco.editor.getModelMarkers({ owner: this.getMonacoId() }),
               ...result.summary.notifications.map(
                 ({ description, position, title }) => {
@@ -498,12 +513,18 @@ export class CypherEditor extends React.Component<
 
     this.onContentUpdate()
 
-    this.editor.onDidChangeModelContent(this.onContentUpdate)
-    this.editor.onDidContentSizeChange(() =>
-      this.resize(this.props.isFullscreen)
+    // Store event listener disposables for cleanup
+    this.editorEventDisposables.push(
+      this.editor.onDidChangeModelContent(this.onContentUpdate)
+    )
+    this.editorEventDisposables.push(
+      this.editor.onDidContentSizeChange(() =>
+        this.resize(this.props.isFullscreen)
+      )
     )
 
     this.resizeObserver.observe(this.container)
+    this._isComponentMounted = true
   }
 
   render(): JSX.Element {
@@ -548,10 +569,16 @@ export class CypherEditor extends React.Component<
   }
 
   componentWillUnmount = (): void => {
+    this._isComponentMounted = false
+
     // Dispose all command/action bindings first - this is critical!
     // Without this, the keybindings remain active globally even after editor disposal
     this.commandDisposables.forEach(d => d.dispose())
     this.commandDisposables = []
+
+    // Dispose editor event listeners to prevent memory leaks
+    this.editorEventDisposables.forEach(d => d.dispose())
+    this.editorEventDisposables = []
 
     this.editor?.dispose()
     this.debouncedUpdateCode?.cancel()
