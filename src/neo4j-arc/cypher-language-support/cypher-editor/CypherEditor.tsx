@@ -128,6 +128,8 @@ export class CypherEditor extends React.Component<
   editor?: monaco.editor.IStandaloneCodeEditor
   container?: HTMLElement
   wrapperRef = React.createRef<HTMLDivElement>()
+  // Store disposables for keybindings to clean up on unmount
+  private commandDisposables: monaco.IDisposable[] = []
 
   constructor(props: CypherEditorProps) {
     super(props)
@@ -377,57 +379,121 @@ export class CypherEditor extends React.Component<
     })
 
     const { KeyCode, KeyMod } = monaco
+    const editorId = this.props.id
+
+    // Clear any previous disposables
+    this.commandDisposables.forEach(d => d.dispose())
+    this.commandDisposables = []
+
+    // Use addAction instead of addCommand - addAction properly disposes with the editor
+    // This fixes a bug where keybindings from disposed editors would remain active globally
     if (this.props.onExecute) {
-      this.editor.addCommand(
-        KeyCode.Enter,
-        () => {
-          this.isMultiLine() ? this.newLine() : this.execute()
-        },
-        '!suggestWidgetVisible && !findWidgetVisible'
+      this.commandDisposables.push(
+        this.editor.addAction({
+          id: `${editorId}-enter`,
+          label: 'Execute or New Line',
+          keybindings: [KeyCode.Enter],
+          precondition: '!suggestWidgetVisible && !findWidgetVisible',
+          run: () => {
+            this.isMultiLine() ? this.newLine() : this.execute()
+          }
+        })
       )
     }
 
-    this.editor.addCommand(
-      KeyCode.UpArrow,
-      this.handleUp,
-      '!suggestWidgetVisible'
-    )
-    this.editor.addCommand(
-      KeyCode.DownArrow,
-      this.handleDown,
-      '!suggestWidgetVisible'
-    )
-    this.editor.addCommand(KeyMod.Shift | KeyCode.Enter, this.newLine)
-    if (this.props.onExecute) {
-      this.editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, this.execute)
-    }
-    this.editor.addCommand(
-      KeyMod.CtrlCmd | KeyCode.UpArrow,
-      this.viewHistoryPrevious
-    )
-    this.editor.addCommand(
-      KeyMod.CtrlCmd | KeyCode.DownArrow,
-      this.viewHistoryNext
-    )
-    this.editor.addCommand(
-      KeyMod.CtrlCmd | KeyCode.Period,
-      this.props.onDisplayHelpKeys
+    this.commandDisposables.push(
+      this.editor.addAction({
+        id: `${editorId}-up`,
+        label: 'Handle Up',
+        keybindings: [KeyCode.UpArrow],
+        precondition: '!suggestWidgetVisible',
+        run: () => this.handleUp()
+      })
     )
 
-    this.editor.addCommand(
-      KeyCode.Escape,
-      () => {
-        this.wrapperRef.current?.focus()
-      },
-      '!suggestWidgetVisible && !findWidgetVisible'
+    this.commandDisposables.push(
+      this.editor.addAction({
+        id: `${editorId}-down`,
+        label: 'Handle Down',
+        keybindings: [KeyCode.DownArrow],
+        precondition: '!suggestWidgetVisible',
+        run: () => this.handleDown()
+      })
+    )
+
+    this.commandDisposables.push(
+      this.editor.addAction({
+        id: `${editorId}-shift-enter`,
+        label: 'New Line',
+        keybindings: [KeyMod.Shift | KeyCode.Enter],
+        run: () => this.newLine()
+      })
+    )
+
+    if (this.props.onExecute) {
+      this.commandDisposables.push(
+        this.editor.addAction({
+          id: `${editorId}-ctrl-enter`,
+          label: 'Execute',
+          keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+          run: () => this.execute()
+        })
+      )
+    }
+
+    this.commandDisposables.push(
+      this.editor.addAction({
+        id: `${editorId}-ctrl-up`,
+        label: 'History Previous',
+        keybindings: [KeyMod.CtrlCmd | KeyCode.UpArrow],
+        run: () => this.viewHistoryPrevious()
+      })
+    )
+
+    this.commandDisposables.push(
+      this.editor.addAction({
+        id: `${editorId}-ctrl-down`,
+        label: 'History Next',
+        keybindings: [KeyMod.CtrlCmd | KeyCode.DownArrow],
+        run: () => this.viewHistoryNext()
+      })
+    )
+
+    this.commandDisposables.push(
+      this.editor.addAction({
+        id: `${editorId}-ctrl-period`,
+        label: 'Display Help Keys',
+        keybindings: [KeyMod.CtrlCmd | KeyCode.Period],
+        run: () => this.props.onDisplayHelpKeys()
+      })
+    )
+
+    this.commandDisposables.push(
+      this.editor.addAction({
+        id: `${editorId}-escape`,
+        label: 'Escape',
+        keybindings: [KeyCode.Escape],
+        precondition: '!suggestWidgetVisible && !findWidgetVisible',
+        run: () => {
+          this.wrapperRef.current?.focus()
+        }
+      })
     )
 
     keys(this.props.additionalCommands).forEach(key => {
       const command = this.props.additionalCommands[key]
-      if (!command) {
+      if (!command || !this.editor) {
         return
       }
-      this?.editor?.addCommand(key, command.handler, command.context)
+      this.commandDisposables.push(
+        this.editor.addAction({
+          id: `${editorId}-additional-${key}`,
+          label: `Additional Command ${key}`,
+          keybindings: [key],
+          precondition: command.context,
+          run: () => command.handler(this.editor!)
+        })
+      )
     })
 
     this.onContentUpdate()
@@ -482,6 +548,11 @@ export class CypherEditor extends React.Component<
   }
 
   componentWillUnmount = (): void => {
+    // Dispose all command/action bindings first - this is critical!
+    // Without this, the keybindings remain active globally even after editor disposal
+    this.commandDisposables.forEach(d => d.dispose())
+    this.commandDisposables = []
+
     this.editor?.dispose()
     this.debouncedUpdateCode?.cancel()
     this.resizeObserver.disconnect()
