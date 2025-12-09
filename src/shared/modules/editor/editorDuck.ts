@@ -27,7 +27,7 @@ import {
 } from 'neo4j-arc/cypher-language-support'
 import { AnyAction } from 'redux'
 import { Epic, ofType } from 'redux-observable'
-import { of, NEVER } from 'rxjs'
+import { of, EMPTY } from 'rxjs'
 import {
   mergeMap,
   filter,
@@ -35,7 +35,10 @@ import {
   take,
   delay,
   ignoreElements,
-  withLatestFrom
+  withLatestFrom,
+  map,
+  distinctUntilChanged,
+  catchError
 } from 'rxjs/operators'
 
 import consoleCommands from 'browser/modules/Editor/consoleCommands'
@@ -117,13 +120,13 @@ export const populateEditorFromUrlEpic: Epic<
     delay(1), // Timing issue. Needs to be detached like this
     mergeMap(action => {
       if (!action.url) {
-        return NEVER
+        return EMPTY
       }
       const cmdParam = getUrlParamValue('cmd', action.url)
 
       // No URL command param found
       if (!cmdParam || !cmdParam[0]) {
-        return NEVER
+        return EMPTY
       }
 
       // Not supported URL param command
@@ -154,6 +157,10 @@ export const populateEditorFromUrlEpic: Epic<
       }
 
       return of(setContent(fullCommand))
+    }),
+    catchError(error => {
+      console.error('[Editor] populateEditorFromUrlEpic error:', error)
+      return EMPTY
     })
   )
 }
@@ -175,9 +182,33 @@ export const initializeCypherEditorEpic: Epic<
         consoleCommands
       })
     }),
-    ignoreElements()
+    ignoreElements(),
+    catchError(error => {
+      console.error('[Editor] initializeCypherEditorEpic error:', error)
+      return EMPTY
+    })
   )
 }
+interface SchemaSourceData {
+  functions: GlobalState['meta']['functions']
+  labels: GlobalState['meta']['labels']
+  procedures: GlobalState['meta']['procedures']
+  properties: GlobalState['meta']['properties']
+  relationshipTypes: GlobalState['meta']['relationshipTypes']
+  params: GlobalState['params']
+}
+
+const areSchemaSourcesEqual = (
+  prev: SchemaSourceData,
+  curr: SchemaSourceData
+): boolean =>
+  prev.functions === curr.functions &&
+  prev.labels === curr.labels &&
+  prev.procedures === curr.procedures &&
+  prev.properties === curr.properties &&
+  prev.relationshipTypes === curr.relationshipTypes &&
+  prev.params === curr.params
+
 export const updateEditorSupportSchemaEpic: Epic<
   AnyAction,
   AnyAction,
@@ -186,18 +217,29 @@ export const updateEditorSupportSchemaEpic: Epic<
   action$.pipe(
     filter(isOfType([DB_META_DONE, UPDATE_PARAMS])),
     withLatestFrom(state$),
-    tap(([, state]) => {
-      const { params, meta } = state
-
+    map(([, state]) => ({
+      functions: state.meta.functions,
+      labels: state.meta.labels,
+      procedures: state.meta.procedures,
+      properties: state.meta.properties,
+      relationshipTypes: state.meta.relationshipTypes,
+      params: state.params
+    })),
+    distinctUntilChanged(areSchemaSourcesEqual),
+    tap(schemaData => {
       setupAutocomplete({
         consoleCommands,
-        functions: meta.functions.map(toFunction),
-        labels: meta.labels.map(toLabel),
-        parameters: Object.keys(params),
-        procedures: meta.procedures.map(toProcedure),
-        propertyKeys: meta.properties,
-        relationshipTypes: meta.relationshipTypes.map(toRelationshipType)
+        functions: schemaData.functions.map(toFunction),
+        labels: schemaData.labels.map(toLabel),
+        parameters: Object.keys(schemaData.params),
+        procedures: schemaData.procedures.map(toProcedure),
+        propertyKeys: schemaData.properties,
+        relationshipTypes: schemaData.relationshipTypes.map(toRelationshipType)
       })
     }),
-    ignoreElements()
+    ignoreElements(),
+    catchError(error => {
+      console.error('[Editor] updateEditorSupportSchemaEpic error:', error)
+      return EMPTY
+    })
   )

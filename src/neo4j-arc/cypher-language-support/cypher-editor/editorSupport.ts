@@ -69,6 +69,14 @@ export function initalizeCypherSupport(
   cypherColor?: CypherColorFallback,
   initialTheme: 'dark' | 'light' = 'light'
 ): void {
+  // Prevent duplicate Monaco registrations (they are additive for completion providers)
+  if (isCypherLanguageRegistered) {
+    // Only update the theme if already registered
+    editor.setTheme(initialTheme)
+    return
+  }
+  isCypherLanguageRegistered = true
+
   languages.register({ id: 'cypher' })
   languages.setTokensProvider('cypher', new CypherTokensProvider())
   languages.setLanguageConfiguration('cypher', {
@@ -119,7 +127,10 @@ export function initalizeCypherSupport(
           position.lineNumber,
           position.column - 1
         ).items
-      } catch {}
+      } catch (error) {
+        // Log error for debugging but don't break autocomplete
+        console.warn('[Cypher Editor] Completion error:', error)
+      }
 
       // word preceding trigger character, used to determine range (where to insert) procedure suggestions
       const { word } = model.getWordUntilPosition({
@@ -174,8 +185,19 @@ function encodeNumberAsSortableString(number: number): string {
   return `${prefix}${number}`
 }
 
-const editorSupport = new CypherEditorSupport('')
+let editorSupport = new CypherEditorSupport('')
 let lastParsedContent = ''
+let isCypherLanguageRegistered = false
+
+/**
+ * Reset the editor support state.
+ * Useful for testing and hot module replacement.
+ * Note: Monaco language registration cannot be undone, only the editorSupport instance is reset.
+ */
+export function resetEditorSupport(): void {
+  editorSupport = new CypherEditorSupport('')
+  lastParsedContent = ''
+}
 
 // CypherEditorSupport returns the content attributes of procedures with dots wrapped in backticks, e.g. "`apoc.coll.avg`"
 // This function strips any surrounding backticks before we use the .content value in the completion item provider

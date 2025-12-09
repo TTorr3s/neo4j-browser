@@ -24,7 +24,8 @@ export {
   setupAutocomplete,
   setEditorTheme,
   initalizeCypherSupport,
-  getText
+  getText,
+  resetEditorSupport
 } from './cypher-editor/editorSupport'
 export {
   parse as parseQueryOrCommand,
