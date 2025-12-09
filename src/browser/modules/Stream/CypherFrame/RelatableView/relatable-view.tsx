@@ -22,6 +22,7 @@ import { connect } from 'react-redux'
 import {
   ClickableUrls,
   ClipboardCopier,
+  copyToClipboard,
   WarningMessage
 } from 'neo4j-arc/common'
 
@@ -35,6 +36,7 @@ import {
 } from '../helpers'
 import Relatable from './relatable'
 import {
+  CellWrapper,
   CopyIconAbsolutePositioner,
   RelatableStyleWrapper,
   StyledJsonPre,
@@ -115,31 +117,66 @@ function CypherCell({ cell }: CypherCellProps) {
   return renderCell(value)
 }
 
-const renderCell = (entry: any) => {
+type CopyableCellProps = {
+  text: string
+  children: React.ReactNode
+}
+function CopyableCell({ text, children }: CopyableCellProps): JSX.Element {
+  const handleClick = () => {
+    copyToClipboard(text)
+  }
+
+  return (
+    <CellWrapper onClick={handleClick} title="Click to copy">
+      {children}
+      <span className="copy-icon">
+        <ClipboardCopier textToCopy={text} iconSize={14} />
+      </span>
+    </CellWrapper>
+  )
+}
+
+const renderCell = (entry: any, isTopLevel = true): JSX.Element => {
   if (Array.isArray(entry)) {
+    const text = unescapeDoubleQuotesForDisplay(
+      stringifyMod(entry, stringModifier, true)
+    )
     const children = entry.map((item, index) => (
       <StyledPreSpan key={index}>
-        {renderCell(item)}
+        {renderCell(item, false)}
         {index === entry.length - 1 ? null : ', '}
       </StyledPreSpan>
     ))
-    return <StyledPreSpan>[{children}]</StyledPreSpan>
+    const arrayContent = <StyledPreSpan>[{children}]</StyledPreSpan>
+
+    if (isTopLevel) {
+      return <CopyableCell text={text}>{arrayContent}</CopyableCell>
+    }
+    return arrayContent
   } else if (typeof entry === 'object') {
     return renderObject(entry)
   } else {
-    return (
-      <ClickableUrls
-        text={unescapeDoubleQuotesForDisplay(
-          stringifyMod(entry, stringModifier, true)
-        )}
-        WrappingTag={StyledPreSpan}
-      />
+    const text = unescapeDoubleQuotesForDisplay(
+      stringifyMod(entry, stringModifier, true)
     )
+    const content = <ClickableUrls text={text} WrappingTag={StyledPreSpan} />
+
+    if (isTopLevel) {
+      return <CopyableCell text={text}>{content}</CopyableCell>
+    }
+    return content
   }
 }
 
-const renderObject = (entry: any) => {
-  if (isInt(entry)) return entry.toString()
+const renderObject = (entry: any): JSX.Element => {
+  if (isInt(entry)) {
+    const intText = entry.toString()
+    return (
+      <CopyableCell text={intText}>
+        <StyledPreSpan>{intText}</StyledPreSpan>
+      </CopyableCell>
+    )
+  }
   if (entry === null) return <em>null</em>
   const text = unescapeDoubleQuotesForDisplay(
     stringifyMod(entry, stringModifier, true)

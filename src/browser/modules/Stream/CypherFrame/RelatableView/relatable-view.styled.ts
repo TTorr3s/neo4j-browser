@@ -54,8 +54,36 @@ export const StyledJsonPre = styled.pre`
 export const StyledPreSpan = styled.span`
   white-space: pre;
 `
+
 export const CopyIconAbsolutePositioner = styled.span`
   position: absolute;
   right: 10px;
   top: 4px;
+`
+
+export const CellWrapper = styled.span`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+
+  &:hover {
+    background-color: ${props => props.theme.hoverBackground};
+  }
+
+  .copy-icon {
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  &:hover .copy-icon {
+    opacity: 0.7;
+  }
 `
