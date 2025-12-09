@@ -31,6 +31,13 @@ const tsLoaderOptions = {
 }
 
 module.exports = [
+  // Fix for ESM packages (like react-dnd 16+) that require jsx-runtime without extension
+  {
+    test: /\.m?js$/,
+    resolve: {
+      fullySpecified: false
+    }
+  },
   {
     test: /\.(ts|tsx)?$/,
     use: {

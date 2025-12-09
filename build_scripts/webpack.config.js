@@ -55,7 +55,10 @@ module.exports = {
       'neo4j-arc/cypher-language-support$': path.resolve(
         helpers.sourcePath,
         'neo4j-arc/cypher-language-support'
-      )
+      ),
+      // Fix for react-dnd 16+ with React 17 (jsx-runtime resolution)
+      'react/jsx-runtime': require.resolve('react/jsx-runtime.js'),
+      'react/jsx-dev-runtime': require.resolve('react/jsx-dev-runtime.js')
     },
     extensions: ['.tsx', '.ts', '.js'],
     fallback: {
