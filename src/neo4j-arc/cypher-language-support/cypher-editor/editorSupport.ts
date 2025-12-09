@@ -28,6 +28,7 @@ import { CypherTokensProvider } from '../language/CypherTokensProvider'
 import cypherBaseFunctions from '../language/cypherBaseFunctions'
 import { getMonacoThemes } from './CypherMonacoThemes'
 import type { CypherColorFallback } from './CypherMonacoThemes'
+import { getCustomSnippets } from './snippets'
 
 export function setupAutocomplete({
   consoleCommands,
@@ -133,18 +134,22 @@ export function initalizeCypherSupport(
               }
             : range
 
+      const editorSuggestions = items.map((item, index) => {
+        const label = getText(item)
+        return {
+          label,
+          kind: completionTypes[item.type],
+          insertText: label,
+          range: getRange(item.type, label),
+          detail: item.postfix || undefined,
+          sortText: encodeNumberAsSortableString(index)
+        }
+      })
+
+      const customSnippets = getCustomSnippets(range)
+
       return {
-        suggestions: items.map((item, index) => {
-          const label = getText(item)
-          return {
-            label,
-            kind: completionTypes[item.type],
-            insertText: label,
-            range: getRange(item.type, label),
-            detail: item.postfix || undefined,
-            sortText: encodeNumberAsSortableString(index)
-          }
-        })
+        suggestions: [...editorSuggestions, ...customSnippets]
       }
     }
   })

@@ -43,3 +43,6 @@ export {
   toProcedure,
   toRelationshipType
 } from './cypher-editor/editorSchemaConverter'
+
+export { getCustomSnippets, snippetDefinitions } from './cypher-editor/snippets'
+export type { CustomSnippet } from './cypher-editor/snippets'
