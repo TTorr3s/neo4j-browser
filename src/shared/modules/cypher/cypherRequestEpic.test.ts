@@ -17,50 +17,48 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import configureMockStore from 'redux-mock-store'
+import { createStore, applyMiddleware, combineReducers } from 'redux'
 import { createEpicMiddleware } from 'redux-observable'
 import { createBus, createReduxMiddleware } from 'suber'
 
 import { CYPHER_REQUEST, cypherRequestEpic } from './cypherDuck'
 import {
   getUserTxMetadata,
-  NEO4J_BROWSER_USER_QUERY,
-  userDirectTxMetadata
+  NEO4J_BROWSER_USER_QUERY
 } from 'services/bolt/txMetadata'
 
-jest.mock('services/bolt/bolt', () => {
-  const orig = jest.requireActual('services/bolt/bolt')
-  return {
-    ...orig,
+jest.mock('services/bolt/bolt', () => ({
+  __esModule: true,
+  default: {
     directTransaction: jest.fn(() => Promise.resolve({ records: [] }))
   }
-})
-const bolt = jest.requireMock('services/bolt/bolt')
-
-jest.mock('shared/modules/dbMeta/dbMetaDuck')
-const dbMeta = jest.requireMock('shared/modules/dbMeta/dbMetaDuck')
+}))
+const bolt = jest.requireMock('services/bolt/bolt').default
 
 describe('cypherRequestEpic', () => {
   let store: any
-  const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(cypherRequestEpic)
-  const mockStore = configureMockStore([
-    epicMiddleware,
-    createReduxMiddleware(bus)
-  ])
-  beforeAll(() => {
-    store = mockStore({
-      settings: {}
+  let bus: ReturnType<typeof createBus>
+
+  beforeEach(() => {
+    bus = createBus()
+    const epicMiddleware = createEpicMiddleware()
+    const rootReducer = combineReducers({
+      settings: (state = {}) => state
     })
+    store = createStore(
+      rootReducer,
+      applyMiddleware(epicMiddleware, createReduxMiddleware(bus))
+    )
+    epicMiddleware.run(cypherRequestEpic)
   })
+
   afterEach(() => {
     bus.reset()
-    store.clearActions()
+    bolt.directTransaction.mockClear()
   })
 
   test('cypherRequestEpic passes along tx metadata if a queryType exists on action', () => {
     // Given
-    dbMeta.getRawVersion.mockImplementation(() => '5.0.0') // has tx support
     const action = {
       type: CYPHER_REQUEST,
       query: 'RETURN 1',
@@ -76,7 +74,9 @@ describe('cypherRequestEpic', () => {
           expect(bolt.directTransaction).toHaveBeenCalledWith(
             action.query,
             undefined,
-            userDirectTxMetadata
+            expect.objectContaining({
+              txMetadata: getUserTxMetadata(NEO4J_BROWSER_USER_QUERY).txMetadata
+            })
           )
           resolve()
         } catch (e) {
@@ -91,16 +91,14 @@ describe('cypherRequestEpic', () => {
     // Return
     return p
   })
+
   test('cypherRequestEpic handles actions without queryType', () => {
     // Given
-    bolt.directTransaction.mockClear()
-    dbMeta.getRawVersion.mockImplementation(() => '5.0.0') // Has tx metadata support
-
-    // No queryType = no tx metadata
+    // No queryType = uses default tx metadata
     const action = {
       type: CYPHER_REQUEST,
       query: 'RETURN 1',
-      $$responseChannel: 'test-1'
+      $$responseChannel: 'test-2'
     }
 
     const p = new Promise<void>((resolve, reject) => {
@@ -111,7 +109,9 @@ describe('cypherRequestEpic', () => {
           expect(bolt.directTransaction).toHaveBeenCalledWith(
             action.query,
             undefined,
-            getUserTxMetadata()
+            expect.objectContaining({
+              txMetadata: getUserTxMetadata().txMetadata
+            })
           )
           resolve()
         } catch (e) {

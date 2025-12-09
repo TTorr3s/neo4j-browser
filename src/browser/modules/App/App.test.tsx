@@ -28,33 +28,149 @@ import { App } from './App'
 const mockStore = configureMockStore()
 const store = mockStore({})
 
+// Mock components with complex dependencies
+jest.mock(
+  '../Main/Main',
+  () =>
+    function MockMain() {
+      return <div data-testid="main">Main</div>
+    }
+)
+jest.mock(
+  '../Sidebar/Sidebar',
+  () =>
+    function MockSidebar() {
+      return <div data-testid="sidebar">Sidebar</div>
+    }
+)
+jest.mock(
+  '../Segment',
+  () =>
+    function MockSegment() {
+      return <div />
+    }
+)
+jest.mock(
+  '../UserInteraction',
+  () =>
+    function MockUserInteraction() {
+      return <div />
+    }
+)
+jest.mock(
+  'browser-components/FileDrop/FileDrop',
+  () =>
+    function MockFileDrop({ children }: any) {
+      return <div>{children}</div>
+    }
+)
+jest.mock(
+  'browser-components/desktop-api/desktop-api',
+  () =>
+    function MockDesktopApi() {
+      return <div />
+    }
+)
+jest.mock(
+  'browser-components/ErrorBoundary',
+  () =>
+    function MockErrorBoundary({ children }: any) {
+      return <div>{children}</div>
+    }
+)
 jest.mock('../FeatureToggle/FeatureToggleProvider', () => {
   return ({ children }: any) => <div>{children}</div>
 })
 jest.mock('./PerformanceOverlay.tsx', () => () => <div />)
-jest.mock('./styled', () => {
-  const orig = jest.requireActual('./styled')
-  return {
-    ...orig,
-    StyledApp: () => <div>Loaded</div>
-  }
-})
+
+// Mock hooks
+jest.mock('./keyboardShortcuts', () => ({
+  useKeyboardShortcuts: jest.fn()
+}))
+jest.mock('browser-hooks/useDerivedTheme', () => ({
+  __esModule: true,
+  default: () => ['light', jest.fn()]
+}))
+
+// Mock neo4j-arc
+jest.mock('neo4j-arc/cypher-language-support', () => ({
+  setEditorTheme: jest.fn()
+}))
+
+const mockBus = {
+  take: jest.fn(),
+  send: jest.fn()
+}
+
+const noOp = () => undefined
+
+const baseProps = {
+  store,
+  bus: mockBus,
+  theme: 'light',
+  experimentalFeatures: {},
+  drawer: null,
+  connectionState: 0,
+  codeFontLigatures: true,
+  lastConnectionUpdate: 0,
+  errorMessage: null,
+  loadExternalScripts: false,
+  titleString: 'Neo4j Browser',
+  defaultConnectionData: null,
+  isWebEnv: true,
+  useDb: 'neo4j',
+  isDatabaseUnavailable: false,
+  telemetrySettings: {
+    allowUserStats: false,
+    source: 'BROWSER_SETTING'
+  },
+  consentBannerShownCount: 0,
+  edition: 'enterprise',
+  connectedTo: 'NOT CONNECTED',
+  trialStatus: { status: 'unknown' },
+  handleNavClick: noOp,
+  setConsentBannerShownCount: noOp,
+  updateDesktopUDCSettings: noOp,
+  openSettingsDrawer: noOp
+}
 
 describe('App', () => {
-  test('App loads', async () => {
+  test('App loads and renders main components', async () => {
+    // When
+    const { getByTestId } = render(<App {...baseProps} />)
+
+    // Then
+    expect(getByTestId('main')).toBeInTheDocument()
+    expect(getByTestId('sidebar')).toBeInTheDocument()
+  })
+
+  test('App applies font ligatures class when disabled', () => {
     // Given
     const props = {
-      store,
-      telemetrySettings: {
-        allowUserStats: false,
-        source: 'BROWSER_SETTING'
-      }
+      ...baseProps,
+      codeFontLigatures: false
     }
 
     // When
-    const { getByText } = render(<App {...props} />)
+    const { container } = render(<App {...props} />)
 
     // Then
-    expect(getByText('Loaded'))
+    const wrapper = container.querySelector('.disable-font-ligatures')
+    expect(wrapper).toBeInTheDocument()
+  })
+
+  test('App does not apply font ligatures class when enabled', () => {
+    // Given
+    const props = {
+      ...baseProps,
+      codeFontLigatures: true
+    }
+
+    // When
+    const { container } = render(<App {...props} />)
+
+    // Then
+    const wrapper = container.querySelector('.disable-font-ligatures')
+    expect(wrapper).not.toBeInTheDocument()
   })
 })

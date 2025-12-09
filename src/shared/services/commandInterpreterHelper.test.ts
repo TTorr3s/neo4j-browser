@@ -45,10 +45,10 @@ describe('commandInterpreterHelper', () => {
       expect(actualCommandName).toEqual(expectedCommandName)
     })
 
-    test('should find :play helper with params', () => {
+    test('should find :help helper with params', () => {
       // Given
-      const cmd = 'play fileLocation'
-      const expectedCommandName = 'play'
+      const cmd = 'help cypher'
+      const expectedCommandName = 'help'
 
       // When
       const actualCommandName = helper.interpret(cmd).name
@@ -57,10 +57,10 @@ describe('commandInterpreterHelper', () => {
       expect(actualCommandName).toEqual(expectedCommandName)
     })
 
-    test('should find :play `url` helper with params', () => {
+    test('should find :schema command', () => {
       // Given
-      const cmd = 'play http://neo4j.com'
-      const expectedCommandName = 'play-remote'
+      const cmd = 'schema'
+      const expectedCommandName = 'schema'
 
       // When
       const actualCommandName = helper.interpret(cmd).name
@@ -83,8 +83,8 @@ describe('commandInterpreterHelper', () => {
 
     test('should be case insensitive for browser commands', () => {
       // Given
-      const cmd = 'PlaY anyThing'
-      const expectedCommandName = 'play'
+      const cmd = 'HeLp anyThing'
+      const expectedCommandName = 'help'
 
       // When
       const actualCommandName = helper.interpret(cmd).name

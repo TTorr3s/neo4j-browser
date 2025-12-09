@@ -35,19 +35,19 @@ exports[`LabelItems renders labels 1`] = `
       class="sc-cTAqQK iafBwP"
     >
       <div
-        class="sc-dkPtRN sc-hKwDye gJGlWw bXUoVD"
+        class="sc-dkPtRN sc-hKwDye bggpWS izOLzx"
         data-testid="sidebarMetaItem"
       >
         *(5)
       </div>
       <div
-        class="sc-dkPtRN sc-hKwDye gJGlWw bXUoVD"
+        class="sc-dkPtRN sc-hKwDye bggpWS izOLzx"
         data-testid="sidebarMetaItem"
       >
         MyLabel
       </div>
       <div
-        class="sc-dkPtRN sc-hKwDye gJGlWw bXUoVD"
+        class="sc-dkPtRN sc-hKwDye bggpWS izOLzx"
         data-testid="sidebarMetaItem"
       >
         MyLabel2
@@ -92,13 +92,13 @@ exports[`PropertyItems renders properties 1`] = `
       class="sc-cTAqQK iafBwP"
     >
       <div
-        class="sc-dkPtRN sc-jRQBWg gJGlWw jorKCB"
+        class="sc-dkPtRN sc-jRQBWg bggpWS ZXRHx"
         data-testid="sidebarMetaItem"
       >
         prop1
       </div>
       <div
-        class="sc-dkPtRN sc-jRQBWg gJGlWw jorKCB"
+        class="sc-dkPtRN sc-jRQBWg bggpWS ZXRHx"
         data-testid="sidebarMetaItem"
       >
         prop2
@@ -143,19 +143,19 @@ exports[`RelationshipItems renders relationshipTypes 1`] = `
       class="sc-cTAqQK iafBwP"
     >
       <div
-        class="sc-dkPtRN sc-eCImPb gJGlWw jVyDIa"
+        class="sc-dkPtRN sc-eCImPb bggpWS fcmjxo"
         data-testid="sidebarMetaItem"
       >
         *(5)
       </div>
       <div
-        class="sc-dkPtRN sc-eCImPb gJGlWw jVyDIa"
+        class="sc-dkPtRN sc-eCImPb bggpWS fcmjxo"
         data-testid="sidebarMetaItem"
       >
         MY_TYPE
       </div>
       <div
-        class="sc-dkPtRN sc-eCImPb gJGlWw jVyDIa"
+        class="sc-dkPtRN sc-eCImPb bggpWS fcmjxo"
         data-testid="sidebarMetaItem"
       >
         MY_TYPE2

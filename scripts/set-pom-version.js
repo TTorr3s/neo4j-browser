@@ -36,13 +36,13 @@ function main(args) {
 
   const file = path.join(__dirname, '../', args['-f'])
 
-  fs.readFile(file, function(err, data) {
+  fs.readFile(file, function (err, data) {
     if (err) return failExit()
-    parser.parseString(data, function(err, result) {
+    parser.parseString(data, function (err, result) {
       if (err) return failExit()
       result.project.version = args['-v'] // Set new version in obj
       const xml = builder.buildObject(result) // Create XML
-      fs.writeFile(file, xml, function(err) {
+      fs.writeFile(file, xml, function (err) {
         if (err) return failExit()
         console.log('\nDone updating version in pom.xml\n')
         process.exit(0) // All good

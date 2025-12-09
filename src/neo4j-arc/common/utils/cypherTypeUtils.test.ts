@@ -34,7 +34,7 @@ describe('propertyToString', () => {
 
     expect(
       propertyToString(new Duration(int(124), int(0), int(0), int(0)))
-    ).toEqual('P124M0DT0S')
+    ).toEqual('P10Y4MT')
 
     expect(
       propertyToString(

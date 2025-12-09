@@ -21,10 +21,8 @@
 /* global Cypress, cy, before */
 
 describe('Help command', () => {
-  before(function() {
-    cy.visit(Cypress.config('url'))
-      .title()
-      .should('include', 'Neo4j Browser')
+  before(function () {
+    cy.visit(Cypress.config('url')).title().should('include', 'Neo4j Browser')
     cy.wait(3000)
   })
   it('can `:help` command', () => {

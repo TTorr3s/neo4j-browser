@@ -18,17 +18,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { AnyAction } from 'redux'
-import { Epic, ofType, StateObservable } from 'redux-observable'
-import { Observable, of, EMPTY, NEVER, from, merge } from 'rxjs'
+import { Epic, ofType } from 'redux-observable'
+import { of, EMPTY, NEVER, from, merge } from 'rxjs'
 import {
   map,
   mergeMap,
   filter,
-  tap,
   catchError,
   throttleTime,
   retry,
-  ignoreElements,
   withLatestFrom
 } from 'rxjs/operators'
 
@@ -283,8 +281,83 @@ const updateAuthEnabledHelper = (
 let memoryUsername = ''
 let memoryPassword = ''
 
+// Action types for discriminated union (reducer-specific actions)
+interface AppStartAction {
+  type: typeof APP_START
+}
+
+interface SetActiveConnectionAction {
+  type: typeof SET_ACTIVE
+  connectionId: string | null
+  silent?: boolean
+}
+
+interface ConnectReducerAction {
+  type: typeof CONNECT
+}
+
+interface RemoveAction {
+  type: typeof REMOVE
+}
+
+interface MergeAction {
+  type: typeof MERGE
+  connection: Connection
+}
+
+interface UpdateConnectionStateAction {
+  type: typeof UPDATE_CONNECTION_STATE
+  state: ConnectionState
+}
+
+interface UpdateAuthEnabledAction {
+  type: typeof UPDATE_AUTH_ENABLED
+  authEnabled: boolean
+}
+
+interface UseDbAction {
+  type: typeof USE_DB
+  useDb: string | null
+}
+
+interface UserClearAction {
+  type: typeof USER_CLEAR
+}
+
+interface SelectConnectionAction {
+  type: typeof SELECT
+  connectionId: string | null
+}
+
+interface LostConnectionAction {
+  type: typeof LOST_CONNECTION
+  error: Error | unknown
+}
+
+interface UpdateRetainCredentialsAction {
+  type: typeof UPDATE_RETAIN_CREDENTIALS
+  shouldRetain: boolean
+}
+
+// Type for partial connection updates (allows string id for flexibility in epics)
+type ConnectionUpdate = Partial<Omit<Connection, 'id'>> & { id?: string }
+
+export type ConnectionsReducerAction =
+  | AppStartAction
+  | SetActiveConnectionAction
+  | ConnectReducerAction
+  | RemoveAction
+  | MergeAction
+  | UpdateConnectionStateAction
+  | UpdateAuthEnabledAction
+  | UseDbAction
+  | UserClearAction
+
 // Reducer
-export default function (state = initialState, action: any) {
+export default function connectionsReducer(
+  state: ConnectionReduxState = initialState,
+  action: ConnectionsReducerAction
+): ConnectionReduxState {
   switch (action.type) {
     case APP_START:
       return {
@@ -293,15 +366,17 @@ export default function (state = initialState, action: any) {
         useDb: initialState.useDb,
         connectionState: DISCONNECTED_STATE
       }
-    case SET_ACTIVE:
-      let cState = CONNECTED_STATE
-      if (!action.connectionId) cState = DISCONNECTED_STATE
+    case SET_ACTIVE: {
+      const connectionState: ConnectionState = action.connectionId
+        ? CONNECTED_STATE
+        : DISCONNECTED_STATE
       return {
         ...state,
         activeConnection: action.connectionId,
-        connectionState: cState,
+        connectionState,
         lastUpdate: Date.now()
       }
+    }
     case CONNECT:
       return {
         ...state,
@@ -321,13 +396,11 @@ export default function (state = initialState, action: any) {
       }
     case UPDATE_AUTH_ENABLED:
       return updateAuthEnabledHelper(state, action.authEnabled)
-    case USE_DB:
+    case USE_DB: {
       const { useDb } = action
-      let lastUseDb = useDb
-      if (useDb === null) {
-        lastUseDb = state.useDb || state.lastUseDb
-      }
+      const lastUseDb = useDb === null ? state.useDb || state.lastUseDb : useDb
       return { ...state, lastUseDb, useDb }
+    }
     case USER_CLEAR:
       return initialState
     default:
@@ -336,60 +409,76 @@ export default function (state = initialState, action: any) {
 }
 
 // Actions
-export const selectConnection = (id: any) => {
+export const selectConnection = (id: string | null): SelectConnectionAction => {
   return {
     type: SELECT,
     connectionId: id
   }
 }
 
-export const setActiveConnection = (id: any, silent = false) => {
+export const setActiveConnection = (
+  id: string | null,
+  silent = false
+): SetActiveConnectionAction => {
   return {
     type: SET_ACTIVE,
     connectionId: id,
     silent
   }
 }
-export const updateConnection = (connection: any) => {
+export const updateConnection = (connection: ConnectionUpdate): MergeAction => {
   return {
     type: MERGE,
-    connection
+    connection: connection as Connection
   }
 }
 
-export const disconnectAction = (id: string = discovery.CONNECTION_ID) => {
+export const disconnectAction = (
+  id: string = discovery.CONNECTION_ID
+): { type: string; id: string } => {
   return {
     type: DISCONNECT,
     id
   }
 }
 
-export const updateConnectionState = (state: any) => ({
+export const updateConnectionState = (
+  state: ConnectionState
+): UpdateConnectionStateAction => ({
   state,
   type: UPDATE_CONNECTION_STATE
 })
 
-export const onLostConnection = (dispatch: any) => (e: any) => {
-  dispatch({ type: LOST_CONNECTION, error: e })
-}
+export const onLostConnection =
+  (dispatch: (action: LostConnectionAction) => void) =>
+  (e: Error | unknown): void => {
+    dispatch({ type: LOST_CONNECTION, error: e })
+  }
 
-export const setRetainCredentials = (shouldRetain: any) => {
+export const setRetainCredentials = (
+  shouldRetain: boolean
+): UpdateRetainCredentialsAction => {
   return {
     type: UPDATE_RETAIN_CREDENTIALS,
     shouldRetain
   }
 }
 
-export const setAuthEnabled = (authEnabled: any) => {
+export const setAuthEnabled = (
+  authEnabled: boolean
+): UpdateAuthEnabledAction => {
   return {
     type: UPDATE_AUTH_ENABLED,
     authEnabled
   }
 }
 
-export const useDb = (db: any = null) => ({ type: USE_DB, useDb: db })
+export const useDb = (db: string | null = null): UseDbAction => ({
+  type: USE_DB,
+  useDb: db
+})
 
-export const resetUseDb = () => ({ type: USE_DB, useDb: null })
+export const resetUseDb = (): UseDbAction => ({ type: USE_DB, useDb: null })
 
 // Epics
 export const useDbEpic: Epic<AnyAction, AnyAction, GlobalState> = action$ =>
@@ -454,10 +543,10 @@ export const connectEpic: Epic<
               { getState: () => state$.value, dispatch }
             )
           } catch (error) {
-            const e: any = error
+            const e = error as { code?: string }
             // if we got a connection error throw, otherwise continue
             if (!e.code || isBoltConnectionErrorCode(e.code)) {
-              throw e
+              throw error
             }
           }
 
@@ -470,8 +559,9 @@ export const connectEpic: Epic<
               })
             )
           }
+          // $$responseChannel is guaranteed non-null by the early return guard above
           actions.push({
-            type: connectAction.$$responseChannel!,
+            type: connectAction.$$responseChannel,
             success: true
           })
           return actions
@@ -482,8 +572,9 @@ export const connectEpic: Epic<
           if (!connectAction.noResetConnectionOnFail) {
             actions.push(setActiveConnection(null))
           }
+          // $$responseChannel is guaranteed non-null by the early return guard above
           actions.push({
-            type: connectAction.$$responseChannel!,
+            type: connectAction.$$responseChannel,
             success: false,
             error: e
           })
@@ -510,13 +601,14 @@ export const verifyConnectionCredentialsEpic: Epic<
       const verifyAction = action as VerifyCredentialsAction
       if (!verifyAction.$$responseChannel) return EMPTY
       return from(bolt.directConnect(verifyAction, {}, undefined)).pipe(
+        // $$responseChannel is guaranteed non-null by the early return guard above
         map(driver => {
           driver.close()
-          return { type: verifyAction.$$responseChannel!, success: true }
+          return { type: verifyAction.$$responseChannel, success: true }
         }),
         catchError(e =>
           of({
-            type: verifyAction.$$responseChannel!,
+            type: verifyAction.$$responseChannel,
             success: false,
             error: e
           })
@@ -569,11 +661,12 @@ export const startupConnectEpic: Epic<
         (async (): Promise<AnyAction[]> => {
           if (
             !(discovered && discovered.hasForceUrl) && // If we have force url, don't try old connection data
-            shouldTryAutoconnecting(savedConnection)
+            shouldTryAutoconnecting(savedConnection) &&
+            savedConnection // Type guard: shouldTryAutoconnecting ensures this, but TypeScript needs explicit check
           ) {
             try {
               await bolt.openConnection(
-                savedConnection!,
+                savedConnection,
                 { connectionTimeout },
                 onLostConnection(dispatch)
               )
@@ -699,8 +792,8 @@ export const disconnectEpic: Epic<
   GlobalState
 > = action$ =>
   merge(
-    action$.pipe(ofType<AnyAction>(DISCONNECT)),
-    action$.pipe(ofType<AnyAction>(USER_CLEAR))
+    action$.pipe(ofType(DISCONNECT)),
+    action$.pipe(ofType(USER_CLEAR))
   ).pipe(
     mergeMap((action: AnyAction) => {
       bolt.closeConnection()
@@ -769,15 +862,20 @@ export const connectionLostEpic: Epic<AnyAction, AnyAction, GlobalState> = (
             )
             .then(() => {
               bolt.closeConnection()
+              // Re-validate connection in callback scope for TypeScript type safety
+              // (connection was already validated above, but TS doesn't track narrowing into closures)
+              if (!connection) {
+                return reject(new Error('Connection lost during reconnect'))
+              }
               bolt
                 .openConnection(
-                  connection!,
+                  connection,
                   {
                     connectionTimeout: getConnectionTimeout(state$.value)
                   },
-                  // Note: onLostConnection needs a dispatch function
-                  // The LOST_CONNECTION action will be handled by this epic
-                  () => {}
+                  // No-op callback: onLostConnection would need dispatch, but LOST_CONNECTION
+                  // action is already being handled by this epic (connectionLostEpic)
+                  () => undefined
                 )
                 .then(() => {
                   resolve({ type: 'Success' })

@@ -34,13 +34,14 @@ import { getText } from 'neo4j-arc/cypher-language-support'
 describe('editorDuck Epics', () => {
   let store: any
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(populateEditorFromUrlEpic)
+  const epicMiddleware = createEpicMiddleware()
   const mockStore = configureMockStore([
     epicMiddleware,
     createReduxMiddleware(bus)
   ])
   beforeAll(() => {
     store = mockStore()
+    epicMiddleware.run(populateEditorFromUrlEpic)
   })
   afterEach(() => {
     bus.reset()

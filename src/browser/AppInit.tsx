@@ -22,14 +22,8 @@ import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { Provider } from 'react-redux'
 import { BusProvider } from 'react-suber'
-import {
-  AnyAction,
-  StoreEnhancer,
-  applyMiddleware,
-  combineReducers,
-  compose,
-  createStore
-} from 'redux'
+import { configureStore, Middleware, Tuple } from '@reduxjs/toolkit'
+import { AnyAction } from 'redux'
 import { createEpicMiddleware } from 'redux-observable'
 import {
   createBus,
@@ -87,21 +81,12 @@ const epicMiddleware = createEpicMiddleware<
 >({ dependencies: epicDependencies })
 const localStorageMiddleware = createReduxMiddleware()
 
-const reducer = combineReducers<GlobalState>({ ...(reducers as any) })
-
-declare global {
-  interface Window {
-    __REDUX_DEVTOOLS_EXTENSION__?: (
-      ...args: unknown[]
-    ) => StoreEnhancer<unknown>
-  }
-}
-
-const enhancer: StoreEnhancer<GlobalState> = compose(
-  applyMiddleware(suberMiddleware, epicMiddleware, localStorageMiddleware),
-  process.env.NODE_ENV !== 'production' && window.__REDUX_DEVTOOLS_EXTENSION__
-    ? window.__REDUX_DEVTOOLS_EXTENSION__({
-        actionSanitizer: (action: AnyAction) =>
+// DevTools sanitizers to prevent memory issues with large query results
+// Note: Using 'any' for sanitizer types to maintain compatibility with Redux DevTools
+const devToolsOptions =
+  process.env.NODE_ENV !== 'production'
+    ? {
+        actionSanitizer: (action: any) =>
           action.type === 'requests/UPDATED'
             ? {
                 ...action,
@@ -112,31 +97,38 @@ const enhancer: StoreEnhancer<GlobalState> = compose(
                 }
               }
             : action,
-        stateSanitizer: (state: GlobalState) => ({
+        stateSanitizer: (state: any) => ({
           ...state,
           requests: Object.assign(
             {},
-            ...Object.entries(state.requests).map(([id, request]) => ({
-              [id]: {
-                ...request,
-                result: {
-                  ...request.result,
-                  records:
-                    'REQUEST RECORDS OMITTED FROM REDUX DEVTOOLS TO PREVENT OUT OF MEMORY ERROR'
+            ...Object.entries(state.requests || {}).map(
+              ([id, request]: [string, any]) => ({
+                [id]: {
+                  ...request,
+                  result: {
+                    ...request.result,
+                    records:
+                      'REQUEST RECORDS OMITTED FROM REDUX DEVTOOLS TO PREVENT OUT OF MEMORY ERROR'
+                  }
                 }
-              }
-            }))
+              })
+            )
           )
         })
-      })
-    : (f: unknown) => f
-)
+      }
+    : false
 
-const store = createStore<GlobalState>(
-  reducer,
-  getAll() as GlobalState, // rehydrate from local storage on app start
-  enhancer
-)
+const store = configureStore({
+  reducer: reducers as any,
+  preloadedState: getAll() as GlobalState,
+  middleware: () =>
+    new Tuple(
+      suberMiddleware as Middleware,
+      epicMiddleware as Middleware,
+      localStorageMiddleware as Middleware
+    ),
+  devTools: devToolsOptions
+})
 
 // Populate epic dependencies now that store is created
 epicDependencies.dispatch = store.dispatch
@@ -177,7 +169,7 @@ if (auraNtId) {
   newUrl.searchParams.delete('ntid')
   window.history.replaceState({}, '', newUrl.toString())
 }
-store.dispatch(updateUdcData({ auraNtId }))
+store.dispatch(updateUdcData({ auraNtId }) as any)
 
 const AppInit = (): JSX.Element => {
   return (

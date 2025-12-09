@@ -21,10 +21,8 @@
 /* global Cypress, cy, before */
 
 describe('Settings', () => {
-  before(function() {
-    cy.visit(Cypress.config('url'))
-      .title()
-      .should('include', 'Neo4j Browser')
+  before(function () {
+    cy.visit(Cypress.config('url')).title().should('include', 'Neo4j Browser')
     cy.wait(3000)
   })
 
@@ -36,9 +34,7 @@ describe('Settings', () => {
 
     // change settings to 1, make sure it is cut to 1
     cy.get('[data-testid="navigationSettings"]').click()
-    cy.get('input[data-testid="setting-maxFrames"]')
-      .clear()
-      .type('1')
+    cy.get('input[data-testid="setting-maxFrames"]').clear().type('1')
     // close settings again
     cy.get('[data-testid="navigationSettings"]').click()
 
@@ -63,9 +59,7 @@ describe('Settings', () => {
 
     // change settings to 3, then write commands and make sure it will be set to 3 frames at most
     cy.get('[data-testid="navigationSettings"]').click()
-    cy.get('input[data-testid="setting-maxFrames"]')
-      .clear()
-      .type('3')
+    cy.get('input[data-testid="setting-maxFrames"]').clear().type('3')
     // close settings again
     cy.get('[data-testid="navigationSettings"]').click()
     cy.executeCommand('RETURN 1')

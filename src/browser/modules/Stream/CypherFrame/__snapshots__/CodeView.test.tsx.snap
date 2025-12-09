@@ -3,7 +3,7 @@
 exports[`CodeViews CodeStatusbar displays no statusBarMessage 1`] = `
 <div>
   <div
-    class="sc-cidDSM bSdUuU"
+    class="sc-cCcXHH glEyYj"
   />
 </div>
 `;
@@ -11,10 +11,10 @@ exports[`CodeViews CodeStatusbar displays no statusBarMessage 1`] = `
 exports[`CodeViews CodeStatusbar displays statusBarMessage 1`] = `
 <div>
   <div
-    class="sc-jcFjpl cdUBmZ"
+    class="sc-cCcXHH glEyYj"
   >
     <div
-      class="sc-gjNHFA fVNuGK"
+      class="sc-fHeRUh iuVmTi"
     >
       <span>
         Started streaming 1 records after 5 ms and completed after 10  ms.
@@ -29,86 +29,86 @@ exports[`CodeViews CodeView displays nothing if not successful query 1`] = `<div
 exports[`CodeViews CodeView displays request and response info if successful query 1`] = `
 <div>
   <div
-    class="sc-bkkeKt jHnHBY"
+    class="sc-fFeiMQ jMSJyM"
   >
     <table
-      class="sc-lbhJGD hqXwKq"
+      class="sc-gSQFLo jVipUh"
     >
       <tbody
-        class="sc-iNGGcK ewIKBE"
+        class="sc-lbhJGD hLfZsI"
       >
         <tr
-          class="sc-eJwWfJ RRcLW"
+          class="sc-jeraig gFTToD"
         >
           <td
-            class="sc-nVkyK kePivs"
+            class="sc-eJwWfJ ihBO"
           >
             Server version
           </td>
           <td
-            class="sc-hiwPVj"
+            class="sc-nVkyK"
           />
         </tr>
         <tr
-          class="sc-eJwWfJ RRcLW"
+          class="sc-jeraig gFTToD"
         >
           <td
-            class="sc-nVkyK kePivs"
+            class="sc-eJwWfJ ihBO"
           >
             Server address
           </td>
           <td
-            class="sc-hiwPVj"
+            class="sc-nVkyK"
           >
             xx2
           </td>
         </tr>
         <tr
-          class="sc-eJwWfJ RRcLW"
+          class="sc-jeraig gFTToD"
         >
           <td
-            class="sc-nVkyK kePivs"
+            class="sc-eJwWfJ ihBO"
           >
             Query
           </td>
           <td
-            class="sc-hiwPVj"
+            class="sc-nVkyK"
           >
             MATCH xx0
           </td>
         </tr>
         <tr
-          class="sc-eJwWfJ RRcLW"
+          class="sc-jeraig gFTToD"
         >
           <td
-            class="sc-nVkyK kePivs"
+            class="sc-eJwWfJ ihBO"
           >
             Summary
             <div
-              class="sc-jeraig eyUMIH fa fa-caret-right"
+              class="sc-iNGGcK jYRvPq fa fa-caret-right"
               title="Expand section"
             />
           </td>
           <td
-            class="sc-hiwPVj"
+            class="sc-nVkyK"
           >
             {,  "server": {,    "version": "xx1", ...
           </td>
         </tr>
         <tr
-          class="sc-eJwWfJ RRcLW"
+          class="sc-jeraig gFTToD"
         >
           <td
-            class="sc-nVkyK kePivs"
+            class="sc-eJwWfJ ihBO"
           >
             Response
             <div
-              class="sc-jeraig eyUMIH fa fa-caret-right"
+              class="sc-iNGGcK jYRvPq fa fa-caret-right"
               title="Expand section"
             />
           </td>
           <td
-            class="sc-hiwPVj"
+            class="sc-nVkyK"
           >
             [,  {,    "res": "xx3" ...
           </td>

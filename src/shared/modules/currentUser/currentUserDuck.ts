@@ -97,8 +97,8 @@ export const getCurrentUserEpic: Epic<AnyAction, AnyAction, GlobalState> = (
   state$
 ) =>
   merge(
-    action$.pipe(ofType<AnyAction>(SERVER_VERSION_READ)),
-    action$.pipe(ofType<AnyAction>(DB_META_DONE))
+    action$.pipe(ofType(SERVER_VERSION_READ)),
+    action$.pipe(ofType(DB_META_DONE))
   ).pipe(
     throttleTime(5000),
     mergeMap(() => {

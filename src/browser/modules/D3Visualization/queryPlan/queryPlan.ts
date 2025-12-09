@@ -162,8 +162,8 @@ function queryPlan(this: any, element: any) {
         operator.identifiers != null
           ? operator.identifiers
           : operator.KeyNames != null
-          ? operator.KeyNames.split(', ')
-          : undefined)
+            ? operator.KeyNames.split(', ')
+            : undefined)
     ) {
       wordWrap(
         identifiers.filter((d: any) => !/^ {2}/.test(d)).join(', '),
@@ -184,12 +184,12 @@ function queryPlan(this: any, element: any) {
             operator.Details != null
               ? operator.Details
               : operator.Expressions != null
-              ? operator.Expressions
-              : operator.Expression != null
-              ? operator.Expression
-              : operator.LegacyExpression != null
-              ? operator.LegacyExpression
-              : operator.ExpandExpression) != null
+                ? operator.Expressions
+                : operator.Expression != null
+                  ? operator.Expression
+                  : operator.LegacyExpression != null
+                    ? operator.LegacyExpression
+                    : operator.ExpandExpression) != null
             ? left1
             : operator.LabelName) != null
           ? left
@@ -683,18 +683,18 @@ function queryPlan(this: any, element: any) {
                             d.height <= operatorHeaderHeight
                               ? operatorCornerRadius
                               : d.height <
-                                operatorHeaderHeight + operatorCornerRadius
-                              ? operatorCornerRadius -
-                                Math.sqrt(
-                                  Math.pow(operatorCornerRadius, 2) -
-                                    Math.pow(
-                                      operatorCornerRadius -
-                                        d.height +
-                                        operatorHeaderHeight,
-                                      2
-                                    )
-                                )
-                              : 0
+                                  operatorHeaderHeight + operatorCornerRadius
+                                ? operatorCornerRadius -
+                                  Math.sqrt(
+                                    Math.pow(operatorCornerRadius, 2) -
+                                      Math.pow(
+                                        operatorCornerRadius -
+                                          d.height +
+                                          operatorHeaderHeight,
+                                        2
+                                      )
+                                  )
+                                : 0
                           return [
                             'M',
                             operatorWidth - operatorCornerRadius,

@@ -29,7 +29,7 @@ describe('discoveryOnStartupEpic', () => {
   let store: MockStoreEnhanced<unknown, unknown>
 
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(discovery.discoveryOnStartupEpic)
+  const epicMiddleware = createEpicMiddleware()
   const mockStore = configureMockStore([
     epicMiddleware,
     createReduxMiddleware(bus)
@@ -41,6 +41,7 @@ describe('discoveryOnStartupEpic', () => {
         env: WEB
       }
     })
+    epicMiddleware.run(discovery.discoveryOnStartupEpic)
   })
   beforeEach(() => {
     fetchMock.resetMocks()
@@ -338,7 +339,7 @@ describe('discoveryOnStartupEpic', () => {
 describe('discoveryOnStartupEpic cloud env', () => {
   let store: MockStoreEnhanced<unknown, unknown>
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(discovery.discoveryOnStartupEpic)
+  const epicMiddleware = createEpicMiddleware()
   const mockStore = configureMockStore([
     epicMiddleware,
     createReduxMiddleware(bus)
@@ -350,6 +351,7 @@ describe('discoveryOnStartupEpic cloud env', () => {
         env: CLOUD
       }
     })
+    epicMiddleware.run(discovery.discoveryOnStartupEpic)
   })
   beforeEach(() => {
     fetchMock.resetMocks()
@@ -387,7 +389,7 @@ describe('discoveryOnStartupEpic cloud env', () => {
 describe('injectDiscoveryEpic', () => {
   let store: MockStoreEnhanced<unknown, unknown>
   const bus = createBus()
-  const epicMiddleware = createEpicMiddleware(discovery.injectDiscoveryEpic)
+  const epicMiddleware = createEpicMiddleware()
   const mockStore = configureMockStore([
     epicMiddleware,
     createReduxMiddleware(bus)
@@ -396,6 +398,7 @@ describe('injectDiscoveryEpic', () => {
     store = mockStore({
       connections: {}
     })
+    epicMiddleware.run(discovery.injectDiscoveryEpic)
   })
   beforeEach(() => {
     fetchMock.resetMocks()

@@ -304,8 +304,8 @@ export const handleSingleCommandEpic: Epic<
   EpicDependencies
 > = (action$, _state$, { dispatch, getState }) =>
   merge(
-    action$.pipe(ofType<AnyAction>(SINGLE_COMMAND_QUEUED)),
-    action$.pipe(ofType<AnyAction>(SYSTEM_COMMAND_QUEUED))
+    action$.pipe(ofType(SINGLE_COMMAND_QUEUED)),
+    action$.pipe(ofType(SYSTEM_COMMAND_QUEUED))
   ).pipe(
     map((action: AnyAction) => buildCommandObject(action, helper.interpret)),
     mergeMap(({ action, interpreted }: any) => {

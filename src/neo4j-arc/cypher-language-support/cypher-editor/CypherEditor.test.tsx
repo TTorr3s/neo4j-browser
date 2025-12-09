@@ -17,16 +17,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { fireEvent, render } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import React from 'react'
 
 import { CypherEditor } from './CypherEditor'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 
 const noOp = () => undefined
 
-describe('Monaco', () => {
-  it('renders a component that functions as a textbox', () => {
-    const { getByRole, queryByDisplayValue } = render(
+describe('CypherEditor', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('renders without crashing', () => {
+    const { container } = render(
       <CypherEditor
         enableMultiStatementMode={true}
         fontLigatures={true}
@@ -35,14 +40,106 @@ describe('Monaco', () => {
         onChange={noOp}
         onExecute={noOp}
         isFullscreen={false}
-        id="id"
-        sendCypherQuery={(() => {}) as any}
+        id="test-id"
+        sendCypherQuery={
+          (() => Promise.resolve({ summary: { notifications: [] } })) as any
+        }
       />
     )
 
-    const value = 'hello world'
-    fireEvent.input(getByRole('textbox'), { target: { value } })
+    expect(container.querySelector('#monaco-test-id')).toBeInTheDocument()
+  })
 
-    expect(queryByDisplayValue(value)).toBeDefined()
+  it('creates monaco editor on mount', () => {
+    render(
+      <CypherEditor
+        enableMultiStatementMode={true}
+        fontLigatures={true}
+        useDb={null}
+        history={[]}
+        onChange={noOp}
+        onExecute={noOp}
+        isFullscreen={false}
+        id="test-id"
+        sendCypherQuery={
+          (() => Promise.resolve({ summary: { notifications: [] } })) as any
+        }
+      />
+    )
+
+    expect(monaco.editor.create).toHaveBeenCalled()
+  })
+
+  it('passes fontLigatures option to monaco editor', () => {
+    render(
+      <CypherEditor
+        enableMultiStatementMode={true}
+        fontLigatures={false}
+        useDb={null}
+        history={[]}
+        onChange={noOp}
+        onExecute={noOp}
+        isFullscreen={false}
+        id="test-id"
+        sendCypherQuery={
+          (() => Promise.resolve({ summary: { notifications: [] } })) as any
+        }
+      />
+    )
+
+    expect(monaco.editor.create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        fontLigatures: false
+      })
+    )
+  })
+
+  it('sets initial value in monaco editor', () => {
+    const initialValue = 'MATCH (n) RETURN n'
+
+    render(
+      <CypherEditor
+        enableMultiStatementMode={true}
+        fontLigatures={true}
+        useDb={null}
+        history={[]}
+        onChange={noOp}
+        onExecute={noOp}
+        isFullscreen={false}
+        id="test-id"
+        value={initialValue}
+        sendCypherQuery={
+          (() => Promise.resolve({ summary: { notifications: [] } })) as any
+        }
+      />
+    )
+
+    expect(monaco.editor.create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        value: initialValue
+      })
+    )
+  })
+
+  it('renders with correct container id', () => {
+    const { container } = render(
+      <CypherEditor
+        enableMultiStatementMode={true}
+        fontLigatures={true}
+        useDb={null}
+        history={[]}
+        onChange={noOp}
+        onExecute={noOp}
+        isFullscreen={false}
+        id="custom-id"
+        sendCypherQuery={
+          (() => Promise.resolve({ summary: { notifications: [] } })) as any
+        }
+      />
+    )
+
+    expect(container.querySelector('#monaco-custom-id')).toBeInTheDocument()
   })
 })

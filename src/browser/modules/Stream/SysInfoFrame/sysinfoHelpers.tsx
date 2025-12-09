@@ -161,7 +161,7 @@ function flatten<T>(acc: T[], curr: T[]): T[] {
 }
 
 export const responseHandler = (setState: (newState: any) => void) =>
-  function(res: any): void {
+  function (res: any): void {
     if (!res || !res.result || !res.result.records) {
       setState({ errorMessage: 'Call to dbms.queryJmx failed' })
       return
@@ -176,10 +176,7 @@ export const responseHandler = (setState: (newState: any) => void) =>
           }
         }
         const mappedRecord = {
-          name: record
-            .get('name')
-            .split('.')
-            .pop(),
+          name: record.get('name').split('.').pop(),
           value: (
             record.get('attributes').Count || record.get('attributes').Value
           ).value
@@ -279,7 +276,7 @@ export const responseHandler = (setState: (newState: any) => void) =>
   }
 
 export const clusterResponseHandler = (setState: any) =>
-  function(res: any) {
+  function (res: any) {
     if (!res.success) {
       setState({ error: 'No cluster results', success: false })
       return

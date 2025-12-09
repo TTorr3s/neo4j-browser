@@ -437,9 +437,9 @@ export const dbMetaEpic: Epic<AnyAction, AnyAction, GlobalState, StoreProxy> = (
   })
 
   const disconnectActions$ = merge(
-    action$.pipe(ofType<AnyAction>(LOST_CONNECTION)),
-    action$.pipe(ofType<AnyAction>(DISCONNECTION_SUCCESS)),
-    action$.pipe(ofType<AnyAction>(SILENT_DISCONNECT))
+    action$.pipe(ofType(LOST_CONNECTION)),
+    action$.pipe(ofType(DISCONNECTION_SUCCESS)),
+    action$.pipe(ofType(SILENT_DISCONNECT))
   )
 
   const connectionTrigger$ = merge(
@@ -701,8 +701,8 @@ export const clearMetaOnDisconnectEpic: Epic<
   GlobalState
 > = (action$, state$) =>
   merge(
-    action$.pipe(ofType<AnyAction>(DISCONNECTION_SUCCESS)),
-    action$.pipe(ofType<AnyAction>(SILENT_DISCONNECT))
+    action$.pipe(ofType(DISCONNECTION_SUCCESS)),
+    action$.pipe(ofType(SILENT_DISCONNECT))
   ).pipe(
     withLatestFrom(state$),
     mergeMap(([, state]) => {

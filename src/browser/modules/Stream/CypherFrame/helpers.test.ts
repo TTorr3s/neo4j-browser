@@ -871,7 +871,9 @@ describe('helpers', () => {
             elementType: 'node',
             labels: ['foo'],
             properties: {
-              bar: 'P24146M2DT52641.545000000S'
+              // neo4j-driver now normalizes duration format: 24146 months = 2012 years + 2 months
+              // 52641 seconds = 14 hours + 37 minutes + 21 seconds
+              bar: 'P2012Y2M2DT14H37M21.545000000S'
             }
           }
         }
@@ -897,8 +899,8 @@ describe('helpers', () => {
             elementType: 'node',
             labels: ['foo'],
             properties: {
-              // get same number as above
-              bar: 'P0M0DT9223372036854775807S'
+              // neo4j-driver now normalizes the duration to hours/minutes/seconds format
+              bar: 'PT2562047788015215H30M7S'
             }
           }
         }
@@ -918,7 +920,8 @@ describe('helpers', () => {
             elementType: 'node',
             labels: ['foo'],
             properties: {
-              bar: 'P0M0DT100S'
+              // neo4j-driver normalizes 100 seconds to 1 minute 40 seconds
+              bar: 'PT1M40S'
             }
           }
         }

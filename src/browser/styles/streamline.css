@@ -3,7 +3,8 @@
 @font-face {
   font-family: 'streamline';
   src: url('fonts/streamline.eot');
-  src: url('fonts/streamline.eot?#iefix') format('embedded-opentype'),
+  src:
+    url('fonts/streamline.eot?#iefix') format('embedded-opentype'),
     url('fonts/streamline.woff') format('woff'),
     url('fonts/streamline.ttf') format('truetype'),
     url('fonts/streamline.svg#streamline') format('svg');

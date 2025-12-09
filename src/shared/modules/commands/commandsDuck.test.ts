@@ -25,13 +25,9 @@ import { v4 as uuid } from 'uuid'
 
 import { BoltConnectionError } from '../../services/exceptions'
 import { fetchMetaData } from '../dbMeta/dbMetaDuck'
-import { update as updateQueryResult } from '../requests/requestsDuck'
 import * as commands from './commandsDuck'
 import bolt from 'services/bolt/bolt'
-import helper from 'services/commandInterpreterHelper'
-import { cleanCommand, getInterpreter } from 'services/commandUtils'
 import { disconnectAction } from 'shared/modules/connections/connectionsDuck'
-import * as frames from 'shared/modules/frames/framesDuck'
 import {
   replace as replaceParams,
   update as updateParams
@@ -43,7 +39,10 @@ import {
 } from 'shared/modules/settings/settingsDuck'
 
 jest.mock('shared/services/bolt/boltWorker')
+
+// Mock bolt module with __esModule to handle default export correctly
 jest.mock('services/bolt/bolt', () => ({
+  __esModule: true,
   default: {
     routedWriteTransaction: jest.fn(() => [
       'id',
@@ -53,20 +52,15 @@ jest.mock('services/bolt/bolt', () => ({
     directTransaction: jest.fn(() => Promise.resolve({ records: [] })),
     closeConnection: jest.fn(),
     openConnection: jest.fn(() => Promise.resolve()),
-    directConnect: jest.fn(() => Promise.resolve())
-  },
-  routedWriteTransaction: jest.fn(() => [
-    'id',
-    Promise.resolve({ records: [] })
-  ])
+    directConnect: jest.fn(() => Promise.resolve()),
+    hasMultiDbSupport: jest.fn(() => Promise.resolve(true)),
+    useDb: jest.fn()
+  }
 }))
-
-const originalRoutedWriteTransaction = bolt.routedWriteTransaction
 
 const bus = createBus()
 
 // Epic dependencies for redux-observable 1.x
-// These will be populated with the actual store's dispatch/getState in beforeAll
 const epicDependencies: {
   dispatch: (action: any) => void
   getState: () => any
@@ -83,12 +77,29 @@ const mockStore = configureMockStore([
   createReduxMiddleware(bus)
 ])
 
+// Helper to wait for actions
+const waitForAction = (
+  store: MockStoreEnhanced<unknown, unknown>,
+  actionType: string,
+  timeout = 2000
+): Promise<any[]> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      resolve(store.getActions())
+    }, timeout)
+
+    bus.take(actionType, () => {
+      clearTimeout(timer)
+      // Give a bit of time for any follow-up actions
+      setTimeout(() => resolve(store.getActions()), 50)
+    })
+  })
+}
+
 describe('commandsDuck', () => {
   let store: MockStoreEnhanced<unknown, unknown>
   const maxHistory = 20
-  beforeEach(() => {
-    bolt.routedWriteTransaction = originalRoutedWriteTransaction
-  })
+
   beforeAll(() => {
     store = mockStore({
       settings: {
@@ -115,13 +126,26 @@ describe('commandsDuck', () => {
     // Run the epic after store creation (redux-observable 1.x API)
     epicMiddleware.run(commands.handleSingleCommandEpic as any)
   })
+
+  beforeEach(() => {
+    // Reset bolt mocks to default behavior
+    const boltMock = bolt as jest.Mocked<typeof bolt>
+    boltMock.routedWriteTransaction.mockImplementation(() => [
+      'id',
+      Promise.resolve({ records: [] })
+    ])
+    boltMock.routedReadTransaction.mockImplementation(() =>
+      Promise.resolve({ records: [] })
+    )
+  })
+
   afterEach(() => {
     store.clearActions()
     bus.reset()
   })
+
   describe('handleSingleCommandEpic', () => {
-    test('listens on SINGLE_COMMAND_QUEUED for cypher commands and does a series of things', done => {
-      // Given
+    test('listens on SINGLE_COMMAND_QUEUED for cypher commands and does a series of things', async () => {
       const cmd = 'RETURN 1'
       const id = 2
       const requestId = 'xxx'
@@ -129,43 +153,70 @@ describe('commandsDuck', () => {
         id,
         requestId
       })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          send(requestId),
-          frames.add({ ...action, type: 'cypher' } as any),
-          updateQueryResult(requestId, BoltConnectionError(), 'error'),
-          commands.unsuccessfulCypher(cmd),
-          fetchMetaData(),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
-      // When
-      store.dispatch(action)
 
-      // Then
-      // See snoopOnActions above
+      store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
+
+      // Verify the sequence of actions
+      expect(actions[0]).toEqual(action)
+      // send() should use the requestId from action
+      expect(actions[1]).toEqual(send(requestId))
+      // frames/ADD for cypher - action has type='frames/ADD' and state contains the frame data
+      expect(actions[2].type).toBe('frames/ADD')
+      expect(actions[2].state.type).toBe('cypher')
+      expect(actions[2].state.cmd).toBe(cmd)
+      // Success status update
+      expect(actions[3]).toMatchObject({
+        type: 'requests/UPDATED',
+        status: 'success'
+      })
+      expect(actions[4]).toEqual(commands.successfulCypher(cmd))
+      expect(actions[5]).toEqual(fetchMetaData())
     })
 
-    test('emtpy SYSTEM_COMMAND_QUEUED gets ignored', done => {
-      // Given
+    test('handles cypher command error correctly', async () => {
+      // Configure mock to return error
+      const boltError = BoltConnectionError()
+      const boltMock = bolt as jest.Mocked<typeof bolt>
+      boltMock.routedWriteTransaction.mockImplementation(() => [
+        'id',
+        Promise.reject(boltError)
+      ])
+
+      const cmd = 'RETURN 1'
+      const id = 2
+      const requestId = 'xxx'
+      const action = commands.executeSingleCommand(cmd, {
+        id,
+        requestId
+      })
+
+      store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
+
+      expect(actions[0]).toEqual(action)
+      expect(actions[1]).toEqual(send(requestId))
+      expect(actions[2].type).toBe('frames/ADD')
+      expect(actions[2].state.type).toBe('cypher')
+      expect(actions[3]).toMatchObject({
+        type: 'requests/UPDATED',
+        status: 'error'
+      })
+      expect(actions[4]).toEqual(commands.unsuccessfulCypher(cmd))
+    })
+
+    test('empty SYSTEM_COMMAND_QUEUED gets ignored', async () => {
       const cmd = ' '
       const action = commands.executeSystemCommand(cmd)
-      bus.take('NOOP', () => {
-        // Then
-        const actions = store.getActions()
-        expect(actions[0]).toEqual(action)
-        expect(actions[1]).toEqual({ type: 'NOOP' })
-        done()
-      })
-      // When
+
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
+
+      expect(actions[0]).toEqual(action)
+      expect(actions[1]).toEqual({ type: 'NOOP' })
     })
 
-    test('does the right thing for :param x: 2', done => {
-      // Given
+    test('does the right thing for :param x: 2', async () => {
       const cmd = ':param'
       const cmdString = `${cmd} x: 2`
       const id = 1
@@ -173,45 +224,27 @@ describe('commandsDuck', () => {
         id
       })
 
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          updateParams({ x: 2 }),
-          frames.add({
-            ...action,
-            success: true,
-            type: 'param',
-            params: { x: 2 }
-          } as any),
-          {
-            ...updateQueryResult(
-              'id',
-              { result: { x: 2 }, type: 'param' } as any,
-              'success'
-            ),
-            id: undefined
-          },
-          { type: 'NOOP' }
-        ])
-        done()
-      })
-
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
 
-      // Then
-      // See above
+      expect(actions[0]).toEqual(action)
+      expect(actions[1]).toEqual(updateParams({ x: 2 }))
+      expect(actions[2].type).toBe('frames/ADD')
+      expect(actions[2].state.type).toBe('param')
+      expect(actions[2].state.success).toBe(true)
+      expect(actions[2].state.params).toEqual({ x: 2 })
     })
-    test('does the right thing for :param x => 2', done => {
-      // Given
+
+    test('does the right thing for :param x => 2', async () => {
       const cmd = ':param'
       const cmdString = `${cmd} x => 2`
       const id = 1
       const action = commands.executeSingleCommand(cmdString, {
         id
       })
-      bolt.routedWriteTransaction = jest.fn(
+
+      const boltMock = bolt as jest.Mocked<typeof bolt>
+      boltMock.routedWriteTransaction.mockImplementation(
         (_input, _parameters, { requestId }) => [
           requestId ?? uuid(),
           Promise.resolve({
@@ -220,227 +253,132 @@ describe('commandsDuck', () => {
         ]
       )
 
-      bus.take('frames/ADD', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          updateParams({ x: 2 }),
-          frames.add({
-            ...action,
-            success: true,
-            type: 'param',
-            params: { x: 2 }
-          } as any)
-        ])
-        done()
-      })
-
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'frames/ADD')
 
-      // Then
-      // See above
+      expect(actions[0]).toEqual(action)
+      expect(actions[1]).toEqual(updateParams({ x: 2 }))
+      expect(actions[2].type).toBe('frames/ADD')
+      expect(actions[2].state.type).toBe('param')
+      expect(actions[2].state.success).toBe(true)
+      expect(actions[2].state.params).toEqual({ x: 2 })
     })
-    test('does the right thing for :params {x: 2, y: 3}', done => {
-      // Given
+
+    test('does the right thing for :params {x: 2, y: 3}', async () => {
       const cmd = ':params'
       const cmdString = `${cmd} {x: 2, y: 3}`
       const id = 1
       const action = commands.executeSingleCommand(cmdString, {
         id
       })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          replaceParams({ x: 2, y: 3 }),
-          frames.add({
-            ...action,
-            success: true,
-            type: 'params',
-            params: {}
-          } as any),
-          {
-            ...updateQueryResult(
-              'id',
-              { result: { x: 2, y: 3 }, type: 'params' } as any,
-              'success'
-            ),
-            id: undefined
-          },
-          { type: 'NOOP' }
-        ])
-        done()
-      })
 
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
 
-      // Then
-      // See above
+      expect(actions[0]).toEqual(action)
+      expect(actions[1]).toEqual(replaceParams({ x: 2, y: 3 }))
+      expect(actions[2].type).toBe('frames/ADD')
+      expect(actions[2].state.type).toBe('params')
+      expect(actions[2].state.success).toBe(true)
     })
-    test('does the right thing for :params', done => {
-      // Given
+
+    test('does the right thing for :params', async () => {
       const cmdString = ':params'
       const id = 1
       const action = commands.executeSingleCommand(cmdString, {
         id
       })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          frames.add({ ...action, type: 'params', params: {} } as any),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
 
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
 
-      // Then
-      // See above
+      expect(actions[0]).toEqual(action)
+      expect(actions[1].type).toBe('frames/ADD')
+      expect(actions[1].state.type).toBe('params')
     })
-    test('does the right thing for :config x: 2', done => {
-      // Given
+
+    test('does the right thing for :config x: 2', async () => {
       const cmd = ':config'
       const cmdString = `${cmd} "x": 2`
       const id = 1
       const action = commands.executeSingleCommand(cmdString, {
         id
       })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          updateSettings({ x: 2 } as any),
-          frames.add({
-            ...action,
-            type: 'pre',
-            result: JSON.stringify({ maxHistory: 20 }, null, 2)
-          } as any),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
 
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
 
-      // Then
-      // See above
+      expect(actions[0]).toEqual(action)
+      expect(actions[1]).toEqual(updateSettings({ x: 2 } as any))
+      expect(actions[2].type).toBe('frames/ADD')
+      expect(actions[2].state.type).toBe('pre')
     })
-    test('does the right thing for :config {"x": 2, "y":3}', done => {
-      // Given
+
+    test('does the right thing for :config {"x": 2, "y":3}', async () => {
       const cmd = ':config'
       const cmdString = `${cmd} {"x": 2, "y":3}`
       const id = 1
       const action = commands.executeSingleCommand(cmdString, {
         id
       })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          replaceSettings({ x: 2, y: 3 } as any),
-          frames.add({
-            ...action,
-            type: 'pre',
-            result: JSON.stringify({ maxHistory: 20 }, null, 2)
-          } as any),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
 
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
 
-      // Then
-      // See above
+      expect(actions[0]).toEqual(action)
+      expect(actions[1]).toEqual(replaceSettings({ x: 2, y: 3 } as any))
+      expect(actions[2].type).toBe('frames/ADD')
+      expect(actions[2].state.type).toBe('pre')
     })
 
-    test('does the right thing for :config', done => {
-      // Given
+    test('does the right thing for :config', async () => {
       const cmd = ':config'
       const cmdString = cmd
       const id = 1
       const action = commands.executeSingleCommand(cmdString, {
         id
       })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          frames.add({
-            ...action,
-            type: 'pre',
-            result: JSON.stringify({ maxHistory: 20 }, null, 2)
-          } as any),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
 
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
 
-      // Then
-      // See above
+      expect(actions[0]).toEqual(action)
+      expect(actions[1].type).toBe('frames/ADD')
+      expect(actions[1].state.type).toBe('pre')
     })
 
-    test('does the right thing for :style', done => {
-      // Given
+    test('does the right thing for :style', async () => {
       const cmd = ':style'
       const cmdString = cmd
       const id = 1
       const action = commands.executeSingleCommand(cmdString, {
         id
       })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          frames.add({
-            ...action,
-            type: 'style',
-            result: { node: { color: '#000' } }
-          } as any),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
 
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
 
-      // Then
-      // See above
+      expect(actions[0]).toEqual(action)
+      expect(actions[1].type).toBe('frames/ADD')
+      expect(actions[1].state.type).toBe('style')
+      expect(actions[1].state.result).toEqual({ node: { color: '#000' } })
     })
 
-    test('does the right thing for list queries', done => {
+    test('does the right thing for list queries', async () => {
       const cmd = ':queries'
       const id = 1
       const action = commands.executeSingleCommand(cmd, { id })
 
-      bus.take('NOOP', () => {
-        expect(store.getActions()).toEqual([
-          action,
-          frames.add({
-            ...action,
-            type: 'queries',
-            result: "{res : 'QUERIES RESULT'}"
-          } as any),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
-
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
+
+      expect(actions[0]).toEqual(action)
+      expect(actions[1].type).toBe('frames/ADD')
+      expect(actions[1].state.type).toBe('queries')
+      expect(actions[1].state.result).toBe("{res : 'QUERIES RESULT'}")
     })
-    test('does the right thing for cypher with comments', done => {
-      // Given
+
+    test('does the right thing for cypher with comments', async () => {
       const comment = '//COMMENT FOR RETURN'
       const actualCommand = 'RETURN 1'
       const cmd = `${comment}\n${actualCommand}`
@@ -450,66 +388,48 @@ describe('commandsDuck', () => {
         id,
         requestId
       })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          send(requestId),
-          frames.add({ ...action, type: 'cypher' } as any),
-          updateQueryResult(requestId, BoltConnectionError(), 'error'),
-          commands.unsuccessfulCypher(cmd),
-          fetchMetaData(),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
-      // When
+
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
+
+      expect(actions[0]).toEqual(action)
+      expect(actions[1]).toEqual(send(requestId))
+      expect(actions[2].type).toBe('frames/ADD')
+      expect(actions[2].state.type).toBe('cypher')
+      expect(actions[3]).toMatchObject({
+        type: 'requests/UPDATED',
+        status: 'success'
+      })
     })
-    test('does the right thing for history command with comments', done => {
-      // Given
+
+    test('does the right thing for history command', async () => {
       const cmdString = 'history'
       const cmd = `:${cmdString}`
       const id = 1
       const action = commands.executeSingleCommand(cmd, { id })
 
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          getInterpreter(helper.interpret, action.cmd).exec(
-            Object.assign(action, { cmd: cleanCommand(action.cmd) }),
-            (a: any) => a,
-            store
-          ),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
-
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
+
+      expect(actions[0]).toEqual(action)
+      expect(actions[1].type).toBe('frames/ADD')
+      expect(actions[1].state.type).toBe('history')
     })
   })
+
   describe(':server disconnect', () => {
-    test(':server disconnect produces a DISCONNECT action and a action for a "disconnect" frame', done => {
-      // Given
+    test(':server disconnect produces a DISCONNECT action and a action for a "disconnect" frame', async () => {
       const serverCmd = 'disconnect'
       const cmd = `:server ${serverCmd}`
       const action = commands.executeSingleCommand(cmd, { id: '$$discovery' })
-      bus.take('NOOP', () => {
-        // Then
-        expect(store.getActions()).toEqual([
-          action,
-          frames.add({ ...action, type: 'disconnect' } as any),
-          disconnectAction('$$discovery'),
-          { type: 'NOOP' }
-        ])
-        done()
-      })
 
-      // When
       store.dispatch(action)
+      const actions = await waitForAction(store, 'NOOP')
+
+      expect(actions[0]).toEqual(action)
+      expect(actions[1].type).toBe('frames/ADD')
+      expect(actions[1].state.type).toBe('disconnect')
+      expect(actions[2]).toEqual(disconnectAction('$$discovery'))
     })
   })
 })

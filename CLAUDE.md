@@ -30,23 +30,25 @@ yarn dev            # Jest watch mode
 yarn jest-update    # Update snapshots
 
 # E2E tests (Cypress)
-yarn test-e2e       # Full e2e with docker (requires docker, uses ports 7687/8080)
+yarn test-e2e       # Full e2e with docker (Neo4j 4.2.2, requires docker, uses ports 7474/7687/8080)
 yarn e2e            # Run Cypress tests (requires fresh Neo4j install)
-yarn e2e-open       # Open Cypress UI (requires fresh Neo4j 3.5)
+yarn e2e-open       # Open Cypress UI
 yarn e2e-local      # Run against existing server (default password: "newpassword")
 yarn e2e-local-open # Open Cypress UI against existing server
+yarn e2e-aura       # Run against Aura (HTTPS)
+yarn e2e-aura-open  # Open Cypress UI against Aura
 ```
 
 #### E2E Environment Variables
 ```bash
---env server=3.5|4.0|4.1|4.2|4.3 (default 4.3)
+--env server=3.4|3.5|4.0|4.1|4.2|4.3|4.4|5.0+ (default 4.3)
 --env edition=enterprise|community|aura (default enterprise)
 --env browser-password=<password> (default 'newpassword')
 --env include-import-tests=true|false (default false)
 --env bolt-url=<bolt-url> (default localhost:7687)
 
 # System environment variables (set before command)
-CYPRESS_E2E_TEST_ENV=local|null
+CYPRESS_E2E_TEST_ENV=local|aura|null
 CYPRESS_BASE_URL=<url> (default http://localhost:8080)
 ```
 
@@ -122,6 +124,7 @@ src/
 "browser-components/*": ["browser/components/*"]
 "browser-hooks/*": ["browser/hooks/*"]
 "browser-styles/*": ["browser/styles/*"]
+"icons/*": ["browser/icons/*"]
 "project-root/*": ["../*"]
 "neo4j-arc/graph-visualization": ["neo4j-arc/graph-visualization"]
 "neo4j-arc/common": ["neo4j-arc/common"]
@@ -130,16 +133,16 @@ src/
 
 ### Key Technologies
 
-- **React 17** with functional components and hooks
-- **TypeScript 4.6**
-- **Redux 3** + **Redux-Observable 0.16** (RxJS 5)
-- **neo4j-driver 5.26** for database connectivity
-- **styled-components 5** for styling
-- **Monaco Editor 0.23** for code editing
-- **D3 v7** (d3-force, d3-zoom, d3-selection) for graph visualization
-- **Cypress 8** for E2E testing
-- **Jest 26** for unit testing
-- **Webpack 4** for bundling
+- **React 17.0.2** with functional components and hooks
+- **TypeScript 4.9.5**
+- **Redux 3.7.2** + **Redux-Observable 1.2.0** (RxJS 6.6.7)
+- **neo4j-driver 6.0.1** for database connectivity
+- **styled-components 5.3.3** for styling
+- **Monaco Editor 0.55.0** for code editing
+- **D3 v3** (d3-force, d3-zoom, d3-selection, d3-drag, d3-color, d3-shape, d3-transition) for graph visualization
+- **Cypress 13.17.0** for E2E testing
+- **Jest 29.7.0** for unit testing
+- **Webpack 5.95.0** for bundling
 
 ### Connection Flow
 
@@ -159,17 +162,15 @@ Commands (e.g., `:play`, `:help`, Cypher queries) flow:
 
 ### LocalStorage Sync
 
-Keys synced to localStorage (configured in `AppInit.tsx`):
-- connections
+Keys synced to localStorage (configured in `src/shared/services/localstorage.ts`):
+- connections (with credential retention logic)
 - settings
-- history
+- history (with retention setting check)
 - documents (favorites)
 - folders
 - grass (styling)
-- syncConsent
 - udc
 - experimentalFeatures
-- guides
 
 ## Common Patterns
 
@@ -199,6 +200,10 @@ yarn jest path/to/test.test.tsx --watch
 
 - **Monaco Editor**: Never import `monaco-editor` directly; use the configured paths
 - **ESLint**: The codebase uses both Babel and TypeScript parsers (see .eslintrc.json overrides)
-- **Node Version**: Requires Node >= 16.10.0
+- **Node Version**: Requires Node >= 20.19.0
 - **Pre-commit**: Husky + lint-staged runs prettier-eslint on changed files
 - **Neo4j Desktop Integration**: Configured via `neo4jDesktop` in package.json (API version ^1.4.0)
+
+## Additional Documentation
+
+- **BOLT Connection Architecture**: See `docs/BOLT_CONNECTION_ARCHITECTURE.md` for detailed documentation on neo4j-driver integration, connection lifecycle, Redux ducks, epics, workers, and improvement patterns.

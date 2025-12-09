@@ -17,31 +17,66 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import configureMockStore from 'redux-mock-store'
+import configureMockStore, { MockStoreEnhanced } from 'redux-mock-store'
 import { createEpicMiddleware } from 'redux-observable'
 import { createBus, createReduxMiddleware } from 'suber'
 
 import * as commands from './commandsDuck'
 import bolt from 'services/bolt/bolt'
-import { ADD, add as addFrame } from 'shared/modules/frames/framesDuck'
+import { add as addFrame } from 'shared/modules/frames/framesDuck'
 import { addHistory } from 'shared/modules/history/historyDuck'
 
-// jest.unmock('services/bolt/bolt')
-const originalRoutedWriteTransaction = bolt.routedWriteTransaction
+// Mock bolt module with __esModule to handle default export correctly
+jest.mock('services/bolt/bolt', () => ({
+  __esModule: true,
+  default: {
+    routedWriteTransaction: jest.fn(() => [
+      'id',
+      Promise.resolve({ records: [] })
+    ]),
+    routedReadTransaction: jest.fn(() => Promise.resolve({ records: [] })),
+    directTransaction: jest.fn(() => Promise.resolve({ records: [] })),
+    closeConnection: jest.fn(),
+    openConnection: jest.fn(() => Promise.resolve()),
+    directConnect: jest.fn(() => Promise.resolve()),
+    hasMultiDbSupport: jest.fn(() => Promise.resolve(true)),
+    useDb: jest.fn()
+  }
+}))
 
 const bus = createBus()
-const epicMiddleware = createEpicMiddleware(commands.handleCommandEpic)
+
+// Epic dependencies for redux-observable 1.x
+const epicDependencies: {
+  dispatch: (action: any) => void
+  getState: () => any
+} = {
+  dispatch: () => {},
+  getState: () => ({})
+}
+
+const epicMiddleware = createEpicMiddleware({
+  dependencies: epicDependencies
+})
 const mockStore = configureMockStore([
   epicMiddleware,
   createReduxMiddleware(bus)
 ])
 
-describe('handleCommandEpic', () => {
-  let store: any
-  const maxHistory = 20
-  beforeEach(() => {
-    bolt.routedWriteTransaction = originalRoutedWriteTransaction
+// Helper to wait for actions with timeout
+const waitForActions = (
+  store: MockStoreEnhanced<unknown, unknown>,
+  timeout = 200
+): Promise<any[]> => {
+  return new Promise(resolve => {
+    setTimeout(() => resolve(store.getActions()), timeout)
   })
+}
+
+describe('handleCommandEpic', () => {
+  let store: MockStoreEnhanced<unknown, unknown>
+  const maxHistory = 20
+
   beforeAll(() => {
     store = mockStore({
       settings: {
@@ -57,7 +92,22 @@ describe('handleCommandEpic', () => {
         }
       }
     })
+    // Populate epic dependencies with store methods
+    epicDependencies.dispatch = store.dispatch
+    epicDependencies.getState = store.getState
+    // Run the epic after store creation (redux-observable 1.x API)
+    epicMiddleware.run(commands.handleCommandEpic as any)
   })
+
+  beforeEach(() => {
+    // Reset bolt mocks to default behavior
+    const boltMock = bolt as jest.Mocked<typeof bolt>
+    boltMock.routedWriteTransaction.mockImplementation(() => [
+      'id',
+      Promise.resolve({ records: [] })
+    ])
+  })
+
   afterEach(() => {
     store.clearActions()
     bus.reset()
@@ -86,7 +136,7 @@ describe('handleCommandEpic', () => {
     // See snoopOnActions above
   })
 
-  test('listens on COMMAND_QUEUED for cypher a multi commands', done => {
+  test('listens on COMMAND_QUEUED for cypher a multi commands', async () => {
     // Given
     const cmd = ':param x => 1; RETURN $x'
     const id = 2
@@ -98,27 +148,21 @@ describe('handleCommandEpic', () => {
       parentId
     })
 
-    bus.take(ADD, () => {
-      // Then
-      expect(store.getActions()).toContainEqual(action)
-      expect(store.getActions()).toContainEqual(
-        addHistory(action.cmd, maxHistory)
-      )
-      expect(store.getActions()).toContainEqual(
-        addFrame({
-          type: 'cypher-script',
-          id: parentId,
-          isRerun: false,
-          cmd: action.cmd
-        } as any)
-      )
-      // Non deterministic id:s in the commands, so skip
-      done()
-    })
     // When
     store.dispatch(action)
+    const actions = await waitForActions(store)
 
     // Then
-    // See snoopOnActions above
+    expect(actions).toContainEqual(action)
+    expect(actions).toContainEqual(addHistory(action.cmd, maxHistory))
+    expect(actions).toContainEqual(
+      addFrame({
+        type: 'cypher-script',
+        id: parentId,
+        isRerun: false,
+        cmd: action.cmd
+      } as any)
+    )
+    // Non deterministic id:s in the commands, so skip
   })
 })

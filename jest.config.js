@@ -48,11 +48,16 @@ module.exports = {
     '^browser-hooks(.*)$': '<rootDir>/src/browser/hooks$1',
     'worker-loader': '<rootDir>/test_utils/__mocks__/workerLoaderMock.js',
     'project-root(.*)$': '<rootDir>$1',
-    '^monaco-editor$':
-      '<rootDir>/node_modules/monaco-editor/esm/vs/editor/editor.main.js',
+    '^monaco-editor$': '<rootDir>/test_utils/__mocks__/monacoEditorMock.js',
+    '^monaco-editor/esm/vs/editor/editor\\.all\\.js$':
+      '<rootDir>/test_utils/__mocks__/monacoEditorMock.js',
+    '^monaco-editor/esm/vs/editor/editor\\.api$':
+      '<rootDir>/test_utils/__mocks__/monacoEditorMock.js',
     '^neo4j-arc/graph-visualization$':
       '<rootDir>/src/neo4j-arc/graph-visualization',
-    '^neo4j-arc/common$': '<rootDir>/src/neo4j-arc/common'
+    '^neo4j-arc/common$': '<rootDir>/src/neo4j-arc/common',
+    '^neo4j-arc/cypher-language-support$':
+      '<rootDir>/test_utils/__mocks__/cypherLanguageSupportMock.js'
   },
   modulePaths: ['<rootDir>/src', '<rootDir>/src/shared'],
   collectCoverageFrom: ['**/src/**/*.ts', '**/src/**/*.tsx'],

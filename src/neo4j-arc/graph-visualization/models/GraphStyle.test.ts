@@ -31,20 +31,20 @@ describe('grass', () => {
     expect(styleStr).toEqual(
       `node {
   diameter: 50px;
-  color: #A5ABB6;
-  border-color: #9AA1AC;
+  color: #7aa2f7;
+  border-color: #3d59a1;
   border-width: 2px;
-  text-color-internal: #FFFFFF;
+  text-color-internal: #1a1b26;
   font-size: 10px;
 }
 
 relationship {
-  color: #A5ABB6;
+  color: #7dcfff;
   shaft-width: 1px;
   font-size: 8px;
   padding: 3px;
-  text-color-external: #000000;
-  text-color-internal: #FFFFFF;
+  text-color-external: #c0caf5;
+  text-color-internal: #1a1b26;
   caption: '<type>';
 }
 
@@ -65,27 +65,27 @@ relationship {
     // Then
     expect(styleStr).toEqual(`node {
   diameter: 50px;
-  color: #A5ABB6;
-  border-color: #9AA1AC;
+  color: #7aa2f7;
+  border-color: #3d59a1;
   border-width: 2px;
-  text-color-internal: #FFFFFF;
+  text-color-internal: #1a1b26;
   font-size: 10px;
 }
 
 relationship {
-  color: #A5ABB6;
+  color: #7dcfff;
   shaft-width: 1px;
   font-size: 8px;
   padding: 3px;
-  text-color-external: #000000;
-  text-color-internal: #FFFFFF;
+  text-color-external: #c0caf5;
+  text-color-internal: #1a1b26;
   caption: '<type>';
 }
 
 node.foo {
-  color: #C990C0;
-  border-color: #b261a5;
-  text-color-internal: #FFFFFF;
+  color: #7aa2f7;
+  border-color: #3d59a1;
+  text-color-internal: #1a1b26;
   defaultCaption: <id>;
 }
 
@@ -105,27 +105,27 @@ node.foo {
     // Then
     expect(styleStr).toEqual(`node {
   diameter: 50px;
-  color: #A5ABB6;
-  border-color: #9AA1AC;
+  color: #7aa2f7;
+  border-color: #3d59a1;
   border-width: 2px;
-  text-color-internal: #FFFFFF;
+  text-color-internal: #1a1b26;
   font-size: 10px;
 }
 
 relationship {
-  color: #A5ABB6;
+  color: #7dcfff;
   shaft-width: 1px;
   font-size: 8px;
   padding: 3px;
-  text-color-external: #000000;
-  text-color-internal: #FFFFFF;
+  text-color-external: #c0caf5;
+  text-color-internal: #1a1b26;
   caption: '<type>';
 }
 
 node.foo\\.bar {
-  color: #C990C0;
-  border-color: #b261a5;
-  text-color-internal: #FFFFFF;
+  color: #7aa2f7;
+  border-color: #3d59a1;
+  text-color-internal: #1a1b26;
   defaultCaption: <id>;
 }
 
@@ -147,20 +147,20 @@ node.foo\\.bar {
     // Then
     expect(styleStr).toEqual(`node {
   diameter: 50px;
-  color: #A5ABB6;
-  border-color: #9AA1AC;
+  color: #7aa2f7;
+  border-color: #3d59a1;
   border-width: 2px;
-  text-color-internal: #FFFFFF;
+  text-color-internal: #1a1b26;
   font-size: 10px;
 }
 
 relationship {
-  color: #A5ABB6;
+  color: #7dcfff;
   shaft-width: 1px;
   font-size: 8px;
   padding: 3px;
-  text-color-external: #000000;
-  text-color-internal: #FFFFFF;
+  text-color-external: #c0caf5;
+  text-color-internal: #1a1b26;
   caption: '<type>';
 }
 

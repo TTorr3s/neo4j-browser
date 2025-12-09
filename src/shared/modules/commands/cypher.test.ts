@@ -17,8 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import configureMockStore, { MockStoreEnhanced } from 'redux-mock-store'
 import { createEpicMiddleware } from 'redux-observable'
-import { createBus } from 'suber'
+import { createBus, createReduxMiddleware } from 'suber'
 
 import {
   autoCommitTxCommand,
@@ -27,134 +28,190 @@ import {
   handleSingleCommandEpic
 } from './commandsDuck'
 import packageJson from 'project-root/package.json'
-import { flushPromises } from 'services/utils'
+import bolt from 'services/bolt/bolt'
 
-jest.mock('services/bolt/bolt', () => {
-  const orig = jest.requireActual('services/bolt/bolt')
-  return {
-    ...orig,
+jest.mock('shared/services/bolt/boltWorker')
+
+// Mock bolt module with __esModule to handle default export correctly
+jest.mock('services/bolt/bolt', () => ({
+  __esModule: true,
+  default: {
     routedWriteTransaction: jest.fn(() => [
       'id',
       Promise.resolve({ records: [] })
-    ])
+    ]),
+    routedReadTransaction: jest.fn(() => Promise.resolve({ records: [] })),
+    directTransaction: jest.fn(() => Promise.resolve({ records: [] })),
+    hasMultiDbSupport: jest.fn(() => Promise.resolve(true)),
+    useDb: jest.fn()
   }
-})
-const bolt = jest.requireMock('services/bolt/bolt')
+}))
 
-jest.mock('shared/modules/params/paramsDuck', () => {
-  const orig = jest.requireActual('shared/modules/params/paramsDuck')
-  return {
-    ...orig,
-    getParams: () => ({})
+// Helper to create a test setup with store and bus
+const createTestSetup = () => {
+  const bus = createBus()
+
+  // Epic dependencies for redux-observable 1.x
+  const epicDependencies: {
+    dispatch: (action: any) => void
+    getState: () => any
+  } = {
+    dispatch: () => {},
+    getState: () => ({})
   }
-})
 
-jest.mock('shared/modules/dbMeta/dbMetaDuck', () => {
-  const orig = jest.requireActual('shared/modules/dbMeta/dbMetaDuck')
-  return {
-    ...orig,
-    getRawVersion: () => '3.5.0' // support for tx metadata
-  }
-})
+  const epicMiddleware = createEpicMiddleware({
+    dependencies: epicDependencies
+  })
+  const mockStore = configureMockStore([
+    epicMiddleware,
+    createReduxMiddleware(bus)
+  ])
 
-jest.mock('shared/modules/settings/settingsDuck', () => {
-  const orig = jest.requireActual('shared/modules/dbMeta/dbMetaDuck')
-  return {
-    ...orig,
-    shouldUseReadTransactions: () => false
-  }
-})
-
-describe('tx metadata with cypher', () => {
-  afterEach(() => {
-    bolt.routedWriteTransaction.mockClear()
+  const store = mockStore({
+    settings: {
+      maxHistory: 20
+    },
+    history: [],
+    connections: {},
+    params: {},
+    grass: {},
+    meta: {},
+    requests: {
+      rqid: {
+        status: 'pending'
+      }
+    }
   })
 
-  it('it adds tx metadata for user entered cypher queries', done => {
+  // Populate epic dependencies with store methods
+  epicDependencies.dispatch = store.dispatch
+  epicDependencies.getState = store.getState
+
+  // Run the epic after store creation (redux-observable 1.x API)
+  epicMiddleware.run(handleSingleCommandEpic as any)
+
+  return { store, bus }
+}
+
+// Helper to wait for actions
+const waitForAction = (
+  store: MockStoreEnhanced<unknown, unknown>,
+  bus: ReturnType<typeof createBus>,
+  actionType: string,
+  timeout = 2000
+): Promise<any[]> => {
+  return new Promise(resolve => {
+    const timer = setTimeout(() => {
+      resolve(store.getActions())
+    }, timeout)
+
+    bus.take(actionType, () => {
+      clearTimeout(timer)
+      // Give a bit of time for any follow-up actions
+      setTimeout(() => resolve(store.getActions()), 50)
+    })
+  })
+}
+
+describe('tx metadata with cypher', () => {
+  let store: MockStoreEnhanced<unknown, unknown>
+  let bus: ReturnType<typeof createBus>
+
+  beforeAll(() => {
+    const setup = createTestSetup()
+    store = setup.store
+    bus = setup.bus
+  })
+
+  afterEach(() => {
+    store.clearActions()
+    bus.reset()
+    const boltMock = bolt as jest.Mocked<typeof bolt>
+    boltMock.routedWriteTransaction.mockClear()
+  })
+
+  it('adds tx metadata for user entered cypher queries', async () => {
     // Given
-    const bus = createBus()
-    bus.applyReduxMiddleware(createEpicMiddleware(handleSingleCommandEpic))
-    const $$responseChannel = 'test-channel'
-    const action: any = executeSingleCommand('RETURN 1', {
+    const action = executeSingleCommand('RETURN 1', {
       id: 'id',
       requestId: 'rqid'
     })
-    action.$$responseChannel = $$responseChannel
 
-    bus.send(action.type, action)
-    flushPromises().then(() => {
-      expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
-      expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
-        'RETURN 1',
-        {},
-        expect.objectContaining({
-          txMetadata: {
-            app: `neo4j-browser_v${packageJson.version}`,
-            type: 'user-direct'
-          }
-        })
-      )
-      done()
-    })
+    store.dispatch(action)
+    await waitForAction(store, bus, 'NOOP')
+
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
+      'RETURN 1',
+      {},
+      expect.objectContaining({
+        txMetadata: {
+          app: `neo4j-browser_v${packageJson.version}`,
+          type: 'user-direct'
+        }
+      })
+    )
   })
 
-  it('it adds tx metadata for system cypher queries', done => {
+  it('adds tx metadata for system cypher queries', async () => {
     // Given
-    const bus = createBus()
-    bus.applyReduxMiddleware(createEpicMiddleware(handleSingleCommandEpic))
-    const $$responseChannel = 'test-channel2'
-    const action: any = executeSystemCommand('RETURN 1')
-    action.$$responseChannel = $$responseChannel
+    const action = executeSystemCommand('RETURN 1')
 
-    bus.send(action.type, action)
-    flushPromises().then(() => {
-      expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
-      expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
-        'RETURN 1',
-        {},
-        expect.objectContaining({
-          txMetadata: {
-            app: `neo4j-browser_v${packageJson.version}`,
-            type: 'system'
-          }
-        })
-      )
-      done()
-    })
+    store.dispatch(action)
+    await waitForAction(store, bus, 'NOOP')
+
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
+      'RETURN 1',
+      {},
+      expect.objectContaining({
+        txMetadata: {
+          app: `neo4j-browser_v${packageJson.version}`,
+          type: 'system'
+        }
+      })
+    )
   })
 })
 
 describe('Implicit vs explicit transactions', () => {
-  afterEach(() => {
-    bolt.routedWriteTransaction.mockClear()
-  })
-  test(`it sends the autoCommit flag = true to tx functions when using the :${autoCommitTxCommand} command`, done => {
-    // Given
-    const bus = createBus()
-    bus.applyReduxMiddleware(createEpicMiddleware(handleSingleCommandEpic))
-    const $$responseChannel = 'test-channel3'
-    const action: any = executeSingleCommand(`:${autoCommitTxCommand} RETURN 1`)
-    action.$$responseChannel = $$responseChannel
+  let store: MockStoreEnhanced<unknown, unknown>
+  let bus: ReturnType<typeof createBus>
 
-    bus.send(action.type, action)
-    flushPromises().then(() => {
-      expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
-      expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
-        ' RETURN 1',
-        {},
-        expect.objectContaining({
-          autoCommit: true
-        })
-      )
-      done()
-    })
+  beforeAll(() => {
+    const setup = createTestSetup()
+    store = setup.store
+    bus = setup.bus
   })
-  test('Sets autocommit flag = true even with leading comments in cypher', done => {
+
+  afterEach(() => {
+    store.clearActions()
+    bus.reset()
+    const boltMock = bolt as jest.Mocked<typeof bolt>
+    boltMock.routedWriteTransaction.mockClear()
+  })
+
+  test(`it sends the autoCommit flag = true to tx functions when using the :${autoCommitTxCommand} command`, async () => {
     // Given
-    const bus = createBus()
-    bus.applyReduxMiddleware(createEpicMiddleware(handleSingleCommandEpic))
-    const $$responseChannel = 'test-channel3'
-    const action: any = executeSingleCommand(
+    const action = executeSingleCommand(`:${autoCommitTxCommand} RETURN 1`)
+
+    store.dispatch(action)
+    await waitForAction(store, bus, 'NOOP')
+
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
+      ' RETURN 1',
+      {},
+      expect.objectContaining({
+        autoCommit: true
+      })
+    )
+  })
+
+  test('Sets autocommit flag = true even with leading comments in cypher', async () => {
+    // Given
+    const action = executeSingleCommand(
       `// comment
 /*
 multiline comment
@@ -164,14 +221,13 @@ multiline comment
 // comment
 /*:auto*/:${autoCommitTxCommand} RETURN ":auto"`
     )
-    action.$$responseChannel = $$responseChannel
 
-    bus.send(action.type, action)
-    flushPromises()
-      .then(() => {
-        expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
-        expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
-          `// comment
+    store.dispatch(action)
+    await waitForAction(store, bus, 'NOOP')
+
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
+      `// comment
 /*
 multiline comment
 */
@@ -179,34 +235,27 @@ multiline comment
 
 // comment
 /*:auto*/ RETURN ":auto"`,
-          {},
-          expect.objectContaining({
-            autoCommit: true
-          })
-        )
-        done()
+      {},
+      expect.objectContaining({
+        autoCommit: true
       })
-      .catch(e => console.error(e))
+    )
   })
-  test('it sends the autoCommit flag = false to tx functions on regular cypher', done => {
-    // Given
-    const bus = createBus()
-    bus.applyReduxMiddleware(createEpicMiddleware(handleSingleCommandEpic))
-    const $$responseChannel = 'test-channel4'
-    const action: any = executeSingleCommand('RETURN 1')
-    action.$$responseChannel = $$responseChannel
 
-    bus.send(action.type, action)
-    flushPromises().then(() => {
-      expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
-      expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
-        'RETURN 1',
-        {},
-        expect.objectContaining({
-          autoCommit: false
-        })
-      )
-      done()
-    })
+  test('it sends the autoCommit flag = false to tx functions on regular cypher', async () => {
+    // Given
+    const action = executeSingleCommand('RETURN 1')
+
+    store.dispatch(action)
+    await waitForAction(store, bus, 'NOOP')
+
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledTimes(1)
+    expect(bolt.routedWriteTransaction).toHaveBeenCalledWith(
+      'RETURN 1',
+      {},
+      expect.objectContaining({
+        autoCommit: false
+      })
+    )
   })
 })

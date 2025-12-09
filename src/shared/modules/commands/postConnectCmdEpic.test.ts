@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import configureMockStore from 'redux-mock-store'
+import configureMockStore, { MockStoreEnhanced } from 'redux-mock-store'
 import { createEpicMiddleware } from 'redux-observable'
 import { createBus, createReduxMiddleware } from 'suber'
 
@@ -33,9 +33,19 @@ describe('postConnectCmdEpic', () => {
   test('creates a SYSTEM_COMMAND_QUEUED if found', done => {
     // Given
     const bus = createBus()
-    const epicMiddlewareLocal = createEpicMiddleware(
-      commands.postConnectCmdEpic
-    )
+
+    // Epic dependencies for redux-observable 2.x
+    const epicDependencies: {
+      dispatch: (action: any) => void
+      getState: () => any
+    } = {
+      dispatch: () => {},
+      getState: () => ({})
+    }
+
+    const epicMiddlewareLocal = createEpicMiddleware({
+      dependencies: epicDependencies
+    })
     const mockStoreLocal = configureMockStore([
       epicMiddlewareLocal,
       createReduxMiddleware(bus)
@@ -45,7 +55,7 @@ describe('postConnectCmdEpic', () => {
       ...initialClientSettings,
       postConnectCmd: command
     }
-    const store = mockStoreLocal({
+    const store: MockStoreEnhanced<unknown, unknown> = mockStoreLocal({
       settings: {
         playImplicitInitCommands: true
       },
@@ -53,9 +63,17 @@ describe('postConnectCmdEpic', () => {
         settings: metaSettings
       }
     })
+
+    // Populate epic dependencies with store methods
+    epicDependencies.dispatch = store.dispatch
+    epicDependencies.getState = store.getState
+
+    // Run the epic after store creation (redux-observable 2.x API)
+    epicMiddlewareLocal.run(commands.postConnectCmdEpic as any)
+
     const action = { type: CONNECTION_SUCCESS }
     const action2 = { type: UPDATE_SETTINGS }
-    bus.take('NOOP', _currentAction => {
+    bus.take('NOOP', () => {
       // Then
       expect(store.getActions()).toEqual([
         action,
@@ -70,15 +88,26 @@ describe('postConnectCmdEpic', () => {
     store.dispatch(action)
     store.dispatch(action2)
   })
+
   test('supports multiple commands', done => {
     // Given
     const command1 = 'play hello'
     const command2 = 'play intro'
     const command = `${command1}; ${command2}`
     const bus = createBus()
-    const epicMiddlewareLocal = createEpicMiddleware(
-      commands.postConnectCmdEpic
-    )
+
+    // Epic dependencies for redux-observable 2.x
+    const epicDependencies: {
+      dispatch: (action: any) => void
+      getState: () => any
+    } = {
+      dispatch: () => {},
+      getState: () => ({})
+    }
+
+    const epicMiddlewareLocal = createEpicMiddleware({
+      dependencies: epicDependencies
+    })
     const mockStoreLocal = configureMockStore([
       epicMiddlewareLocal,
       createReduxMiddleware(bus)
@@ -88,7 +117,7 @@ describe('postConnectCmdEpic', () => {
       ...initialClientSettings,
       postConnectCmd: command
     }
-    const store = mockStoreLocal({
+    const store: MockStoreEnhanced<unknown, unknown> = mockStoreLocal({
       settings: {
         playImplicitInitCommands: true
       },
@@ -96,9 +125,17 @@ describe('postConnectCmdEpic', () => {
         settings: metaSettings
       }
     })
+
+    // Populate epic dependencies with store methods
+    epicDependencies.dispatch = store.dispatch
+    epicDependencies.getState = store.getState
+
+    // Run the epic after store creation (redux-observable 2.x API)
+    epicMiddlewareLocal.run(commands.postConnectCmdEpic as any)
+
     const action = { type: CONNECTION_SUCCESS }
     const action2 = { type: UPDATE_SETTINGS }
-    bus.take('NOOP', _currentAction => {
+    bus.take('NOOP', () => {
       // Then
       expect(store.getActions()).toEqual([
         action,
@@ -114,17 +151,28 @@ describe('postConnectCmdEpic', () => {
     store.dispatch(action)
     store.dispatch(action2)
   })
+
   test('does nothing if settings not found', done => {
     // Given
     const bus = createBus()
-    const epicMiddlewareLocal = createEpicMiddleware(
-      commands.postConnectCmdEpic
-    )
+
+    // Epic dependencies for redux-observable 2.x
+    const epicDependencies: {
+      dispatch: (action: any) => void
+      getState: () => any
+    } = {
+      dispatch: () => {},
+      getState: () => ({})
+    }
+
+    const epicMiddlewareLocal = createEpicMiddleware({
+      dependencies: epicDependencies
+    })
     const mockStoreLocal = configureMockStore([
       epicMiddlewareLocal,
       createReduxMiddleware(bus)
     ])
-    const store = mockStoreLocal({
+    const store: MockStoreEnhanced<unknown, unknown> = mockStoreLocal({
       settings: {},
       history: {
         history: [':xxx']
@@ -132,9 +180,17 @@ describe('postConnectCmdEpic', () => {
       connections: {},
       params: {}
     })
+
+    // Populate epic dependencies with store methods
+    epicDependencies.dispatch = store.dispatch
+    epicDependencies.getState = store.getState
+
+    // Run the epic after store creation (redux-observable 2.x API)
+    epicMiddlewareLocal.run(commands.postConnectCmdEpic as any)
+
     const action = { type: CONNECTION_SUCCESS }
     const action2 = { type: UPDATE_SETTINGS }
-    bus.take('NOOP', _currentAction => {
+    bus.take('NOOP', () => {
       // Then
       expect(store.getActions()).toEqual([action, action2, { type: 'NOOP' }])
       done()

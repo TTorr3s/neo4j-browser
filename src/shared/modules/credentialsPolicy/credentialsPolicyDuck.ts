@@ -50,8 +50,8 @@ export const credentialsTimeoutEpic: Epic<AnyAction, AnyAction, GlobalState> = (
   state$
 ) =>
   merge(
-    action$.pipe(ofType<AnyAction>(TRIGGER_CREDENTIALS_TIMEOUT)),
-    action$.pipe(ofType<AnyAction>(USER_INTERACTION))
+    action$.pipe(ofType(TRIGGER_CREDENTIALS_TIMEOUT)),
+    action$.pipe(ofType(USER_INTERACTION))
   ).pipe(
     mergeMap(() => {
       const cTimeout = parseTimeMillis(credentialsTimeout(state$.value))

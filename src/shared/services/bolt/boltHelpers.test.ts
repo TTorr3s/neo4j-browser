@@ -27,8 +27,8 @@ describe('buildTxFunctionByMode', () => {
     // Given
     const fakeSession: any = {
       _mode: WRITE,
-      readTransaction: jest.fn(),
-      writeTransaction: jest.fn()
+      executeRead: jest.fn(),
+      executeWrite: jest.fn()
     }
 
     // When
@@ -36,15 +36,15 @@ describe('buildTxFunctionByMode', () => {
     txFn!(() => {})
 
     // Then
-    expect(fakeSession.readTransaction).toHaveBeenCalledTimes(0)
-    expect(fakeSession.writeTransaction).toHaveBeenCalledTimes(1)
+    expect(fakeSession.executeRead).toHaveBeenCalledTimes(0)
+    expect(fakeSession.executeWrite).toHaveBeenCalledTimes(1)
   })
   test('it returns READ tx when in READ mode', () => {
     // Given
     const fakeSession: any = {
       _mode: READ,
-      readTransaction: jest.fn(),
-      writeTransaction: jest.fn()
+      executeRead: jest.fn(),
+      executeWrite: jest.fn()
     }
 
     // When
@@ -52,14 +52,14 @@ describe('buildTxFunctionByMode', () => {
     txFn!(() => {})
 
     // Then
-    expect(fakeSession.readTransaction).toHaveBeenCalledTimes(1)
-    expect(fakeSession.writeTransaction).toHaveBeenCalledTimes(0)
+    expect(fakeSession.executeRead).toHaveBeenCalledTimes(1)
+    expect(fakeSession.executeWrite).toHaveBeenCalledTimes(0)
   })
   test('it by DEFAULT returns tx in WRITE mode', () => {
     // Given
     const fakeSession: any = {
-      readTransaction: jest.fn(),
-      writeTransaction: jest.fn()
+      executeRead: jest.fn(),
+      executeWrite: jest.fn()
     }
 
     // When
@@ -67,8 +67,8 @@ describe('buildTxFunctionByMode', () => {
     txFn!(() => {})
 
     // Then
-    expect(fakeSession.readTransaction).toHaveBeenCalledTimes(0)
-    expect(fakeSession.writeTransaction).toHaveBeenCalledTimes(1)
+    expect(fakeSession.executeRead).toHaveBeenCalledTimes(0)
+    expect(fakeSession.executeWrite).toHaveBeenCalledTimes(1)
   })
   test('it returns null if no session passed', () => {
     // Given

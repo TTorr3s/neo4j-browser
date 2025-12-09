@@ -120,8 +120,8 @@ describe('Neo4j Browser', () => {
       isAura()
         ? 'PUBLIC'
         : isEnterpriseEdition() || Cypress.config('serverVersion') < 4.0
-        ? 'admin'
-        : '-'
+          ? 'admin'
+          : '-'
     )
     cy.executeCommand(':clear')
     cy.executeCommand(':server disconnect')
@@ -135,8 +135,8 @@ describe('Neo4j Browser', () => {
       isAura()
         ? 'PUBLIC'
         : isEnterpriseEdition() || Cypress.config('serverVersion') < 4.0
-        ? 'admin'
-        : '-'
+          ? 'admin'
+          : '-'
     )
     cy.get('[data-testid="navigationDBMS"]').click()
   })

@@ -52,15 +52,18 @@ export function groupBy<T>(
   list: Array<T>,
   group: (item: T) => number | string
 ): Record<string, Array<T>> {
-  return list.reduce((groups, item) => {
-    const key = group(item)
+  return list.reduce(
+    (groups, item) => {
+      const key = group(item)
 
-    if (groups[key]) {
-      groups[key].push(item)
-    } else {
-      groups[key] = [item]
-    }
+      if (groups[key]) {
+        groups[key].push(item)
+      } else {
+        groups[key] = [item]
+      }
 
-    return groups
-  }, {} as Record<string, Array<T>>)
+      return groups
+    },
+    {} as Record<string, Array<T>>
+  )
 }
