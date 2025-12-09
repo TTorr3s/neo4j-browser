@@ -107,7 +107,11 @@ export function initalizeCypherSupport(
         startColumn,
         endColumn
       }
-      editorSupport.update(model.getValue())
+      const content = model.getValue()
+      if (content !== lastParsedContent) {
+        editorSupport.update(content)
+        lastParsedContent = content
+      }
       let items: EditorSupportCompletionItem[] = []
       // Cypher editor support repo has internal type errors
       try {
@@ -171,6 +175,8 @@ function encodeNumberAsSortableString(number: number): string {
 }
 
 const editorSupport = new CypherEditorSupport('')
+let lastParsedContent = ''
+
 // CypherEditorSupport returns the content attributes of procedures with dots wrapped in backticks, e.g. "`apoc.coll.avg`"
 // This function strips any surrounding backticks before we use the .content value in the completion item provider
 const stripSurroundingBackticks = (str: string) =>
