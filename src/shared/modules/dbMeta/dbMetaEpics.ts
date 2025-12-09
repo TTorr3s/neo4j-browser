@@ -45,6 +45,7 @@ import {
   updateSettings,
   CLEAR_META,
   DB_META_DONE,
+  LABELS_LOADED,
   FORCE_FETCH,
   SYSTEM_DB,
   metaTypesQuery,
@@ -214,6 +215,10 @@ async function getLabelsAndTypes(storeProxy: StoreProxy) {
           relationshipTypes
         })
       )
+
+      // Notify that labels are loaded so editor can update autocomplete
+      dbMetaLog('>>> Emitting LABELS_LOADED')
+      storeProxy.dispatch({ type: LABELS_LOADED })
     }
   } catch (e) {
     dbMetaLog('✗ Error fetching labels/types', e)
@@ -472,6 +477,8 @@ async function pollDbMeta(storeProxy: StoreProxy) {
   )
 }
 
+const POLL_FREQUENCY_MS = 110 * 1000 // 110 seconds
+
 export const dbMetaEpic: Epic<AnyAction, AnyAction, GlobalState, StoreProxy> = (
   action$,
   state$,
@@ -508,8 +515,9 @@ export const dbMetaEpic: Epic<AnyAction, AnyAction, GlobalState, StoreProxy> = (
         }),
         mergeMap(() => {
           // Emit SERVER_VERSION_READ first, then start polling
+          // First poll as soon as possible (1ms), then every 40 seconds
           const pollingStream$ = merge(
-            timer(1, 20000),
+            timer(1, POLL_FREQUENCY_MS),
             action$.pipe(ofType(FORCE_FETCH))
           ).pipe(
             throttle(() => action$.pipe(ofType(DB_META_DONE))),

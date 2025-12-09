@@ -56,7 +56,7 @@ import {
 } from 'shared/modules/settings/settingsDuck'
 import { UPDATE_PARAMS } from '../params/paramsDuck'
 import { isOfType } from 'shared/utils/typeSafeActions'
-import { DB_META_DONE } from '../dbMeta/dbMetaDuck'
+import { DB_META_DONE, LABELS_LOADED } from '../dbMeta/dbMetaDuck'
 
 export const SET_CONTENT = 'editor/SET_CONTENT'
 export const EDIT_CONTENT = 'editor/EDIT_CONTENT'
@@ -246,21 +246,25 @@ export const updateEditorSupportSchemaEpic: Epic<
   // Subscribe to CYPHER_EDITOR_READY once, immediately when epic initializes
   // This ensures we capture the event even if it fires before DB_META_DONE
   if (!isEditorReadySubscribed) {
+    const timestamp = new Date().toISOString().split('T')[1]
     isEditorReadySubscribed = true
     action$.pipe(ofType(CYPHER_EDITOR_READY), take(1)).subscribe(() => {
       if (isDebugEnabled()) {
-        console.log('[Cypher Editor] ✓ Editor ready, accepting schema updates')
+        console.log(
+          `[Cypher Editor ${timestamp}] ✓ Editor ready, accepting schema updates`
+        )
       }
       editorReadySubject.next()
     })
   }
 
   return action$.pipe(
-    filter(isOfType([DB_META_DONE, UPDATE_PARAMS])),
+    filter(isOfType([DB_META_DONE, LABELS_LOADED, UPDATE_PARAMS])),
     tap(action => {
       if (isDebugEnabled()) {
+        const timestamp = new Date().toISOString().split('T')[1]
         console.log(
-          `[Cypher Editor] Received ${action.type}, waiting for editor...`
+          `[Cypher Editor ${timestamp}] Received ${action.type}, waiting for editor...`
         )
       }
     }),
@@ -269,7 +273,10 @@ export const updateEditorSupportSchemaEpic: Epic<
     delayWhen<AnyAction>(() => editorReadySubject.pipe(take(1))),
     tap(() => {
       if (isDebugEnabled()) {
-        console.log('[Cypher Editor] Editor ready, processing schema update...')
+        const timestamp = new Date().toISOString().split('T')[1]
+        console.log(
+          `[Cypher Editor ${timestamp}] Editor ready, processing schema update...`
+        )
       }
     }),
     withLatestFrom(state$),
@@ -284,7 +291,8 @@ export const updateEditorSupportSchemaEpic: Epic<
     distinctUntilChanged(areSchemaSourcesEqual),
     mergeMap(schemaData => {
       if (isDebugEnabled()) {
-        console.log('[Cypher Editor] Schema update:', {
+        const timestamp = new Date().toISOString().split('T')[1]
+        console.log(`[Cypher Editor ${timestamp}] Schema update:`, {
           labels: schemaData.labels.length,
           relationshipTypes: schemaData.relationshipTypes.length,
           properties: schemaData.properties.length,
@@ -303,12 +311,19 @@ export const updateEditorSupportSchemaEpic: Epic<
         relationshipTypes: schemaData.relationshipTypes.map(toRelationshipType)
       })
       if (isDebugEnabled()) {
-        console.log('[Cypher Editor] ✓ Autocomplete schema updated')
+        const timestamp = new Date().toISOString().split('T')[1]
+        console.log(
+          `[Cypher Editor ${timestamp}] ✓ Autocomplete schema updated`
+        )
       }
       return EMPTY
     }),
     catchError(error => {
-      console.error('[Editor] updateEditorSupportSchemaEpic error:', error)
+      const timestamp = new Date().toISOString().split('T')[1]
+      console.error(
+        `[Editor ${timestamp}] updateEditorSupportSchemaEpic error:`,
+        error
+      )
       return EMPTY
     })
   )
