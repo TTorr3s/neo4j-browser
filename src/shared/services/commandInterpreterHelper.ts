@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Action, Dispatch } from 'redux'
 import { v4 } from 'uuid'
 
 import { getCommandAndParam } from './commandUtils'
@@ -36,7 +35,6 @@ import remote from 'services/remote'
 import { authHeaderFromCredentials, isLocalRequest } from 'services/remoteUtils'
 import { getHostedUrl } from 'shared/modules/app/appDuck'
 import {
-  ExecuteSingleCommandAction,
   SINGLE_COMMAND_QUEUED,
   autoCommitTxCommand,
   listDbsCommand,
@@ -93,13 +91,11 @@ import {
   getSettings,
   shouldUseReadTransactions
 } from 'shared/modules/settings/settingsDuck'
-import { open } from 'shared/modules/sidebar/sidebarDuck'
 import {
   backgroundTxMetadata,
   userDirectTxMetadata
 } from 'shared/services/bolt/txMetadata'
 import { objToCss, parseGrass } from 'shared/services/grassUtils'
-import { URL } from 'whatwg-url'
 import {
   getCurrentDatabase,
   isSystemOrCompositeDb
