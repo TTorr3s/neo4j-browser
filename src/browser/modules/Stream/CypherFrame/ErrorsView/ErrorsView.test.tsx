@@ -54,12 +54,12 @@ const mount = (props: Partial<ErrorsViewProps>, state?: any) => {
 
   const combinedState = { ...initialState, ...state }
 
+  // Cache state to avoid infinite loop with react-redux 8.x useSyncExternalStore
+  const cachedState = { ...combinedState }
   const store = {
-    subscribe: () => {},
+    subscribe: () => () => {},
     dispatch: () => {},
-    getState: () => ({
-      ...combinedState
-    })
+    getState: () => cachedState
   }
 
   return render(withProvider(store, <ErrorsView {...combinedProps} />))
