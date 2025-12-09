@@ -30,6 +30,21 @@ import { getMonacoThemes } from './CypherMonacoThemes'
 import type { CypherColorFallback } from './CypherMonacoThemes'
 import { getCustomSnippets } from './snippets'
 
+const { CompletionItemKind } = languages
+const completionTypes: Record<string, languages.CompletionItemKind> = {
+  keyword: CompletionItemKind.Keyword,
+  label: CompletionItemKind.Field,
+  relationshipType: CompletionItemKind.Reference,
+  variable: CompletionItemKind.Variable,
+  procedure: CompletionItemKind.Function,
+  function: CompletionItemKind.Function,
+  parameter: CompletionItemKind.TypeParameter,
+  propertyKey: CompletionItemKind.Property,
+  consoleCommand: CompletionItemKind.Function,
+  consoleCommandSubcommand: CompletionItemKind.Function,
+  procedureOutput: CompletionItemKind.Operator
+}
+
 export function setupAutocomplete({
   consoleCommands,
   functions = [],
@@ -101,21 +116,6 @@ export function initalizeCypherSupport(
           position.column - 1
         ).items
       } catch {}
-
-      const { CompletionItemKind } = languages
-      const completionTypes: Record<string, languages.CompletionItemKind> = {
-        keyword: CompletionItemKind.Keyword,
-        label: CompletionItemKind.Field,
-        relationshipType: CompletionItemKind.Reference,
-        variable: CompletionItemKind.Variable,
-        procedure: CompletionItemKind.Function,
-        function: CompletionItemKind.Function,
-        parameter: CompletionItemKind.TypeParameter,
-        propertyKey: CompletionItemKind.Property,
-        consoleCommand: CompletionItemKind.Function,
-        consoleCommandSubcommand: CompletionItemKind.Function,
-        procedureOutput: CompletionItemKind.Operator
-      }
 
       // word preceding trigger character, used to determine range (where to insert) procedure suggestions
       const { word } = model.getWordUntilPosition({
