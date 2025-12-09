@@ -73,14 +73,19 @@ function SavedScriptsListItem({
     () => renameScript && renameScript(currentNameValue)
   )
   const overlayBlurRef = useCustomBlur(() => setShowOverlay(false))
-  const dragAndDropRef = useDrag({
-    item: { id: script.id, type: 'script' },
-    begin: () => {
-      if (!isSelected) {
-        clearOtherSelections()
+  const dragAndDropRef = useDrag(
+    () => ({
+      type: 'script',
+      item: () => {
+        // Clear other selections when drag begins
+        if (!isSelected) {
+          clearOtherSelections()
+        }
+        return { id: script.id, type: 'script' }
       }
-    }
-  })[1]
+    }),
+    [script.id, isSelected, clearOtherSelections]
+  )[1]
   const [showOverlay, setShowOverlay] = useState(false)
   const toggleOverlay = () => setShowOverlay(t => !t)
   const canRunScript = !script.not_executable && !isEditing

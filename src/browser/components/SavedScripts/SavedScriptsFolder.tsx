@@ -87,17 +87,20 @@ function SavedScriptsFolder({
     { id: string; type: string },
     any, // Return type of "drop"
     any // return type of "collect"
-  >({
-    accept: 'script',
-    drop: item => {
-      if (moveScript) {
-        // move dragged
-        moveScript(item.id, folder.id)
-        // Also move all selected
-        selectedScriptIds.forEach(id => moveScript(id, folder.id))
+  >(
+    () => ({
+      accept: 'script',
+      drop: item => {
+        if (moveScript) {
+          // move dragged
+          moveScript(item.id, folder.id)
+          // Also move all selected
+          selectedScriptIds.forEach(id => moveScript(id, folder.id))
+        }
       }
-    }
-  })[1]
+    }),
+    [moveScript, folder.id, selectedScriptIds]
+  )[1]
 
   const [showOverlay, setShowOverlay] = useState(false)
   const overlayBlurRef = useCustomBlur(() => setShowOverlay(false))

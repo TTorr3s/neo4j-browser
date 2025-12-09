@@ -27,8 +27,13 @@ import { COMMAND_QUEUED, executeCommand } from '../commands/commandsDuck'
 import {
   NOT_SUPPORTED_URL_PARAM_COMMAND,
   SET_CONTENT,
-  populateEditorFromUrlEpic
+  CYPHER_EDITOR_READY,
+  populateEditorFromUrlEpic,
+  initializeCypherEditorEpic,
+  updateEditorSupportSchemaEpic,
+  cypherEditorReady
 } from './editorDuck'
+import { DB_META_DONE } from '../dbMeta/dbMetaDuck'
 import { getText } from 'neo4j-arc/cypher-language-support'
 
 describe('editorDuck Epics', () => {
@@ -191,6 +196,52 @@ describe('editorDuck Epics', () => {
 
     // When
     store.dispatch(action)
+  })
+})
+
+describe('initializeCypherEditorEpic', () => {
+  let store: any
+  const bus = createBus()
+  const epicMiddleware = createEpicMiddleware()
+  const mockStore = configureMockStore([
+    epicMiddleware,
+    createReduxMiddleware(bus)
+  ])
+
+  beforeAll(() => {
+    store = mockStore({
+      settings: { theme: 'light' }
+    })
+    epicMiddleware.run(initializeCypherEditorEpic)
+  })
+
+  afterEach(() => {
+    bus.reset()
+    store.clearActions()
+  })
+
+  test('emits CYPHER_EDITOR_READY after APP_START', done => {
+    const action = { type: APP_START }
+
+    bus.take(CYPHER_EDITOR_READY, () => {
+      const actions = store.getActions()
+      expect(actions).toContainEqual(cypherEditorReady())
+      done()
+    })
+
+    store.dispatch(action)
+  })
+})
+
+describe('updateEditorSupportSchemaEpic synchronization', () => {
+  test('action creator cypherEditorReady returns correct action', () => {
+    expect(cypherEditorReady()).toEqual({
+      type: CYPHER_EDITOR_READY
+    })
+  })
+
+  test('CYPHER_EDITOR_READY constant has correct value', () => {
+    expect(CYPHER_EDITOR_READY).toBe('editor/CYPHER_EDITOR_READY')
   })
 })
 

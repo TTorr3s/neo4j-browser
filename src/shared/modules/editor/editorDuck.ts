@@ -27,18 +27,19 @@ import {
 } from 'neo4j-arc/cypher-language-support'
 import { AnyAction } from 'redux'
 import { Epic, ofType } from 'redux-observable'
-import { of, EMPTY } from 'rxjs'
+import { of, EMPTY, ReplaySubject } from 'rxjs'
 import {
   mergeMap,
   filter,
   tap,
   take,
   delay,
-  ignoreElements,
   withLatestFrom,
   map,
+  mapTo,
   distinctUntilChanged,
-  catchError
+  catchError,
+  delayWhen
 } from 'rxjs/operators'
 
 import consoleCommands from 'browser/modules/Editor/consoleCommands'
@@ -63,6 +64,15 @@ export const FOCUS = 'editor/FOCUS'
 export const EXPAND = 'editor/EXPAND'
 export const NOT_SUPPORTED_URL_PARAM_COMMAND =
   'editor/NOT_SUPPORTED_URL_PARAM_COMMAND'
+export const CYPHER_EDITOR_READY = 'editor/CYPHER_EDITOR_READY'
+
+interface CypherEditorReadyAction {
+  type: typeof CYPHER_EDITOR_READY
+}
+
+export const cypherEditorReady = (): CypherEditorReadyAction => ({
+  type: CYPHER_EDITOR_READY
+})
 
 // Supported commands
 const validCommandTypes: { [key: string]: (args: string[]) => string } = {
@@ -182,7 +192,7 @@ export const initializeCypherEditorEpic: Epic<
         consoleCommands
       })
     }),
-    ignoreElements(),
+    mapTo(cypherEditorReady()),
     catchError(error => {
       console.error('[Editor] initializeCypherEditorEpic error:', error)
       return EMPTY
@@ -209,13 +219,59 @@ const areSchemaSourcesEqual = (
   prev.relationshipTypes === curr.relationshipTypes &&
   prev.params === curr.params
 
+// ReplaySubject to capture CYPHER_EDITOR_READY event
+// Must be module-level so subscription starts before any action is dispatched
+let editorReadySubject = new ReplaySubject<void>(1)
+let isEditorReadySubscribed = false
+
+/**
+ * Reset the editor ready state.
+ * Useful for testing to ensure clean state between test runs.
+ */
+export function resetEditorReadyState(): void {
+  editorReadySubject = new ReplaySubject<void>(1)
+  isEditorReadySubscribed = false
+}
+
+// Debug logging for schema updates (can be toggled via window.__CYPHER_EDITOR_DEBUG__)
+const isDebugEnabled = () =>
+  typeof window !== 'undefined' &&
+  (window as any).__CYPHER_EDITOR_DEBUG__ === true
+
 export const updateEditorSupportSchemaEpic: Epic<
   AnyAction,
   AnyAction,
   GlobalState
-> = (action$, state$) =>
-  action$.pipe(
+> = (action$, state$) => {
+  // Subscribe to CYPHER_EDITOR_READY once, immediately when epic initializes
+  // This ensures we capture the event even if it fires before DB_META_DONE
+  if (!isEditorReadySubscribed) {
+    isEditorReadySubscribed = true
+    action$.pipe(ofType(CYPHER_EDITOR_READY), take(1)).subscribe(() => {
+      if (isDebugEnabled()) {
+        console.log('[Cypher Editor] ✓ Editor ready, accepting schema updates')
+      }
+      editorReadySubject.next()
+    })
+  }
+
+  return action$.pipe(
     filter(isOfType([DB_META_DONE, UPDATE_PARAMS])),
+    tap(action => {
+      if (isDebugEnabled()) {
+        console.log(
+          `[Cypher Editor] Received ${action.type}, waiting for editor...`
+        )
+      }
+    }),
+    // Delay each schema update until the editor is ready
+    // Events arriving before CYPHER_EDITOR_READY are buffered and processed when it fires
+    delayWhen<AnyAction>(() => editorReadySubject.pipe(take(1))),
+    tap(() => {
+      if (isDebugEnabled()) {
+        console.log('[Cypher Editor] Editor ready, processing schema update...')
+      }
+    }),
     withLatestFrom(state$),
     map(([, state]) => ({
       functions: state.meta.functions,
@@ -226,7 +282,17 @@ export const updateEditorSupportSchemaEpic: Epic<
       params: state.params
     })),
     distinctUntilChanged(areSchemaSourcesEqual),
-    tap(schemaData => {
+    mergeMap(schemaData => {
+      if (isDebugEnabled()) {
+        console.log('[Cypher Editor] Schema update:', {
+          labels: schemaData.labels.length,
+          relationshipTypes: schemaData.relationshipTypes.length,
+          properties: schemaData.properties.length,
+          functions: schemaData.functions.length,
+          procedures: schemaData.procedures.length,
+          params: Object.keys(schemaData.params).length
+        })
+      }
       setupAutocomplete({
         consoleCommands,
         functions: schemaData.functions.map(toFunction),
@@ -236,10 +302,14 @@ export const updateEditorSupportSchemaEpic: Epic<
         propertyKeys: schemaData.properties,
         relationshipTypes: schemaData.relationshipTypes.map(toRelationshipType)
       })
+      if (isDebugEnabled()) {
+        console.log('[Cypher Editor] ✓ Autocomplete schema updated')
+      }
+      return EMPTY
     }),
-    ignoreElements(),
     catchError(error => {
       console.error('[Editor] updateEditorSupportSchemaEpic error:', error)
       return EMPTY
     })
   )
+}

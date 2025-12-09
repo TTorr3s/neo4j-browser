@@ -168,16 +168,19 @@ export default function SavedScripts({
     { id: string; type: string },
     any, // Return type of "drop"
     any // return type of "collect"
-  >({
-    accept: 'script',
-    drop: item => {
-      if (moveScript) {
-        // remove folder from dragged and all selected
-        moveScript(item.id, undefined)
-        selectedIds.forEach(id => moveScript(id, undefined))
+  >(
+    () => ({
+      accept: 'script',
+      drop: item => {
+        if (moveScript) {
+          // remove folder from dragged and all selected
+          moveScript(item.id, undefined)
+          selectedIds.forEach(id => moveScript(id, undefined))
+        }
       }
-    }
-  })[1]
+    }),
+    [moveScript, selectedIds]
+  )[1]
 
   const selectedScripts = findScriptsFromIds(selectedIds, scripts)
   const removeScript =

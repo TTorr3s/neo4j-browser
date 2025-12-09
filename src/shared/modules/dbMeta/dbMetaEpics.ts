@@ -118,6 +118,21 @@ type StoreProxy = {
   dispatch: (action: AnyAction) => void
 }
 
+// Debug logging for DB meta (can be toggled via window.__DB_META_DEBUG__)
+const isDbMetaDebugEnabled = () =>
+  typeof window !== 'undefined' && (window as any).__DB_META_DEBUG__ === true
+
+const dbMetaLog = (message: string, data?: any) => {
+  if (isDbMetaDebugEnabled()) {
+    const timestamp = new Date().toISOString().split('T')[1]
+    if (data !== undefined) {
+      console.log(`[DB Meta ${timestamp}] ${message}`, data)
+    } else {
+      console.log(`[DB Meta ${timestamp}] ${message}`)
+    }
+  }
+}
+
 function handleConnectionError(dispatch: (action: AnyAction) => void, e: any) {
   if (!e.code || isBoltConnectionErrorCode(e.code)) {
     onLostConnection(dispatch)(e)
@@ -160,11 +175,14 @@ async function getLabelsAndTypes(storeProxy: StoreProxy) {
 
   // System or composite db, do nothing
   if (db && isSystemOrCompositeDb(db)) {
+    dbMetaLog('Skipping labels/types fetch (system or composite db)')
     return
   }
 
   // Not system db, try and fetch meta data
   try {
+    dbMetaLog('Fetching labels, relationship types, and properties...')
+    const startTime = performance.now()
     const res = await bolt.backgroundWorkerlessRoutedRead(
       metaTypesQuery,
       {
@@ -172,6 +190,7 @@ async function getLabelsAndTypes(storeProxy: StoreProxy) {
       },
       storeProxy
     )
+    const elapsed = Math.round(performance.now() - startTime)
     if (res && res.records && res.records.length !== 0) {
       const [rawLabels, rawRelTypes, rawProperties] = res.records.map(
         (r: Record) => r.get(0).data
@@ -182,6 +201,12 @@ async function getLabelsAndTypes(storeProxy: StoreProxy) {
       const relationshipTypes = rawRelTypes.sort(compareMetaItems)
       const properties = rawProperties.sort(compareMetaItems)
 
+      dbMetaLog(`✓ Labels/types fetched in ${elapsed}ms`, {
+        labels: labels.length,
+        relationshipTypes: relationshipTypes.length,
+        properties: properties.length
+      })
+
       storeProxy.dispatch(
         update({
           labels,
@@ -190,7 +215,9 @@ async function getLabelsAndTypes(storeProxy: StoreProxy) {
         })
       )
     }
-  } catch {}
+  } catch (e) {
+    dbMetaLog('✗ Error fetching labels/types', e)
+  }
 }
 
 async function getNodeAndRelationshipCounts(
@@ -245,6 +272,8 @@ async function getNodeAndRelationshipCounts(
 async function getFunctionsAndProcedures(storeProxy: StoreProxy) {
   const version = getSemanticVersion(storeProxy.getState())
   try {
+    dbMetaLog('Fetching functions and procedures...')
+    const startTime = performance.now()
     const useDbValue = supportsMultiDb(storeProxy.getState())
       ? SYSTEM_DB
       : undefined
@@ -262,6 +291,12 @@ async function getFunctionsAndProcedures(storeProxy: StoreProxy) {
       procedurePromise,
       functionPromise
     ])
+    const elapsed = Math.round(performance.now() - startTime)
+
+    dbMetaLog(`✓ Functions/procedures fetched in ${elapsed}ms`, {
+      procedures: procedures.records.length,
+      functions: functions.records.length
+    })
 
     storeProxy.dispatch(
       update({
@@ -269,7 +304,9 @@ async function getFunctionsAndProcedures(storeProxy: StoreProxy) {
         functions: functions.records.map(f => f.toObject())
       })
     )
-  } catch {}
+  } catch (e) {
+    dbMetaLog('✗ Error fetching functions/procedures', e)
+  }
 }
 
 async function clusterRole(storeProxy: StoreProxy) {
@@ -407,9 +444,13 @@ const switchToRequestedDb = (storeProxy: StoreProxy) => {
 }
 
 async function pollDbMeta(storeProxy: StoreProxy) {
+  dbMetaLog('Starting DB meta poll...')
+  const pollStartTime = performance.now()
+
   try {
     await bolt.quickVerifyConnectivity()
   } catch (e) {
+    dbMetaLog('✗ Connection verification failed', e)
     onLostConnection(storeProxy.dispatch)(e)
     return
   }
@@ -424,6 +465,11 @@ async function pollDbMeta(storeProxy: StoreProxy) {
     clusterRole(storeProxy),
     databaseList(storeProxy)
   ])
+
+  const totalElapsed = Math.round(performance.now() - pollStartTime)
+  dbMetaLog(
+    `✓ DB meta poll completed in ${totalElapsed}ms (note: labels/types may still be loading)`
+  )
 }
 
 export const dbMetaEpic: Epic<AnyAction, AnyAction, GlobalState, StoreProxy> = (
@@ -453,9 +499,11 @@ export const dbMetaEpic: Epic<AnyAction, AnyAction, GlobalState, StoreProxy> = (
   return connectionTrigger$.pipe(
     mergeMap(() => {
       const storeProxy = createStoreProxy()
+      dbMetaLog('Connection established, starting meta fetch sequence...')
 
       return from(fetchServerInfo(storeProxy)).pipe(
         tap(() => {
+          dbMetaLog('Server info fetched, checking trial status...')
           fetchTrialStatus(createStoreProxy())
         }),
         mergeMap(() => {
@@ -468,7 +516,10 @@ export const dbMetaEpic: Epic<AnyAction, AnyAction, GlobalState, StoreProxy> = (
             mergeMap(() => from(pollDbMeta(createStoreProxy()))),
             takeUntil(disconnectActions$),
             tap(() => switchToRequestedDb(createStoreProxy())),
-            map(() => ({ type: DB_META_DONE }))
+            map(() => {
+              dbMetaLog('>>> Emitting DB_META_DONE')
+              return { type: DB_META_DONE }
+            })
           )
 
           return merge(
