@@ -161,7 +161,7 @@
     "hoist-non-react-statics": "^3.3.2"
   },
   "dependencies": {
-    "@heroicons/react": "^2.0.16",
+    "@heroicons/react": "^2.2.0",
     "@juggle/resize-observer": "3.4.0",
     "@neo4j-cypher/antlr4": "^1.0.0",
     "@neo4j-cypher/editor-support": "^1.0.2",
