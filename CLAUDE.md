@@ -74,7 +74,7 @@ The codebase enforces strict module boundaries for `neo4j-arc`, a reusable compo
 - **Exports**:
   - `neo4j-arc/common` - Shared utilities and components
   - `neo4j-arc/graph-visualization` - D3-based graph rendering
-  - `neo4j-arc/cypher-language-support` - Monaco editor Cypher language support
+  - `neo4j-arc/cypher-language-support` - Monaco editor Cypher language support (exports `CypherEditor`, `CypherEditorHandle`)
 - **Isolation Rules** (enforced by ESLint):
   - `neo4j-arc` code CANNOT import from `browser/*`, `shared/*`, or `services/*`
   - `neo4j-arc` code CANNOT use Redux, react-redux, or react-suber
@@ -105,7 +105,7 @@ src/
 ├── browser/           # Browser-specific UI and modules
 │   ├── modules/       # Feature modules (App, Frame, Stream, Sidebar, Editor, etc.)
 │   ├── components/    # Shared React components
-│   ├── hooks/         # Custom React hooks
+│   ├── hooks/         # Custom React hooks (useBus, etc.)
 │   └── services/      # Browser-specific services
 ├── shared/            # Shared business logic
 │   ├── modules/       # Redux ducks (connections, commands, cypher, dbMeta, etc.)
@@ -133,9 +133,10 @@ src/
 
 ### Key Technologies
 
-- **React 18.3.1** with functional components and hooks
+- **React 18.2.0** with functional components and hooks
 - **TypeScript 4.9.5**
-- **Redux 4.2.1** + **Redux-Observable 1.2.0** (RxJS 6.6.7)
+- **Redux 4.2.1** + **Redux-Observable 2.0.0** (RxJS 7.8.1)
+- **@reduxjs/toolkit 2.11.1**
 - **neo4j-driver 6.0.1** for database connectivity
 - **styled-components 5.3.3** for styling
 - **Monaco Editor 0.55.0** for code editing
@@ -196,14 +197,110 @@ yarn jest path/to/test.test.tsx
 yarn jest path/to/test.test.tsx --watch
 ```
 
+### Using the Bus (react-suber)
+
+For components that need access to the Suber event bus:
+
+```typescript
+import { useBus } from 'browser-hooks/useBus'
+
+const MyComponent = () => {
+  const bus = useBus()
+
+  const handleAction = () => {
+    bus.send('EVENT_NAME', data)
+    bus.self('EVENT_NAME', data, callback)
+  }
+}
+```
+
+The `BusContext` is provided in `AppInit.tsx`.
+
+### CypherEditor Refs
+
+When using `CypherEditor` with refs:
+
+```typescript
+import { CypherEditor, CypherEditorHandle } from 'neo4j-arc/cypher-language-support'
+
+const editorRef = useRef<CypherEditorHandle>(null)
+
+// Available methods:
+editorRef.current?.focus()
+editorRef.current?.getValue()
+editorRef.current?.setValue(value)
+editorRef.current?.setPosition({ lineNumber, column })
+editorRef.current?.resize(fillContainer)
+```
+
 ## Important Notes
 
-- **Monaco Editor**: Never import `monaco-editor` directly; use the configured paths
+- **Monaco Editor**: Never import `monaco-editor` directly; use the configured paths. The editor disables `occurrencesHighlight` to prevent cleanup errors.
 - **ESLint**: The codebase uses both Babel and TypeScript parsers (see .eslintrc.json overrides)
 - **Node Version**: Requires Node >= 20.19.0
 - **Pre-commit**: Husky + lint-staged runs prettier-eslint on changed files
 - **Neo4j Desktop Integration**: Configured via `neo4jDesktop` in package.json (API version ^1.4.0)
+- **All components use functional patterns**: Class components have been migrated to functional components with hooks
+
+## Component Patterns
+
+### Functional Components with Redux
+
+Replace `connect` HOC with hooks:
+
+```typescript
+// Before (class component)
+const mapStateToProps = (state) => ({ value: getValue(state) })
+const mapDispatchToProps = { action }
+export default connect(mapStateToProps, mapDispatchToProps)(MyComponent)
+
+// After (functional component)
+import { useSelector, useDispatch } from 'react-redux'
+
+const MyComponent = () => {
+  const value = useSelector(getValue)
+  const dispatch = useDispatch()
+
+  const handleAction = () => dispatch(action())
+}
+```
+
+### Memoization for Performance
+
+Use `React.memo` with custom comparator for expensive components:
+
+```typescript
+const MyComponent = React.memo(
+  (props) => { /* ... */ },
+  (prevProps, nextProps) => {
+    return prevProps.key === nextProps.key
+  }
+)
+```
+
+### Monaco Editor Cleanup
+
+When using Monaco Editor in functional components, ensure proper cleanup:
+
+```typescript
+useLayoutEffect(() => {
+  const editor = monaco.editor.create(container, options)
+
+  return () => {
+    // Cancel pending operations first
+    debouncedFn?.cancel()
+
+    // Dispose in try-catch (Monaco may throw "Canceled" errors)
+    try {
+      editor.dispose()
+    } catch {
+      // Safe to ignore Monaco disposal errors
+    }
+  }
+}, [])
+```
 
 ## Additional Documentation
 
 - **BOLT Connection Architecture**: See `docs/BOLT_CONNECTION_ARCHITECTURE.md` for detailed documentation on neo4j-driver integration, connection lifecycle, Redux ducks, epics, workers, and improvement patterns.
+- **Class to Functional Migration**: See `docs/CLASS_TO_FUNCTIONAL_MIGRATION_PLAN.md` and `docs/CLASS_TO_FUNCTIONAL_MIGRATION_CHECKLIST.md` for migration documentation.
