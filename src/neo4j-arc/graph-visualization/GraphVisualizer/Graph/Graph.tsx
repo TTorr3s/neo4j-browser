@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   BasicNode,
@@ -77,78 +77,123 @@ export type GraphProps = {
   onGraphInteraction?: GraphInteractionCallBack
 }
 
-type GraphState = {
-  zoomInLimitReached: boolean
-  zoomOutLimitReached: boolean
-  displayingWheelZoomInfoMessage: boolean
-}
+export function Graph({
+  isFullscreen,
+  relationships,
+  nodes,
+  getNodeNeighbours,
+  onItemMouseOver,
+  onItemSelect,
+  graphStyle,
+  styleVersion,
+  onGraphModelChange,
+  assignVisElement,
+  autocompleteRelationships,
+  getAutoCompleteCallback,
+  setGraph,
+  offset,
+  wheelZoomRequiresModKey,
+  wheelZoomInfoMessageEnabled,
+  disableWheelZoomInfoMessage,
+  initialZoomToFit,
+  onGraphInteraction
+}: GraphProps): JSX.Element {
+  // State
+  const [zoomInLimitReached, setZoomInLimitReached] = useState(false)
+  const [zoomOutLimitReached, setZoomOutLimitReached] = useState(false)
+  const [displayingWheelZoomInfoMessage, setDisplayingWheelZoomInfoMessage] =
+    useState(false)
 
-export class Graph extends React.Component<GraphProps, GraphState> {
-  svgElement: React.RefObject<SVGSVGElement>
-  wrapperElement: React.RefObject<HTMLDivElement>
-  wrapperResizeObserver: ResizeObserver
-  visualization: Visualization | null = null
+  // Refs
+  const svgRef = useRef<SVGSVGElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const visualizationRef = useRef<Visualization | null>(null)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
 
-  constructor(props: GraphProps) {
-    super(props)
-    this.state = {
-      zoomInLimitReached: false,
-      zoomOutLimitReached: false,
-      displayingWheelZoomInfoMessage: false
-    }
-    this.svgElement = React.createRef()
-    this.wrapperElement = React.createRef()
+  // Store current props in refs for use in callbacks that shouldn't trigger re-initialization
+  const isFullscreenRef = useRef(isFullscreen)
+  const wheelZoomRequiresModKeyRef = useRef(wheelZoomRequiresModKey)
 
-    this.wrapperResizeObserver = new ResizeObserver(() => {
-      this.visualization?.resize(
-        this.props.isFullscreen,
-        !!this.props.wheelZoomRequiresModKey
-      )
+  // Keep refs in sync with props
+  useEffect(() => {
+    isFullscreenRef.current = isFullscreen
+  }, [isFullscreen])
+
+  useEffect(() => {
+    wheelZoomRequiresModKeyRef.current = wheelZoomRequiresModKey
+  }, [wheelZoomRequiresModKey])
+
+  // Zoom event handler
+  const handleZoomEvent = useCallback((limitsReached: ZoomLimitsReached) => {
+    setZoomInLimitReached(prev => {
+      if (prev !== limitsReached.zoomInLimitReached) {
+        return limitsReached.zoomInLimitReached
+      }
+      return prev
     })
-  }
+    setZoomOutLimitReached(prev => {
+      if (prev !== limitsReached.zoomOutLimitReached) {
+        return limitsReached.zoomOutLimitReached
+      }
+      return prev
+    })
+  }, [])
 
-  componentDidMount(): void {
-    const {
-      assignVisElement,
-      autocompleteRelationships,
-      getAutoCompleteCallback,
-      getNodeNeighbours,
-      graphStyle,
-      initialZoomToFit,
-      isFullscreen,
-      nodes,
-      onGraphInteraction,
-      onGraphModelChange,
-      onItemMouseOver,
-      onItemSelect,
-      relationships,
-      setGraph,
-      wheelZoomRequiresModKey
-    } = this.props
+  // Wheel zoom info message handler - uses refs to avoid stale closure
+  const handleDisplayZoomWheelInfoMessage = useCallback(() => {
+    setDisplayingWheelZoomInfoMessage(prev => {
+      if (
+        !prev &&
+        wheelZoomRequiresModKeyRef.current &&
+        wheelZoomInfoMessageEnabled
+      ) {
+        return true
+      }
+      return prev
+    })
+  }, [wheelZoomInfoMessageEnabled])
 
-    if (!this.svgElement.current) return
+  // Zoom button handlers
+  const zoomInClicked = useCallback(() => {
+    visualizationRef.current?.zoomByType(ZoomType.IN)
+  }, [])
+
+  const zoomOutClicked = useCallback(() => {
+    visualizationRef.current?.zoomByType(ZoomType.OUT)
+  }, [])
+
+  const zoomToFitClicked = useCallback(() => {
+    visualizationRef.current?.zoomByType(ZoomType.FIT)
+  }, [])
+
+  // D3 Visualization initialization (runs once on mount)
+  useEffect(() => {
+    if (!svgRef.current) return
+
+    const svgElement = svgRef.current
 
     const measureSize = () => ({
-      width: this.svgElement.current?.parentElement?.clientWidth ?? 200,
-      height: this.svgElement.current?.parentElement?.clientHeight ?? 200
+      width: svgElement.parentElement?.clientWidth ?? 200,
+      height: svgElement.parentElement?.clientHeight ?? 200
     })
 
     const graph = createGraph(nodes, relationships)
-    this.visualization = new Visualization(
-      this.svgElement.current,
+    const visualization = new Visualization(
+      svgElement,
       measureSize,
-      this.handleZoomEvent,
-      this.handleDisplayZoomWheelInfoMessage,
+      handleZoomEvent,
+      handleDisplayZoomWheelInfoMessage,
       graph,
       graphStyle,
       isFullscreen,
       wheelZoomRequiresModKey,
       initialZoomToFit
     )
+    visualizationRef.current = visualization
 
     const graphEventHandler = new GraphEventHandlerModel(
       graph,
-      this.visualization,
+      visualization,
       getNodeNeighbours,
       onItemMouseOver,
       onItemSelect,
@@ -158,33 +203,34 @@ export class Graph extends React.Component<GraphProps, GraphState> {
     graphEventHandler.bindEventHandlers()
 
     onGraphModelChange(getGraphStats(graph))
-    this.visualization.resize(isFullscreen, !!wheelZoomRequiresModKey)
+    visualization.resize(isFullscreen, !!wheelZoomRequiresModKey)
 
     if (setGraph) {
       setGraph(graph)
     }
+
     if (autocompleteRelationships) {
       getAutoCompleteCallback(
         (internalRelationships: BasicRelationship[], initialRun: boolean) => {
           if (initialRun) {
-            this.visualization?.init()
+            visualization.init()
             graph.addInternalRelationships(
               mapRelationships(internalRelationships, graph)
             )
             onGraphModelChange(getGraphStats(graph))
-            this.visualization?.update({
+            visualization.update({
               updateNodes: false,
               updateRelationships: true,
               restartSimulation: false
             })
-            this.visualization?.precomputeAndStart()
+            visualization.precomputeAndStart()
             graphEventHandler.onItemMouseOut()
           } else {
             graph.addInternalRelationships(
               mapRelationships(internalRelationships, graph)
             )
             onGraphModelChange(getGraphStats(graph))
-            this.visualization?.update({
+            visualization.update({
               updateNodes: false,
               updateRelationships: true,
               restartSimulation: false
@@ -193,120 +239,73 @@ export class Graph extends React.Component<GraphProps, GraphState> {
         }
       )
     } else {
-      this.visualization?.init()
-      this.visualization?.precomputeAndStart()
+      visualization.init()
+      visualization.precomputeAndStart()
     }
+
     if (assignVisElement) {
-      assignVisElement(this.svgElement.current, this.visualization)
+      assignVisElement(svgElement, visualization)
     }
 
-    this.wrapperResizeObserver.observe(this.svgElement.current)
-  }
-
-  componentDidUpdate(prevProps: GraphProps): void {
-    if (this.props.isFullscreen !== prevProps.isFullscreen) {
-      this.visualization?.resize(
-        this.props.isFullscreen,
-        !!this.props.wheelZoomRequiresModKey
+    // Setup ResizeObserver
+    resizeObserverRef.current = new ResizeObserver(() => {
+      visualizationRef.current?.resize(
+        isFullscreenRef.current,
+        !!wheelZoomRequiresModKeyRef.current
       )
+    })
+    resizeObserverRef.current.observe(svgElement)
+
+    // Cleanup
+    return () => {
+      resizeObserverRef.current?.disconnect()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount - dependencies are intentionally captured at mount time
 
-    if (this.props.styleVersion !== prevProps.styleVersion) {
-      this.visualization?.update({
-        updateNodes: true,
-        updateRelationships: true,
-        restartSimulation: false
-      })
-    }
-  }
+  // Handle isFullscreen changes
+  useEffect(() => {
+    visualizationRef.current?.resize(isFullscreen, !!wheelZoomRequiresModKey)
+  }, [isFullscreen, wheelZoomRequiresModKey])
 
-  componentWillUnmount(): void {
-    this.wrapperResizeObserver.disconnect()
-  }
+  // Handle style version changes
+  useEffect(() => {
+    visualizationRef.current?.update({
+      updateNodes: true,
+      updateRelationships: true,
+      restartSimulation: false
+    })
+  }, [styleVersion])
 
-  handleZoomEvent = (limitsReached: ZoomLimitsReached): void => {
-    if (
-      limitsReached.zoomInLimitReached !== this.state.zoomInLimitReached ||
-      limitsReached.zoomOutLimitReached !== this.state.zoomOutLimitReached
-    ) {
-      this.setState({
-        zoomInLimitReached: limitsReached.zoomInLimitReached,
-        zoomOutLimitReached: limitsReached.zoomOutLimitReached
-      })
-    }
-  }
-
-  handleDisplayZoomWheelInfoMessage = (): void => {
-    if (
-      !this.state.displayingWheelZoomInfoMessage &&
-      this.props.wheelZoomRequiresModKey &&
-      this.props.wheelZoomInfoMessageEnabled
-    ) {
-      this.displayZoomWheelInfoMessage(true)
-    }
-  }
-
-  displayZoomWheelInfoMessage = (display: boolean): void => {
-    this.setState({ displayingWheelZoomInfoMessage: display })
-  }
-
-  zoomInClicked = (): void => {
-    this.visualization?.zoomByType(ZoomType.IN)
-  }
-
-  zoomOutClicked = (): void => {
-    this.visualization?.zoomByType(ZoomType.OUT)
-  }
-
-  zoomToFitClicked = (): void => {
-    this.visualization?.zoomByType(ZoomType.FIT)
-  }
-
-  render(): JSX.Element {
-    const {
-      offset,
-      isFullscreen,
-      wheelZoomInfoMessageEnabled,
-      disableWheelZoomInfoMessage
-    } = this.props
-    const {
-      zoomInLimitReached,
-      zoomOutLimitReached,
-      displayingWheelZoomInfoMessage
-    } = this.state
-    return (
-      <StyledSvgWrapper ref={this.wrapperElement}>
-        <svg className="neod3viz" ref={this.svgElement} />
-        <StyledZoomHolder offset={offset} isFullscreen={isFullscreen}>
-          <StyledZoomButton
-            aria-label={'zoom-in'}
-            className={'zoom-in'}
-            disabled={zoomInLimitReached}
-            onClick={this.zoomInClicked}
-          >
-            <ZoomInIcon large={isFullscreen} />
-          </StyledZoomButton>
-          <StyledZoomButton
-            aria-label={'zoom-out'}
-            className={'zoom-out'}
-            disabled={zoomOutLimitReached}
-            onClick={this.zoomOutClicked}
-          >
-            <ZoomOutIcon large={isFullscreen} />
-          </StyledZoomButton>
-          <StyledZoomButton
-            aria-label={'zoom-to-fit'}
-            onClick={this.zoomToFitClicked}
-          >
-            <ZoomToFitIcon large={isFullscreen} />
-          </StyledZoomButton>
-        </StyledZoomHolder>
-        {wheelZoomInfoMessageEnabled && displayingWheelZoomInfoMessage && (
-          <WheelZoomInfoOverlay
-            onDisableWheelZoomInfoMessage={disableWheelZoomInfoMessage}
-          />
-        )}
-      </StyledSvgWrapper>
-    )
-  }
+  return (
+    <StyledSvgWrapper ref={wrapperRef}>
+      <svg className="neod3viz" ref={svgRef} />
+      <StyledZoomHolder offset={offset} isFullscreen={isFullscreen}>
+        <StyledZoomButton
+          aria-label={'zoom-in'}
+          className={'zoom-in'}
+          disabled={zoomInLimitReached}
+          onClick={zoomInClicked}
+        >
+          <ZoomInIcon large={isFullscreen} />
+        </StyledZoomButton>
+        <StyledZoomButton
+          aria-label={'zoom-out'}
+          className={'zoom-out'}
+          disabled={zoomOutLimitReached}
+          onClick={zoomOutClicked}
+        >
+          <ZoomOutIcon large={isFullscreen} />
+        </StyledZoomButton>
+        <StyledZoomButton aria-label={'zoom-to-fit'} onClick={zoomToFitClicked}>
+          <ZoomToFitIcon large={isFullscreen} />
+        </StyledZoomButton>
+      </StyledZoomHolder>
+      {wheelZoomInfoMessageEnabled && displayingWheelZoomInfoMessage && (
+        <WheelZoomInfoOverlay
+          onDisableWheelZoomInfoMessage={disableWheelZoomInfoMessage}
+        />
+      )}
+    </StyledSvgWrapper>
+  )
 }
