@@ -17,7 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component, TransitionEvent } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  TransitionEvent
+} from 'react'
 
 import {
   StyledBottomNav,
@@ -59,164 +65,148 @@ interface NavigationProps {
   bottomNavItems?: NavItem[]
 }
 
-interface NavigationState {
-  transitionState: DrawerTransitionState
-  closingDrawerName: string | null
-  isResizing: boolean
-}
+const Navigation: React.FC<NavigationProps> = ({
+  selectedDrawerName,
+  onNavClick,
+  topNavItems,
+  bottomNavItems = []
+}) => {
+  const [transitionState, setTransitionState] = useState<DrawerTransitionState>(
+    selectedDrawerName ? Open : Closed
+  )
+  const [closingDrawerName, setClosingDrawerName] = useState<string | null>(
+    null
+  )
+  const [isResizing, setIsResizing] = useState(false)
 
-class Navigation extends Component<NavigationProps, NavigationState> {
-  state: NavigationState = {
-    transitionState: this.props.selectedDrawerName ? Open : Closed,
-    closingDrawerName: null,
-    isResizing: false
-  }
+  // Use ref to track previous selectedDrawerName for transition logic
+  const prevSelectedDrawerNameRef = useRef<string | null>(selectedDrawerName)
 
-  componentDidUpdate(
-    prevProps: NavigationProps,
-    prevState: NavigationState
-  ): void {
-    let closingDrawerName: string | null = null
-    let newTransitionState: DrawerTransitionState = prevState.transitionState
-    if (prevProps.selectedDrawerName !== this.props.selectedDrawerName) {
-      if (this.props.selectedDrawerName) {
-        if (
-          prevState.transitionState === Closed ||
-          prevState.transitionState === Closing
-        ) {
-          newTransitionState = Opening
-          closingDrawerName = null
+  useEffect(() => {
+    const prevSelectedDrawerName = prevSelectedDrawerNameRef.current
+
+    if (prevSelectedDrawerName !== selectedDrawerName) {
+      if (selectedDrawerName) {
+        // Opening drawer
+        if (transitionState === Closed || transitionState === Closing) {
+          setTransitionState(Opening)
+          setClosingDrawerName(null)
         }
       } else {
-        if (
-          prevState.transitionState === Open ||
-          prevState.transitionState === Opening
-        ) {
-          newTransitionState = Closing
-          closingDrawerName = prevProps.selectedDrawerName
+        // Closing drawer
+        if (transitionState === Open || transitionState === Opening) {
+          setTransitionState(Closing)
+          setClosingDrawerName(prevSelectedDrawerName)
         }
       }
-      this.setState({
-        transitionState: newTransitionState,
-        closingDrawerName: closingDrawerName
-      })
-    }
-  }
-
-  onTransitionEnd = (event: TransitionEvent<HTMLDivElement>): void => {
-    if (event.propertyName !== 'width') {
-      return
     }
 
-    if (this.state.transitionState === Closing) {
-      this.setState({
-        transitionState: Closed
-      })
-    }
-    if (this.state.transitionState === Opening) {
-      this.setState({
-        transitionState: Open
-      })
-    }
-  }
+    prevSelectedDrawerNameRef.current = selectedDrawerName
+  }, [selectedDrawerName, transitionState])
 
-  render(): JSX.Element {
-    const { onNavClick, topNavItems, bottomNavItems = [] } = this.props
-
-    const buildNavList = (
-      list: NavItem[],
-      selectedDrawerName?: null | string
-    ) =>
-      list.map(item => {
-        const isOpen = item.name.toLowerCase() === selectedDrawerName
-        return (
-          <NavigationButtonContainer
-            key={item.name}
-            title={item.title}
-            data-testid={`navigation${item.name}`}
-            onClick={() => onNavClick(item.name.toLowerCase())}
-            isOpen={isOpen}
-          >
-            <StyledNavigationButton name={item.name}>
-              {item.icon(isOpen)}
-            </StyledNavigationButton>
-          </NavigationButtonContainer>
-        )
-      })
-
-    const getContentToShow = (selectedDrawerName?: null | string) => {
-      if (selectedDrawerName) {
-        const filteredList = topNavItems
-          .concat(bottomNavItems)
-          .filter(item => item.name.toLowerCase() === selectedDrawerName)
-        const TabContent = filteredList[0].content
-        return <TabContent />
+  const onTransitionEnd = useCallback(
+    (event: TransitionEvent<HTMLDivElement>): void => {
+      if (event.propertyName !== 'width') {
+        return
       }
-      return null
-    }
-    const topNavItemsList = buildNavList(
-      topNavItems,
-      this.props.selectedDrawerName
-    )
-    const bottomNavItemsList = buildNavList(
-      bottomNavItems,
-      this.props.selectedDrawerName
-    )
 
-    const drawerIsVisible = this.state.transitionState !== Closed
+      if (transitionState === Closing) {
+        setTransitionState(Closed)
+      }
+      if (transitionState === Opening) {
+        setTransitionState(Open)
+      }
+    },
+    [transitionState]
+  )
 
-    const drawerWidth = STANDARD_DRAWER_WIDTH
-    const isOpenOrOpening =
-      this.state.transitionState === Open ||
-      this.state.transitionState === Opening
-    const width = isOpenOrOpening ? drawerWidth : 0
+  const handleResizeStart = useCallback(() => {
+    setIsResizing(true)
+  }, [])
 
-    return (
-      <StyledSidebar>
-        <StyledTabsWrapper>
-          <StyledTopNav>{topNavItemsList}</StyledTopNav>
-          <StyledBottomNav>{bottomNavItemsList}</StyledBottomNav>
-        </StyledTabsWrapper>
+  const handleResizeStop = useCallback(() => {
+    setIsResizing(false)
+  }, [])
 
-        <StyledDrawer
-          onTransitionEnd={this.onTransitionEnd}
-          style={{
-            width: this.state.isResizing ? 'unset' : width
-          }}
+  const buildNavList = (
+    list: NavItem[],
+    currentSelectedDrawerName?: null | string
+  ) =>
+    list.map(item => {
+      const isOpen = item.name.toLowerCase() === currentSelectedDrawerName
+      return (
+        <NavigationButtonContainer
+          key={item.name}
+          title={item.title}
+          data-testid={`navigation${item.name}`}
+          onClick={() => onNavClick(item.name.toLowerCase())}
+          isOpen={isOpen}
         >
-          <Resizable
-            minWidth={0}
-            maxWidth={'70vw'}
-            size={{ width: width, height: '100%' }}
-            onResizeStart={() => {
-              this.setState({ isResizing: true })
-            }}
-            onResizeStop={(_e, _direction, _ref, _d) => {
-              this.setState({
-                isResizing: false
-              })
-            }}
-            enable={{
-              top: false,
-              right: false,
-              bottom: false,
-              left: false,
-              topRight: false,
-              bottomRight: false,
-              bottomLeft: false,
-              topLeft: false
-            }}
-            style={{ zIndex: 100 }}
-          >
-            {drawerIsVisible &&
-              getContentToShow(
-                this.props.selectedDrawerName || this.state.closingDrawerName
-              )}
-          </Resizable>
-        </StyledDrawer>
-      </StyledSidebar>
-    )
+          <StyledNavigationButton name={item.name}>
+            {item.icon(isOpen)}
+          </StyledNavigationButton>
+        </NavigationButtonContainer>
+      )
+    })
+
+  const getContentToShow = (drawerName?: null | string) => {
+    if (drawerName) {
+      const filteredList = topNavItems
+        .concat(bottomNavItems)
+        .filter(item => item.name.toLowerCase() === drawerName)
+      const TabContent = filteredList[0].content
+      return <TabContent />
+    }
+    return null
   }
+
+  const topNavItemsList = buildNavList(topNavItems, selectedDrawerName)
+  const bottomNavItemsList = buildNavList(bottomNavItems, selectedDrawerName)
+
+  const drawerIsVisible = transitionState !== Closed
+
+  const drawerWidth = STANDARD_DRAWER_WIDTH
+  const isOpenOrOpening =
+    transitionState === Open || transitionState === Opening
+  const width = isOpenOrOpening ? drawerWidth : 0
+
+  return (
+    <StyledSidebar>
+      <StyledTabsWrapper>
+        <StyledTopNav>{topNavItemsList}</StyledTopNav>
+        <StyledBottomNav>{bottomNavItemsList}</StyledBottomNav>
+      </StyledTabsWrapper>
+
+      <StyledDrawer
+        onTransitionEnd={onTransitionEnd}
+        style={{
+          width: isResizing ? 'unset' : width
+        }}
+      >
+        <Resizable
+          minWidth={0}
+          maxWidth={'70vw'}
+          size={{ width: width, height: '100%' }}
+          onResizeStart={handleResizeStart}
+          onResizeStop={handleResizeStop}
+          enable={{
+            top: false,
+            right: false,
+            bottom: false,
+            left: false,
+            topRight: false,
+            bottomRight: false,
+            bottomLeft: false,
+            topLeft: false
+          }}
+          style={{ zIndex: 100 }}
+        >
+          {drawerIsVisible &&
+            getContentToShow(selectedDrawerName || closingDrawerName)}
+        </Resizable>
+      </StyledDrawer>
+    </StyledSidebar>
+  )
 }
 
 export default Navigation

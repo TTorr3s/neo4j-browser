@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React from 'react'
 
 import { Link, StyledKey, StyledTable, StyledValue } from './styled'
 import {
@@ -26,82 +26,76 @@ import {
   DrawerSubHeader
 } from 'browser-components/drawer/drawer-styled'
 
-export class UserDetails extends Component<any> {
-  render() {
-    const userDetails = this.props.user
-    const roles = userDetails && userDetails.roles ? userDetails.roles : []
-    if (userDetails.username) {
-      const mappedRoles = roles.length > 0 ? roles.join(', ') : '-'
-      const hasAdminRole = roles
-        .map((role: any) => role.toLowerCase())
-        .includes('admin')
-      return (
-        <DrawerSection className="user-details">
-          <DrawerSubHeader>Connected as</DrawerSubHeader>
-          <DrawerSectionBody>
-            <StyledTable>
-              <tbody>
+interface UserDetailsProps {
+  user: {
+    username?: string
+    roles?: string[]
+  }
+  onItemClick: (command: string) => void
+}
+
+export function UserDetails({ user, onItemClick }: UserDetailsProps) {
+  const userDetails = user
+  const roles = userDetails && userDetails.roles ? userDetails.roles : []
+
+  if (!userDetails.username) {
+    return null
+  }
+
+  const mappedRoles = roles.length > 0 ? roles.join(', ') : '-'
+  const hasAdminRole = roles
+    .map((role: string) => role.toLowerCase())
+    .includes('admin')
+
+  return (
+    <DrawerSection className="user-details">
+      <DrawerSubHeader>Connected as</DrawerSubHeader>
+      <DrawerSectionBody>
+        <StyledTable>
+          <tbody>
+            <tr>
+              <StyledKey>Username:</StyledKey>
+              <StyledValue data-testid="user-details-username">
+                {userDetails.username}
+              </StyledValue>
+            </tr>
+            <tr>
+              <StyledKey>Roles:</StyledKey>
+              <StyledValue data-testid="user-details-roles">
+                {mappedRoles}
+              </StyledValue>
+            </tr>
+            {hasAdminRole && (
+              <>
                 <tr>
-                  <StyledKey>Username:</StyledKey>
-                  <StyledValue data-testid="user-details-username">
-                    {userDetails.username}
-                  </StyledValue>
-                </tr>
-                <tr>
-                  <StyledKey>Roles:</StyledKey>
-                  <StyledValue data-testid="user-details-roles">
-                    {mappedRoles}
-                  </StyledValue>
-                </tr>
-                {hasAdminRole && (
-                  <>
-                    <tr>
-                      <StyledKey className="user-list-button">Admin:</StyledKey>
-                      <StyledValue>
-                        <Link
-                          onClick={() =>
-                            this.props.onItemClick(':server user list')
-                          }
-                        >
-                          :server user list
-                        </Link>
-                      </StyledValue>
-                    </tr>
-                    <tr>
-                      <StyledKey className="user-list-button" />
-                      <StyledValue>
-                        <Link
-                          onClick={() =>
-                            this.props.onItemClick(':server user add')
-                          }
-                        >
-                          :server user add
-                        </Link>
-                      </StyledValue>
-                    </tr>
-                  </>
-                )}
-                <tr>
-                  <StyledKey className="user-list-button">
-                    Disconnect:
-                  </StyledKey>
+                  <StyledKey className="user-list-button">Admin:</StyledKey>
                   <StyledValue>
-                    <Link
-                      onClick={() =>
-                        this.props.onItemClick(':server disconnect')
-                      }
-                    >
-                      :server disconnect
+                    <Link onClick={() => onItemClick(':server user list')}>
+                      :server user list
                     </Link>
                   </StyledValue>
                 </tr>
-              </tbody>
-            </StyledTable>
-          </DrawerSectionBody>
-        </DrawerSection>
-      )
-    } else {
-      return null
-    }
-  }
+                <tr>
+                  <StyledKey className="user-list-button" />
+                  <StyledValue>
+                    <Link onClick={() => onItemClick(':server user add')}>
+                      :server user add
+                    </Link>
+                  </StyledValue>
+                </tr>
+              </>
+            )}
+            <tr>
+              <StyledKey className="user-list-button">Disconnect:</StyledKey>
+              <StyledValue>
+                <Link onClick={() => onItemClick(':server disconnect')}>
+                  :server disconnect
+                </Link>
+              </StyledValue>
+            </tr>
+          </tbody>
+        </StyledTable>
+      </DrawerSectionBody>
+    </DrawerSection>
+  )
 }

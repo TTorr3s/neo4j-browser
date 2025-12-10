@@ -19,14 +19,23 @@
  */
 import { render } from '@testing-library/react'
 import React from 'react'
+import { Provider } from 'react-redux'
+import { createStore } from 'redux'
 
 import { Consumer, FeatureToggleProvider } from './FeatureToggleProvider'
+import { NAME as EXPERIMENTAL_FEATURES_NAME } from 'shared/modules/experimentalFeatures/experimentalFeaturesDuck'
+
+const createMockStore = (features: Record<string, { on: boolean }>) => {
+  return createStore(() => ({
+    [EXPERIMENTAL_FEATURES_NAME]: features
+  }))
+}
 
 const MyConsumer = () => {
   return (
     <h1>
       <Consumer>
-        {(showFeature: any) => {
+        {(showFeature: (name: string) => boolean) => {
           return showFeature('testFeature') ? 'Yes' : 'No'
         }}
       </Consumer>
@@ -41,10 +50,13 @@ describe('FeatureToggleProvider', () => {
       testFeature: { on: true },
       anotherFeature: { on: false }
     }
+    const store = createMockStore(features)
     const { getByText, queryByText } = render(
-      <FeatureToggleProvider features={features}>
-        <MyConsumer />
-      </FeatureToggleProvider>
+      <Provider store={store}>
+        <FeatureToggleProvider>
+          <MyConsumer />
+        </FeatureToggleProvider>
+      </Provider>
     )
 
     // Then
@@ -57,10 +69,13 @@ describe('FeatureToggleProvider', () => {
       testFeature: { on: false },
       anotherFeature: { on: true }
     }
+    const store = createMockStore(features)
     const { getByText, queryByText } = render(
-      <FeatureToggleProvider features={features}>
-        <MyConsumer />
-      </FeatureToggleProvider>
+      <Provider store={store}>
+        <FeatureToggleProvider>
+          <MyConsumer />
+        </FeatureToggleProvider>
+      </Provider>
     )
 
     // Then
@@ -70,10 +85,13 @@ describe('FeatureToggleProvider', () => {
   test('returns true for unknown features', () => {
     // Given
     const features = { anotherFeature: { on: false } }
+    const store = createMockStore(features)
     const { getByText, queryByText } = render(
-      <FeatureToggleProvider features={features}>
-        <MyConsumer />
-      </FeatureToggleProvider>
+      <Provider store={store}>
+        <FeatureToggleProvider>
+          <MyConsumer />
+        </FeatureToggleProvider>
+      </Provider>
     )
 
     // Then

@@ -76,7 +76,6 @@ import {
   CONNECTION_ID,
   INJECTED_DISCOVERY
 } from 'shared/modules/discovery/discoveryDuck'
-import { getExperimentalFeatures } from 'shared/modules/experimentalFeatures/experimentalFeaturesDuck'
 import {
   LIGHT_THEME,
   codeFontLigatures,
@@ -153,7 +152,6 @@ export function App(props: any) {
     defaultConnectionData,
     drawer,
     errorMessage,
-    experimentalFeatures,
     handleNavClick,
     lastConnectionUpdate,
     loadExternalScripts,
@@ -220,7 +218,7 @@ export function App(props: any) {
       />
       <PerformanceOverlay />
       <ThemeProvider theme={themeData}>
-        <FeatureToggleProvider features={experimentalFeatures}>
+        <FeatureToggleProvider>
           <FileDrop store={store}>
             <StyledWrapper className={wrapperClassNames}>
               <UserInteraction />
@@ -277,7 +275,6 @@ const mapStateToProps = (state: GlobalState) => {
 
   const connectionData = getActiveConnectionData(state)
   return {
-    experimentalFeatures: getExperimentalFeatures(state),
     drawer: getOpenDrawer(state),
     activeConnection: getActiveConnection(state),
     theme: getTheme(state),

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React, { useState } from 'react'
 import styled from 'styled-components'
 
 import { CancelIcon, MinusIcon, RightArrowIcon } from '../icons/LegacyIcons'
@@ -31,8 +31,6 @@ const IconButton = styled.button`
   }
 `
 
-type State = any
-
 interface ConfirmationButtonProps {
   onConfirmed: () => void
   confirmIcon?: JSX.Element
@@ -40,55 +38,42 @@ interface ConfirmationButtonProps {
   requestIcon?: JSX.Element
 }
 
-export class ConfirmationButton extends Component<
-  ConfirmationButtonProps,
-  State
-> {
-  cancelIcon: any
-  confirmIcon: any
-  requestIcon: any
-  constructor(props: ConfirmationButtonProps) {
-    super(props)
+export function ConfirmationButton({
+  onConfirmed,
+  confirmIcon = <RightArrowIcon />,
+  cancelIcon = <CancelIcon />,
+  requestIcon = <MinusIcon />
+}: ConfirmationButtonProps) {
+  const [requested, setRequested] = useState(false)
 
-    this.state = {
-      requested: false
-    }
-
-    this.confirmIcon = this.props.confirmIcon || <RightArrowIcon />
-    this.cancelIcon = this.props.cancelIcon || <CancelIcon />
-    this.requestIcon = this.props.requestIcon || <MinusIcon />
-  }
-
-  render() {
-    if (this.state.requested) {
-      return (
-        <span>
-          <IconButton
-            data-testid="confirmation-button-confirm"
-            onClick={() => {
-              this.setState({ requested: false })
-              this.props.onConfirmed()
-            }}
-          >
-            {this.confirmIcon}
-          </IconButton>
-          <IconButton
-            data-testid="confirmation-button-cancel"
-            onClick={() => this.setState({ requested: false })}
-          >
-            {this.cancelIcon}
-          </IconButton>
-        </span>
-      )
-    } else {
-      return (
+  if (requested) {
+    return (
+      <span>
         <IconButton
-          data-testid="confirmation-button-initial"
-          onClick={() => this.setState({ requested: true })}
+          data-testid="confirmation-button-confirm"
+          onClick={() => {
+            setRequested(false)
+            onConfirmed()
+          }}
         >
-          {this.requestIcon}
+          {confirmIcon}
         </IconButton>
-      )
-    }
+        <IconButton
+          data-testid="confirmation-button-cancel"
+          onClick={() => setRequested(false)}
+        >
+          {cancelIcon}
+        </IconButton>
+      </span>
+    )
   }
+
+  return (
+    <IconButton
+      data-testid="confirmation-button-initial"
+      onClick={() => setRequested(true)}
+    >
+      {requestIcon}
+    </IconButton>
+  )
 }

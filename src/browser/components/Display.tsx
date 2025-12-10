@@ -17,48 +17,49 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { PureComponent } from 'react'
+import React, {
+  useState,
+  useEffect,
+  memo,
+  CSSProperties,
+  ReactNode
+} from 'react'
 
-type State = any
+interface DisplayProps {
+  if: boolean
+  lazy?: boolean
+  inline?: boolean
+  style?: CSSProperties
+  children?: ReactNode
+}
 
-export default class Display extends PureComponent<
-  {
-    if: boolean
-    lazy?: boolean
-    inline?: boolean
-    style?: any
-    children?: React.ReactNode
-  },
-  State
-> {
-  state = {
-    mounted: false
-  }
+const Display = memo(function Display({
+  if: shouldShow,
+  lazy,
+  inline,
+  style = {},
+  children
+}: DisplayProps): JSX.Element | null {
+  const [mounted, setMounted] = useState(false)
 
-  componentDidMount() {
-    if (this.props.if) {
-      this.setState({ mounted: true })
+  useEffect(() => {
+    if (shouldShow && !mounted) {
+      setMounted(true)
     }
-  }
+  }, [shouldShow, mounted])
 
-  static getDerivedStateFromProps(props: any, state: any) {
-    if (state.mounted === false && props.if) {
-      return { mounted: true }
-    }
+  // If lazy, don't load anything until it's time
+  if (!shouldShow && !mounted && lazy) {
     return null
   }
 
-  render() {
-    // If lazy, don't load anything until it's time
-    if (!this.props.if && !this.state.mounted && this.props.lazy) {
-      return null
-    }
-    const { style = {}, children = [] } = this.props
-    const modStyle = {
-      ...style,
-      width: 'inherit',
-      display: !this.props.if ? 'none' : this.props.inline ? 'inline' : 'block'
-    }
-    return <div style={modStyle}>{children}</div>
+  const modStyle: CSSProperties = {
+    ...style,
+    width: 'inherit',
+    display: !shouldShow ? 'none' : inline ? 'inline' : 'block'
   }
-}
+
+  return <div style={modStyle}>{children}</div>
+})
+
+export default Display

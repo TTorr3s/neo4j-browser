@@ -25,7 +25,6 @@ import { Provider } from 'react-redux'
 
 import { initialState as initialMetaState } from 'shared/modules/dbMeta/dbMetaDuck'
 import { initialState as initialSettingsState } from 'shared/modules/settings/settingsDuck'
-import { createBus } from 'suber'
 import { DeepPartial } from 'shared/utils/deepPartial'
 import { notificationFilterMinimumSeverityLevel } from 'neo4j-driver-core'
 
@@ -35,9 +34,7 @@ const withProvider = (store: any, children: any) => {
 
 const mount = (props: DeepPartial<WarningsViewProps>, state?: any) => {
   const defaultProps: WarningsViewProps = {
-    result: null,
-    bus: createBus(),
-    gqlWarningsEnabled: false
+    result: null
   }
 
   const combinedProps = {

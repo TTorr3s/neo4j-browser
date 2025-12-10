@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React, { memo } from 'react'
 
 import { deepEquals } from 'neo4j-arc/common'
 import { ExclamationTriangleIcon } from 'browser-components/icons/LegacyIcons'
@@ -28,16 +28,15 @@ import { ErrorText } from 'project-root/src/browser/modules/Stream/styled'
 import { BrowserRequestResult } from 'project-root/src/shared/modules/requests/requestsDuck'
 import { BrowserError } from 'services/exceptions'
 
-type ErrorsStatusBarProps = {
+interface ErrorsStatusbarProps {
   result: BrowserRequestResult
 }
-export class ErrorsStatusbar extends Component<ErrorsStatusBarProps> {
-  shouldComponentUpdate(props: ErrorsStatusBarProps): boolean {
-    return !deepEquals(props.result, this.props.result)
-  }
 
-  render(): null | JSX.Element {
-    const error = this.props.result as BrowserError
+export const ErrorsStatusbar = memo(
+  function ErrorsStatusbar({
+    result
+  }: ErrorsStatusbarProps): JSX.Element | null {
+    const error = result as BrowserError
     if (!error || (!error.code && !error.message)) return null
     const fullError = errorMessageFormater(error.code, error.message)
 
@@ -48,5 +47,6 @@ export class ErrorsStatusbar extends Component<ErrorsStatusBarProps> {
         </ErrorText>
       </Ellipsis>
     )
-  }
-}
+  },
+  (prevProps, nextProps) => deepEquals(prevProps.result, nextProps.result)
+)

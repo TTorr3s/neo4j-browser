@@ -19,9 +19,18 @@
  */
 import { render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
+import { Provider } from 'react-redux'
+import { createStore } from 'redux'
 
 import FeatureToggle from './FeatureToggle'
 import { FeatureToggleProvider } from './FeatureToggleProvider'
+import { NAME as EXPERIMENTAL_FEATURES_NAME } from 'shared/modules/experimentalFeatures/experimentalFeaturesDuck'
+
+const createMockStore = (features: Record<string, { on: boolean }>) => {
+  return createStore(() => ({
+    [EXPERIMENTAL_FEATURES_NAME]: features
+  }))
+}
 
 const On = () => {
   return <h1>Yes</h1>
@@ -60,11 +69,14 @@ describe('FeatureToggle', () => {
   test('shows "on" features when context says so', () => {
     // Given
     const features = { testFeature: { on: true } }
+    const store = createMockStore(features)
 
     render(
-      <FeatureToggleProvider features={features}>
-        <FeatureToggle name="testFeature" on={<On />} off={<Off />} />
-      </FeatureToggleProvider>
+      <Provider store={store}>
+        <FeatureToggleProvider>
+          <FeatureToggle name="testFeature" on={<On />} off={<Off />} />
+        </FeatureToggleProvider>
+      </Provider>
     )
 
     // Then
@@ -74,11 +86,14 @@ describe('FeatureToggle', () => {
   test('shows "off" features when context says so', () => {
     // Given
     const features = { testFeature: { on: false } }
+    const store = createMockStore(features)
 
     render(
-      <FeatureToggleProvider features={features}>
-        <FeatureToggle name="testFeature" on={<On />} off={<Off />} />
-      </FeatureToggleProvider>
+      <Provider store={store}>
+        <FeatureToggleProvider>
+          <FeatureToggle name="testFeature" on={<On />} off={<Off />} />
+        </FeatureToggleProvider>
+      </Provider>
     )
 
     // Then
@@ -88,11 +103,14 @@ describe('FeatureToggle', () => {
   test('returns null if no "off" prop is availavle', () => {
     // Given
     const features = { testFeature: { on: false } }
+    const store = createMockStore(features)
 
     render(
-      <FeatureToggleProvider features={features}>
-        <FeatureToggle name="testFeature" on={<On />} />
-      </FeatureToggleProvider>
+      <Provider store={store}>
+        <FeatureToggleProvider>
+          <FeatureToggle name="testFeature" on={<On />} />
+        </FeatureToggleProvider>
+      </Provider>
     )
     // Then
 
@@ -105,13 +123,16 @@ describe('FeatureToggle', () => {
     console.error = () => {}
 
     const features = { testFeature: { on: true } }
+    const store = createMockStore(features)
 
     // When
     render(
       <ErrorB>
-        <FeatureToggleProvider features={features}>
-          <FeatureToggle name="testFeature" off={<Off />} />
-        </FeatureToggleProvider>
+        <Provider store={store}>
+          <FeatureToggleProvider>
+            <FeatureToggle name="testFeature" off={<Off />} />
+          </FeatureToggleProvider>
+        </Provider>
       </ErrorB>
     )
 
@@ -131,13 +152,16 @@ describe('FeatureToggle', () => {
     console.error = () => {}
 
     const features = { testFeature: { on: true } }
+    const store = createMockStore(features)
 
     // When
     render(
       <ErrorB>
-        <FeatureToggleProvider features={features}>
-          <FeatureToggle on={<On />} off={<Off />} />
-        </FeatureToggleProvider>
+        <Provider store={store}>
+          <FeatureToggleProvider>
+            <FeatureToggle on={<On />} off={<Off />} />
+          </FeatureToggleProvider>
+        </Provider>
       </ErrorB>
     )
 

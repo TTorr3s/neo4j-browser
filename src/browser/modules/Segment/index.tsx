@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Component } from 'react'
+import React, { useEffect, memo } from 'react'
 import { connect } from 'react-redux'
 
 import { canUseDOM } from 'services/utils'
@@ -38,21 +38,40 @@ export interface MetricsData {
   data: MetricsProperties
 }
 
-export class Segment extends Component<any> {
-  componentDidMount() {
-    const {
-      segmentKey,
-      setTrackCallback,
-      inDesktop,
-      updateData,
-      auraNtId,
-      desktopTrackingId,
-      children, // eslint-disable-line
-      ...otherProps
-    } = this.props
+interface SegmentOwnProps {
+  segmentKey: string
+  setTrackCallback: (callback: ((data: MetricsData) => void) | null) => void
+  [key: string]: unknown
+}
+
+interface SegmentStateProps {
+  inDesktop: boolean
+  auraNtId: string | undefined
+  desktopTrackingId: string | undefined
+}
+
+interface SegmentDispatchProps {
+  updateData: (data: Record<string, unknown>) => void
+}
+
+type SegmentProps = SegmentOwnProps & SegmentStateProps & SegmentDispatchProps
+
+const SegmentComponent: React.FC<SegmentProps> = ({
+  segmentKey,
+  setTrackCallback,
+  inDesktop,
+  updateData,
+  auraNtId,
+  desktopTrackingId,
+  children: _children, // eslint-disable-line
+  ...otherProps
+}) => {
+  // componentDidMount equivalent
+  useEffect(() => {
     if (!segmentKey || !canUseDOM()) {
       return
     }
+
     if (!(window as any).analytics) {
       ;(function (
         window: any,
@@ -137,48 +156,45 @@ export class Segment extends Component<any> {
       })(window, document, segmentKey)
     }
     updateData({ ...otherProps, segmentKey: segmentKey })
-  }
 
-  componentDidUpdate() {
-    const {
-      segmentKey,
-      updateData,
-      children, // eslint-disable-line
-      ...otherProps
-    } = this.props
-    if (!canUseDOM()) return
-    updateData({ ...otherProps, segmentKey: segmentKey })
-  }
-
-  shouldComponentUpdate() {
-    return false
-  }
-
-  componentWillUnmount() {
-    const { setTrackCallback } = this.props
-    setTrackCallback(null)
-    if (canUseDOM()) {
-      delete (window as any).analytics
+    // componentWillUnmount equivalent
+    return () => {
+      setTrackCallback(null)
+      if (canUseDOM()) {
+        delete (window as any).analytics
+      }
     }
-  }
+    // Empty dependency array: runs only on mount/unmount
+    // This replicates the original behavior where shouldComponentUpdate always returned false,
+    // meaning componentDidUpdate was never called after the initial mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  render() {
-    return null
-  }
+  return null
 }
 
-const mapStateToProps = (state: any) => ({
+// React.memo with custom comparison that always returns true
+// replicates shouldComponentUpdate always returning false
+// (never re-render due to prop changes)
+export const Segment = memo(SegmentComponent, () => true)
+
+const mapStateToProps = (state: any): SegmentStateProps => ({
   inDesktop: inDesktop(state),
   auraNtId: getAuraNtId(state),
   desktopTrackingId: getDesktopTrackingId(state)
 })
 
-const mapDispatchToProps = (dispatch: any) => {
+const mapDispatchToProps = (dispatch: any): SegmentDispatchProps => {
   return {
-    updateData: (data: any) => dispatch(updateUdcData(data))
+    updateData: (data: Record<string, unknown>) => dispatch(updateUdcData(data))
   }
 }
-export default connect<any, any, any, any>(
+
+export default connect<
+  SegmentStateProps,
+  SegmentDispatchProps,
+  SegmentOwnProps
+>(
   mapStateToProps,
   mapDispatchToProps
 )(Segment)

@@ -1,41 +1,43 @@
-import React from 'react'
-import { connect } from 'react-redux'
+import React, { useCallback, ReactNode, createContext } from 'react'
+import { useSelector } from 'react-redux'
 
 import { getExperimentalFeatures } from 'shared/modules/experimentalFeatures/experimentalFeaturesDuck'
+import { GlobalState } from 'shared/globalState'
 
-// @ts-expect-error ts-migrate(7009) FIXME: 'new' expression, whose target lacks a construct s... Remove this comment to see the full error message
-const FeatureToggleContext = new React.createContext(() => true)
+type ShowFeature = (featureName: string) => boolean
 
-class FeatureToggleProvider extends React.Component<any> {
-  showFeature = (featureName: any) => {
-    if (
-      !this.props.features ||
-      !this.props.features.hasOwnProperty(featureName)
-    ) {
-      return true
-    }
-    return !!this.props.features[featureName].on
-  }
+const FeatureToggleContext = createContext<ShowFeature>(() => true)
 
-  render() {
-    return (
-      <FeatureToggleContext.Provider value={this.showFeature}>
-        {this.props.children}
-      </FeatureToggleContext.Provider>
-    )
-  }
+interface FeatureToggleProviderProps {
+  children: ReactNode
 }
 
-const mapStateToProps = (state: any) => {
-  const features = getExperimentalFeatures(state)
-  return {
-    features
-  }
+function FeatureToggleProvider({ children }: FeatureToggleProviderProps) {
+  const features = useSelector((state: GlobalState) =>
+    getExperimentalFeatures(state)
+  )
+
+  const showFeature = useCallback(
+    (featureName: string): boolean => {
+      if (
+        !features ||
+        !Object.prototype.hasOwnProperty.call(features, featureName)
+      ) {
+        return true
+      }
+      return !!features[featureName].on
+    },
+    [features]
+  )
+
+  return (
+    <FeatureToggleContext.Provider value={showFeature}>
+      {children}
+    </FeatureToggleContext.Provider>
+  )
 }
 
 const Consumer = FeatureToggleContext.Consumer
 
-export default connect<any, any, any, any>(mapStateToProps)(
-  FeatureToggleProvider
-)
+export default FeatureToggleProvider
 export { Consumer, FeatureToggleProvider }

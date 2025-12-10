@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React, { useState, ChangeEvent } from 'react'
 import styled from 'styled-components'
 
 export const StyledSelect = styled.select`
@@ -137,43 +137,38 @@ export const CheckboxSelector = (props: any) => (
   <StyledCheckbox type="checkbox" {...props} />
 )
 
-type RadioSelectorState = any
+interface RadioSelectorProps {
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void
+  options: string[]
+  selectedValue?: string
+}
 
-export class RadioSelector extends Component<
-  { onChange?: any; options: any[]; selectedValue?: string },
-  RadioSelectorState
-> {
-  state: RadioSelectorState = {}
-  constructor(props: {} = { options: [] }) {
-    super(props as any)
-    this.state.selectedValue = this.props.selectedValue || null
-  }
+export function RadioSelector({
+  onChange,
+  options,
+  selectedValue: initialSelectedValue
+}: RadioSelectorProps) {
+  const [selectedValue, setSelectedValue] = useState<string | null>(
+    initialSelectedValue ?? null
+  )
 
-  isSelectedValue(option: any) {
-    return option === this.state.selectedValue
-  }
-
-  render() {
-    return (
-      <form>
-        {this.props.options.map((option: any) => {
-          return (
-            <StyledRadioEntry key={option}>
-              <StyledRadio
-                type="radio"
-                value={option}
-                id={option}
-                checked={this.isSelectedValue(option)}
-                onChange={event => {
-                  this.setState({ selectedValue: option })
-                  this.props.onChange(event)
-                }}
-              />
-              <StyledLabel htmlFor={option}>{option}</StyledLabel>
-            </StyledRadioEntry>
-          )
-        })}
-      </form>
-    )
-  }
+  return (
+    <form>
+      {options.map((option: string) => (
+        <StyledRadioEntry key={option}>
+          <StyledRadio
+            type="radio"
+            value={option}
+            id={option}
+            checked={option === selectedValue}
+            onChange={event => {
+              setSelectedValue(option)
+              onChange?.(event)
+            }}
+          />
+          <StyledLabel htmlFor={option}>{option}</StyledLabel>
+        </StyledRadioEntry>
+      ))}
+    </form>
+  )
 }
