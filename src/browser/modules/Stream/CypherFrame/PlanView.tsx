@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import memoize from 'memoize-one'
-import React, { Component } from 'react'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
 
 import {
   DoubleDownIcon,
@@ -39,9 +39,7 @@ import { dim } from 'browser-styles/constants'
 import { StyledFrameTitlebarButtonSection } from 'browser/modules/Frame/styled'
 import bolt from 'services/bolt/bolt'
 import { deepEquals } from 'neo4j-arc/common'
-import { shallowEquals } from 'services/utils'
 
-type PlanViewState = { extractedPlan: any }
 export type PlanViewProps = {
   planExpand: PlanExpand
   setPlanExpand: (p: PlanExpand) => void
@@ -51,123 +49,168 @@ export type PlanViewProps = {
   isFullscreen: boolean
 }
 
-export class PlanView extends Component<PlanViewProps, PlanViewState> {
-  el: any
-  plan: any
-  constructor(props: any) {
-    super(props)
-    this.state = {
-      extractedPlan: null
-    }
+type ExtractedPlan = {
+  root: {
+    version?: string
+    planner?: string
+    runtime?: string
+    totalDbHits?: number
+    expanded?: boolean
+    children?: any[]
   }
+} | null
 
-  componentDidMount() {
-    this.extractPlan(this.props.result)
+function PlanViewComponent(props: PlanViewProps): JSX.Element | null {
+  const {
+    planExpand,
+    setPlanExpand,
+    result,
+    updated,
+    assignVisElement,
+    isFullscreen
+  } = props
+
+  const [extractedPlan, setExtractedPlan] = useState<ExtractedPlan>(null)
+  const elRef = useRef<SVGSVGElement | null>(null)
+  const planRef = useRef<any>(null)
+  const prevUpdatedRef = useRef<any>(undefined)
+  const prevPlanExpandRef = useRef<PlanExpand | undefined>(undefined)
+
+  const toggleExpanded = useCallback(
+    (expanded: boolean) => {
+      if (!extractedPlan || !planRef.current) return
+
+      const visit = (operator: any) => {
+        operator.expanded = expanded
+        if (operator.children) {
+          operator.children.forEach((child: any) => {
+            visit(child)
+          })
+        }
+      }
+      const tmpPlan = { ...extractedPlan }
+      visit(tmpPlan.root)
+      planRef.current.display(tmpPlan)
+    },
+    [extractedPlan]
+  )
+
+  const extractPlan = useCallback((resultData: any): Promise<ExtractedPlan> => {
+    if (resultData === undefined) return Promise.reject(new Error('No result'))
+    return new Promise(resolve => {
+      const plan = bolt.extractPlan(resultData)
+      if (plan) {
+        setExtractedPlan(plan)
+      }
+      resolve(plan)
+    })
+  }, [])
+
+  // Initial mount effect
+  useEffect(() => {
+    extractPlan(result)
       .then(() => {
-        this.props.setPlanExpand('EXPAND')
-        this.toggleExpanded(true)
+        setPlanExpand('EXPAND')
       })
       .catch(() => {})
-  }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  componentDidUpdate(prevProps: any): any {
-    if (prevProps.updated !== this.props.updated) {
-      return this.extractPlan(this.props.result || {})
-        .then(() => {
-          this.ensureToggleExpand(prevProps)
-        })
-        .catch(e => {
-          console.log(e)
-        })
-    }
-    this.ensureToggleExpand(prevProps)
-    this.props.assignVisElement &&
-      this.props.assignVisElement(this.el, this.plan)
-  }
-
-  shouldComponentUpdate(props: PlanViewProps, state: PlanViewState) {
-    if (this.props.result === undefined) return true
-    return (
-      props.isFullscreen !== this.props.isFullscreen ||
-      !deepEquals(props.result.summary, this.props.result.summary) ||
-      !shallowEquals(state, this.state) ||
-      props.planExpand !== this.props.planExpand
-    )
-  }
-
-  extractPlan(result: any) {
-    if (result === undefined) return Promise.reject(new Error('No result'))
-    return new Promise<void>(resolve => {
-      const extractedPlan = bolt.extractPlan(result)
-      if (extractedPlan)
-        return this.setState({ extractedPlan }, resolve() as any)
-      resolve()
-    })
-  }
-
-  planInit(el: any) {
-    if (el != null && !this.plan) {
-      const NeoConstructor: any = queryPlan
-      this.el = el
-      this.plan = new NeoConstructor(this.el)
-      this.plan.display(this.state.extractedPlan)
-      this.plan.boundingBox = () => {
-        return this.el.getBBox()
-      }
-
-      this.props.assignVisElement &&
-        this.props.assignVisElement(this.el, this.plan)
-    }
-  }
-
-  ensureToggleExpand(prevProps: any) {
+  // Handle updated prop changes
+  useEffect(() => {
     if (
-      this.props.planExpand &&
-      this.props.planExpand !== prevProps.planExpand
+      prevUpdatedRef.current !== undefined &&
+      prevUpdatedRef.current !== updated
     ) {
-      switch (this.props.planExpand) {
+      extractPlan(result || {}).catch(e => {
+        console.log(e)
+      })
+    }
+    prevUpdatedRef.current = updated
+  }, [updated, result, extractPlan])
+
+  // Handle planExpand changes
+  useEffect(() => {
+    if (
+      planExpand &&
+      prevPlanExpandRef.current !== undefined &&
+      planExpand !== prevPlanExpandRef.current
+    ) {
+      switch (planExpand) {
         case 'COLLAPSE': {
-          this.toggleExpanded(false)
+          toggleExpanded(false)
           break
         }
         case 'EXPAND': {
-          this.toggleExpanded(true)
+          toggleExpanded(true)
           break
         }
       }
     }
-  }
+    prevPlanExpandRef.current = planExpand
+  }, [planExpand, toggleExpanded])
 
-  toggleExpanded(expanded: any) {
-    const visit = (operator: any) => {
-      operator.expanded = expanded
-      if (operator.children) {
-        operator.children.forEach((child: any) => {
-          visit(child)
-        })
-      }
+  // Handle assignVisElement updates
+  useEffect(() => {
+    if (assignVisElement && elRef.current && planRef.current) {
+      assignVisElement(elRef.current, planRef.current)
     }
-    const tmpPlan = { ...this.state.extractedPlan }
-    visit(tmpPlan.root)
-    this.plan.display(tmpPlan)
-  }
+  }, [assignVisElement, extractedPlan])
 
-  render() {
-    if (!this.state.extractedPlan) return null
-    return (
-      <PlanSVG
-        data-testid="planSvg"
-        style={
-          this.props.isFullscreen
-            ? // @ts-expect-error ts-migrate(2769) FIXME: Object literal may only specify known properties, ... Remove this comment to see the full error message
-              { 'padding-bottom': dim.frameStatusbarHeight + 'px' }
-            : {}
+  // Initialize plan when ref is set and extractedPlan is available
+  const planInit = useCallback(
+    (el: SVGSVGElement | null) => {
+      if (el != null && !planRef.current && extractedPlan) {
+        const NeoConstructor: any = queryPlan
+        elRef.current = el
+        planRef.current = new NeoConstructor(el)
+        planRef.current.display(extractedPlan)
+        planRef.current.boundingBox = () => {
+          return el.getBBox()
         }
-        ref={this.planInit.bind(this)}
-      />
-    )
-  }
+
+        if (assignVisElement) {
+          assignVisElement(el, planRef.current)
+        }
+
+        // Trigger initial expand after plan is initialized
+        toggleExpanded(true)
+      }
+    },
+    [extractedPlan, assignVisElement, toggleExpanded]
+  )
+
+  if (!extractedPlan) return null
+
+  return (
+    <PlanSVG
+      data-testid="planSvg"
+      style={
+        isFullscreen
+          ? // @ts-expect-error ts-migrate(2769) FIXME: Object literal may only specify known properties, ... Remove this comment to see the full error message
+            { 'padding-bottom': dim.frameStatusbarHeight + 'px' }
+          : {}
+      }
+      ref={planInit}
+    />
+  )
 }
+
+// Custom comparison function for React.memo (inverse of shouldComponentUpdate)
+function arePropsEqual(
+  prevProps: PlanViewProps,
+  nextProps: PlanViewProps
+): boolean {
+  if (prevProps.result === undefined) return false
+  return (
+    nextProps.isFullscreen === prevProps.isFullscreen &&
+    deepEquals(nextProps.result?.summary, prevProps.result?.summary) &&
+    nextProps.planExpand === prevProps.planExpand
+  )
+}
+
+export const PlanView = React.memo(PlanViewComponent, arePropsEqual)
 
 type PlanStatusbarProps = {
   result: any

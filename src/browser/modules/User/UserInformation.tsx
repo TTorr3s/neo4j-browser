@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { v4 } from 'uuid'
@@ -42,198 +42,221 @@ import {
 } from 'shared/modules/cypher/boltUserHelper'
 import { CYPHER_REQUEST } from 'shared/modules/cypher/cypherDuck'
 import { driverDatabaseSelection } from 'shared/modules/features/versionedFeatures'
+import { Bus } from 'suber'
 
-type UserInformationState = any
-
-export class UserInformation extends Component<any, UserInformationState> {
-  constructor(props: {}) {
-    super(props)
-    this.state = {
-      edit: false,
-      availableRoles: this.props.availableRoles || [],
-      roles: this.props.user.roles || [],
-      username: this.props.user.username
-    }
+interface UserInformationProps {
+  user: {
+    username: string
+    roles: string[]
+    active: boolean
+    passwordChangeRequired: boolean
   }
+  availableRoles?: string[]
+  refresh: () => void
+  useSystemDb?: string
+  bus: Bus
+}
 
-  removeClick() {
-    this.props.bus.self(
+export const UserInformation: React.FC<UserInformationProps> = props => {
+  const {
+    user,
+    availableRoles: propAvailableRoles,
+    refresh,
+    useSystemDb,
+    bus
+  } = props
+
+  const [roles] = useState<string[]>(user.roles || [])
+  const [username] = useState<string>(user.username)
+  const [, setErrors] = useState<string[]>([])
+
+  const handleResponse = useCallback(
+    (response: { success: boolean; error?: string }) => {
+      if (!response.success) {
+        setErrors([response.error || 'Unknown error'])
+        return
+      }
+      refresh()
+    },
+    [refresh]
+  )
+
+  const removeClick = useCallback(() => {
+    bus.self(
       CYPHER_REQUEST,
       {
-        query: deleteUser(this.state.username, Boolean(this.props.useSystemDb)),
+        query: deleteUser(username, Boolean(useSystemDb)),
         params: {
-          username: this.state.username
+          username
         },
         queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-        useDb: this.props.useSystemDb
+        useDb: useSystemDb
       },
-      this.handleResponse.bind(this)
+      handleResponse
     )
-  }
+  }, [bus, username, useSystemDb, handleResponse])
 
-  suspendUser() {
-    this.props.bus.self(
+  const handleSuspendUser = useCallback(() => {
+    bus.self(
       CYPHER_REQUEST,
       {
-        query: suspendUser(
-          this.state.username,
-          Boolean(this.props.useSystemDb)
-        ),
+        query: suspendUser(username, Boolean(useSystemDb)),
         params: {
-          username: this.state.username
+          username
         },
         queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-        useDb: this.props.useSystemDb
+        useDb: useSystemDb
       },
-      this.handleResponse.bind(this)
+      handleResponse
     )
-  }
+  }, [bus, username, useSystemDb, handleResponse])
 
-  activateUser() {
-    this.props.bus.self(
+  const handleActivateUser = useCallback(() => {
+    bus.self(
       CYPHER_REQUEST,
       {
-        query: activateUser(
-          this.state.username,
-          Boolean(this.props.useSystemDb)
-        ),
+        query: activateUser(username, Boolean(useSystemDb)),
         params: {
-          username: this.state.username
+          username
         },
         queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-        useDb: this.props.useSystemDb
+        useDb: useSystemDb
       },
-      this.handleResponse.bind(this)
+      handleResponse
     )
-  }
+  }, [bus, username, useSystemDb, handleResponse])
 
-  status = () => (!this.props.user.active ? 'Suspended' : 'Active')
-  statusButton() {
-    return !this.props.user.active ? (
-      <FormButton label="Activate" onClick={this.activateUser.bind(this)} />
+  const onRoleSelect = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      bus.self(
+        CYPHER_REQUEST,
+        {
+          query: addRoleToUser(
+            username,
+            event.target.value,
+            Boolean(useSystemDb)
+          ),
+          params: {
+            username,
+            role: event.target.value
+          },
+          queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+          useDb: useSystemDb
+        },
+        handleResponse
+      )
+    },
+    [bus, username, useSystemDb, handleResponse]
+  )
+
+  const handleRemoveRole = useCallback(
+    (role: string) => {
+      bus.self(
+        CYPHER_REQUEST,
+        {
+          query: removeRoleFromUser(role, username, Boolean(useSystemDb)),
+          params: {
+            username,
+            role
+          },
+          queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+          useDb: useSystemDb
+        },
+        handleResponse
+      )
+    },
+    [bus, username, useSystemDb, handleResponse]
+  )
+
+  const status = useMemo(
+    () => (!user.active ? 'Suspended' : 'Active'),
+    [user.active]
+  )
+
+  const passwordChange = useMemo(
+    () => (user.passwordChangeRequired ? 'Required' : '-'),
+    [user.passwordChangeRequired]
+  )
+
+  const availableRolesFiltered = useMemo(
+    () =>
+      (propAvailableRoles || []).filter(
+        (role: string) => user.roles.indexOf(role) < 0
+      ),
+    [propAvailableRoles, user.roles]
+  )
+
+  const statusButton = useMemo(() => {
+    return !user.active ? (
+      <FormButton label="Activate" onClick={handleActivateUser} />
     ) : (
-      <FormButton label="Suspend" onClick={this.suspendUser.bind(this)} />
+      <FormButton label="Suspend" onClick={handleSuspendUser} />
     )
-  }
+  }, [user.active, handleActivateUser, handleSuspendUser])
 
-  passwordChange = () =>
-    this.props.user.passwordChangeRequired ? 'Required' : '-'
-
-  listRoles() {
+  const listRoles = useMemo(() => {
     return (
-      !!this.state.roles.length && (
+      !!roles.length && (
         <StyleRolesContainer>
-          {this.state.roles.map((role: any) => {
+          {roles.map((role: string) => {
             return (
               <FormButton
                 key={v4()}
                 label={role}
                 icon={<CloseIcon />}
                 buttonType="tag"
-                onClick={() => {
-                  this.props.bus.self(
-                    CYPHER_REQUEST,
-                    {
-                      query: removeRoleFromUser(
-                        role,
-                        this.state.username,
-                        Boolean(this.props.useSystemDb)
-                      ),
-                      params: {
-                        username: this.state.username,
-                        role
-                      },
-                      queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-                      useDb: this.props.useSystemDb
-                    },
-                    this.handleResponse.bind(this)
-                  )
-                }}
+                onClick={() => handleRemoveRole(role)}
               />
             )
           })}
         </StyleRolesContainer>
       )
     )
-  }
+  }, [roles, handleRemoveRole])
 
-  onRoleSelect(event: any) {
-    this.props.bus.self(
-      CYPHER_REQUEST,
-      {
-        query: addRoleToUser(
-          this.state.username,
-          event.target.value,
-          Boolean(this.props.useSystemDb)
-        ),
-        params: {
-          username: this.state.username,
-          role: event.target.value
-        },
-        queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-        useDb: this.props.useSystemDb
-      },
-      this.handleResponse.bind(this)
-    )
-  }
-
-  handleResponse(response: any) {
-    if (!response.success) return this.setState({ errors: [response.error] })
-    return this.props.refresh()
-  }
-
-  availableRoles() {
-    return this.state.availableRoles.filter(
-      (role: any) => this.props.user.roles.indexOf(role) < 0
-    )
-  }
-
-  render() {
-    return (
-      <StyledBodyTr className="user-info">
-        <StyledUserTd className="username" aria-labelledby="username">
-          <StyledButtonContainer>
-            {this.props.user.username}
-          </StyledButtonContainer>
-        </StyledUserTd>
-        <StyledUserTd className="roles" aria-labelledby="roles">
-          <RolesSelector
-            id={`roles-selector-${v4()}`}
-            roles={this.availableRoles()}
-            onChange={this.onRoleSelect.bind(this)}
-          />
-        </StyledUserTd>
-        <StyledUserTd className="current-roles" aria-labelledby="current-roles">
-          <span>{this.listRoles()}</span>
-        </StyledUserTd>
-        <StyledUserTd className="status" aria-labelledby="status">
-          <StyledButtonContainer
-            className={`status-indicator status-${this.status().toLowerCase()}`}
-          >
-            {this.status()}
-          </StyledButtonContainer>
-        </StyledUserTd>
-        <StyledUserTd className="status-action" aria-labelledby="status-action">
-          {this.statusButton()}
-        </StyledUserTd>
-        <StyledUserTd
-          className="password-change"
-          aria-labelledby="password-change"
+  return (
+    <StyledBodyTr className="user-info">
+      <StyledUserTd className="username" aria-labelledby="username">
+        <StyledButtonContainer>{user.username}</StyledButtonContainer>
+      </StyledUserTd>
+      <StyledUserTd className="roles" aria-labelledby="roles">
+        <RolesSelector
+          id={`roles-selector-${v4()}`}
+          roles={availableRolesFiltered}
+          onChange={onRoleSelect}
+        />
+      </StyledUserTd>
+      <StyledUserTd className="current-roles" aria-labelledby="current-roles">
+        <span>{listRoles}</span>
+      </StyledUserTd>
+      <StyledUserTd className="status" aria-labelledby="status">
+        <StyledButtonContainer
+          className={`status-indicator status-${status.toLowerCase()}`}
         >
-          <StyledButtonContainer>{this.passwordChange()}</StyledButtonContainer>
-        </StyledUserTd>
-        <StyledUserTd className="delete" aria-labelledby="delete">
-          <FormButton
-            className="delete"
-            label="Remove"
-            buttonType="destructive"
-            onClick={this.removeClick.bind(this)}
-          />
-        </StyledUserTd>
-      </StyledBodyTr>
-    )
-  }
+          {status}
+        </StyledButtonContainer>
+      </StyledUserTd>
+      <StyledUserTd className="status-action" aria-labelledby="status-action">
+        {statusButton}
+      </StyledUserTd>
+      <StyledUserTd
+        className="password-change"
+        aria-labelledby="password-change"
+      >
+        <StyledButtonContainer>{passwordChange}</StyledButtonContainer>
+      </StyledUserTd>
+      <StyledUserTd className="delete" aria-labelledby="delete">
+        <FormButton
+          className="delete"
+          label="Remove"
+          buttonType="destructive"
+          onClick={removeClick}
+        />
+      </StyledUserTd>
+    </StyledBodyTr>
+  )
 }
+
 const mapStateToProps = (state: any) => {
   const { database } = driverDatabaseSelection(state, 'system') || {}
 

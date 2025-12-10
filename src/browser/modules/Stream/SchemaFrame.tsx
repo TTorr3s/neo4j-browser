@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { replace, toUpper } from 'lodash-es'
-import React, { Component } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import semver, { SemVer } from 'semver'
@@ -40,6 +40,7 @@ import {
   getCleanedVersion,
   getSemanticVersion
 } from 'shared/modules/dbMeta/dbMetaDuck'
+import { Bus } from 'suber'
 
 type IndexesProps = {
   indexes: any
@@ -98,12 +99,16 @@ const Constraints = ({
   neo4jVersion
 }: {
   constraints: any
-  neo4jVersion: string
+  neo4jVersion: SemVer | null
 }) => {
   let rows = []
   let header = []
 
-  if (semver.valid(neo4jVersion) && semver.satisfies(neo4jVersion, '<4.2.*')) {
+  if (
+    neo4jVersion &&
+    semver.valid(neo4jVersion) &&
+    semver.satisfies(neo4jVersion, '<4.2.*')
+  ) {
     header = ['Constraints']
 
     rows = constraints.map((constraint: any) => [
@@ -168,114 +173,132 @@ const SchemaTable = ({ testid, header, rows }: any) => {
   )
 }
 
-type SchemaFrameState = any
-
-export class SchemaFrame extends Component<any, SchemaFrameState> {
-  constructor(props: { neo4jVersion: string }) {
-    super(props)
-    this.state = {
-      indexes: [],
-      constraints: []
-    }
+type SchemaFrameProps = {
+  neo4jVersion: SemVer | null
+  bus?: Bus
+  indexes?: any
+  constraints?: any
+  frame?: {
+    schemaRequestId?: string
   }
+}
 
-  responseHandler(name: any) {
-    return (res: any) => {
-      if (!res.success || !res.result || !res.result.records.length) {
-        this.setState({ [name]: [] })
-        return
+export const SchemaFrame = ({
+  neo4jVersion,
+  bus,
+  indexes: propIndexes,
+  constraints: propConstraints,
+  frame
+}: SchemaFrameProps): JSX.Element => {
+  const [indexes, setIndexes] = useState<any[]>([])
+  const [constraints, setConstraints] = useState<any[]>([])
+
+  const createResponseHandler = useCallback(
+    (setter: React.Dispatch<React.SetStateAction<any[]>>) => {
+      return (res: any) => {
+        if (!res.success || !res.result || !res.result.records.length) {
+          setter([])
+          return
+        }
+        const out = res.result.records.map((rec: any) =>
+          rec.keys.reduce((acc: any, key: any) => {
+            acc[key] = rec.get(key)
+            return acc
+          }, {})
+        )
+        setter(out)
       }
-      const out = res.result.records.map((rec: any) =>
-        rec.keys.reduce((acc: any, key: any) => {
-          acc[key] = rec.get(key)
-          return acc
-        }, {})
-      )
-      this.setState({ [name]: out })
-    }
-  }
+    },
+    []
+  )
 
-  fetchData(neo4jVersion: SemVer | null) {
-    if (this.props.bus) {
-      // Indexes
-      this.props.bus.self(
-        CYPHER_REQUEST,
-        {
-          query:
-            neo4jVersion &&
-            semver.valid(neo4jVersion) &&
-            semver.satisfies(neo4jVersion, '<4.2.*')
-              ? 'CALL db.indexes()'
-              : 'SHOW INDEXES',
-          queryType: NEO4J_BROWSER_USER_ACTION_QUERY
-        },
-        this.responseHandler('indexes')
-      )
-      // Constraints
-      this.props.bus.self(
-        CYPHER_REQUEST,
-        {
-          query:
-            neo4jVersion &&
-            semver.valid(neo4jVersion) &&
-            semver.satisfies(neo4jVersion, '<4.2.*')
-              ? 'CALL db.constraints()'
-              : 'SHOW CONSTRAINTS',
-          queryType: NEO4J_BROWSER_USER_ACTION_QUERY
-        },
-        this.responseHandler('constraints')
-      )
-    }
-  }
-  componentDidMount() {
-    this.fetchData(this.props.neo4jVersion)
-    if (this.props.indexes) {
-      this.responseHandler('indexes')(this.props.indexes)
-    }
-    if (this.props.constraints) {
-      this.responseHandler('constraints')(this.props.constraints)
-    }
-  }
+  const fetchData = useCallback(
+    (version: SemVer | null) => {
+      if (bus) {
+        // Indexes
+        bus.self(
+          CYPHER_REQUEST,
+          {
+            query:
+              version &&
+              semver.valid(version) &&
+              semver.satisfies(version, '<4.2.*')
+                ? 'CALL db.indexes()'
+                : 'SHOW INDEXES',
+            queryType: NEO4J_BROWSER_USER_ACTION_QUERY
+          },
+          createResponseHandler(setIndexes)
+        )
+        // Constraints
+        bus.self(
+          CYPHER_REQUEST,
+          {
+            query:
+              version &&
+              semver.valid(version) &&
+              semver.satisfies(version, '<4.2.*')
+                ? 'CALL db.constraints()'
+                : 'SHOW CONSTRAINTS',
+            queryType: NEO4J_BROWSER_USER_ACTION_QUERY
+          },
+          createResponseHandler(setConstraints)
+        )
+      }
+    },
+    [bus, createResponseHandler]
+  )
 
-  componentDidUpdate(prevProps: any) {
-    if (
-      this.props.frame &&
-      this.props.frame.schemaRequestId !== prevProps.frame.schemaRequestId
-    ) {
-      this.fetchData(this.props.neo4jVersion)
+  // Initial data fetch and process props (componentDidMount equivalent)
+  useEffect(() => {
+    fetchData(neo4jVersion)
+
+    if (propIndexes) {
+      createResponseHandler(setIndexes)(propIndexes)
     }
-  }
+    if (propConstraints) {
+      createResponseHandler(setConstraints)(propConstraints)
+    }
+    // Only run on mount - neo4jVersion changes are handled by schemaRequestId
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  render(): JSX.Element {
-    const { neo4jVersion } = this.props
-    const { indexes, constraints } = this.state
-    const cleanedVersion =
-      typeof neo4jVersion === 'string' ? getCleanedVersion(neo4jVersion) : null
-    const schemaCommand =
-      cleanedVersion && semver.satisfies(cleanedVersion, '<=3.4.*')
-        ? 'CALL db.schema()'
-        : 'CALL db.schema.visualization'
+  // Refetch when schemaRequestId changes (componentDidUpdate equivalent)
+  const schemaRequestId = frame?.schemaRequestId
+  useEffect(() => {
+    // Skip the initial render - that's handled by the mount effect
+    if (schemaRequestId !== undefined) {
+      fetchData(neo4jVersion)
+    }
+    // We intentionally only react to schemaRequestId changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schemaRequestId])
 
-    const frame = (
-      <Slide>
-        <Indexes indexes={indexes} neo4jVersion={neo4jVersion} />
-        <Constraints constraints={constraints} neo4jVersion={neo4jVersion} />
-        <br />
-        <p className="lead">
-          Execute the following command to visualize what's related, and how
-        </p>
-        <figure>
-          <pre className="code runnable">{schemaCommand}</pre>
-        </figure>
-      </Slide>
-    )
+  const cleanedVersion =
+    typeof neo4jVersion === 'string' ? getCleanedVersion(neo4jVersion) : null
+  const schemaCommand =
+    cleanedVersion && semver.satisfies(cleanedVersion, '<=3.4.*')
+      ? 'CALL db.schema()'
+      : 'CALL db.schema.visualization'
 
-    return (
-      <div style={{ width: '100%' }}>
-        <Directives content={frame} />
-      </div>
-    )
-  }
+  const frameContent = (
+    <Slide>
+      <Indexes indexes={indexes} neo4jVersion={neo4jVersion} />
+      <Constraints constraints={constraints} neo4jVersion={neo4jVersion} />
+      <br />
+      <p className="lead">
+        Execute the following command to visualize what's related, and how
+      </p>
+      <figure>
+        <pre className="code runnable">{schemaCommand}</pre>
+      </figure>
+    </Slide>
+  )
+
+  return (
+    <div style={{ width: '100%' }}>
+      <Directives content={frameContent} />
+    </div>
+  )
 }
 
 const Frame = (props: any) => {

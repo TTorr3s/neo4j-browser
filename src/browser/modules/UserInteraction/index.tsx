@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { Component } from 'react'
+import { useCallback, useEffect } from 'react'
 import { withBus } from 'react-suber'
 import { Bus } from 'suber'
 
@@ -33,28 +33,26 @@ const throttledReportInteraction: (bus: Bus) => void = throttle(
   5000
 )
 
-export class UserInteraction extends Component<{ bus: Bus }> {
-  componentDidMount() {
-    document.addEventListener('keyup', () =>
-      throttledReportInteraction(this.props.bus)
-    )
-    document.addEventListener('click', () =>
-      throttledReportInteraction(this.props.bus)
-    )
-  }
+interface UserInteractionProps {
+  bus: Bus
+}
 
-  componentWillUnmount() {
-    document.removeEventListener('keyup', () =>
-      throttledReportInteraction(this.props.bus)
-    )
-    document.removeEventListener('click', () =>
-      throttledReportInteraction(this.props.bus)
-    )
-  }
+export function UserInteraction({ bus }: UserInteractionProps): null {
+  const handleInteraction = useCallback(() => {
+    throttledReportInteraction(bus)
+  }, [bus])
 
-  render() {
-    return null
-  }
+  useEffect(() => {
+    document.addEventListener('keyup', handleInteraction)
+    document.addEventListener('click', handleInteraction)
+
+    return () => {
+      document.removeEventListener('keyup', handleInteraction)
+      document.removeEventListener('click', handleInteraction)
+    }
+  }, [handleInteraction])
+
+  return null
 }
 
 export default withBus(UserInteraction)

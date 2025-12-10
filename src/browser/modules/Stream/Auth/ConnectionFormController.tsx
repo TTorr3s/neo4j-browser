@@ -256,8 +256,8 @@ export class ConnectionFormController extends Component<any, any> {
     newPassword,
     error
   }: {
-    newPassword: string
-    error?: Neo4jError
+    newPassword?: string
+    error?: { code: string; message: string }
   }): void {
     this.setState({ isLoading: true })
     if (error && error.code) {
