@@ -174,6 +174,7 @@ store.dispatch(updateUdcData({ auraNtId }) as any)
 const AppInit = (): JSX.Element => {
   return (
     <Provider store={store as any}>
+      {/* @ts-expect-error BusProvider types from react-suber don't include children prop for React 18 */}
       <BusProvider bus={bus}>
         <DndProvider backend={HTML5Backend}>
           <App />

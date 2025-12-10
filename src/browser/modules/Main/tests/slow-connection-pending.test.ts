@@ -18,9 +18,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import '@testing-library/react-hooks/dont-cleanup-after-each.js'
+import '@testing-library/react/dont-cleanup-after-each'
 
-import { act, renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from '@testing-library/react'
 import mockDate from 'mockdate'
 
 import { useSlowConnectionState } from '../main.hooks'
@@ -62,21 +62,21 @@ describe('main.hooks', () => {
     })
 
     test('after 6000ms, should return [true, false]', () => {
+      mockDate.set(6000)
       act(() => {
-        mockDate.set(6000)
         jest.advanceTimersByTime(6000)
-
-        expect(result.current).toEqual([true, false])
       })
+
+      expect(result.current).toEqual([true, false])
     })
 
     test('after 12000ms, should continue to return [true, true]', () => {
+      mockDate.set(12000)
       act(() => {
-        mockDate.set(12000)
         jest.advanceTimersByTime(6000)
-
-        expect(result.current).toEqual([true, true])
       })
+
+      expect(result.current).toEqual([true, true])
     })
   })
 })

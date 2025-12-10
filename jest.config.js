@@ -36,7 +36,7 @@ module.exports = {
     '/node_modules/'
   ],
   transformIgnorePatterns: [
-    `/node_modules/(?!(@neo4j-devtools/word-color|lodash-es|@neo4j/browser-lambda-parser|react-dnd|dnd-core|monaco-editor|antlr4|@neo4j-cypher/(.+)|internmap|${reactMarkdownESModuleDeps}|d3-[^-]+|uuid))`
+    `/node_modules/(?!(@neo4j-devtools/word-color|lodash-es|@neo4j/browser-lambda-parser|react-dnd|@react-dnd|dnd-core|monaco-editor|antlr4|@neo4j-cypher/(.+)|internmap|${reactMarkdownESModuleDeps}|d3-[^-]+|uuid))`
   ],
   moduleNameMapper: {
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|css)$':

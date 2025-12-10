@@ -1,11 +1,12 @@
 const isTest = String(process.env.NODE_ENV) === 'test' // Jest sets this
+const isDevelopment = String(process.env.NODE_ENV) === 'development'
 
 const toExport = {
   plugins: [
-    'react-hot-loader/babel',
+    isDevelopment && require.resolve('react-refresh/babel'),
     '@babel/plugin-proposal-class-properties',
     'babel-plugin-dynamic-import-node'
-  ],
+  ].filter(Boolean),
   presets: [
     '@babel/preset-react',
     [

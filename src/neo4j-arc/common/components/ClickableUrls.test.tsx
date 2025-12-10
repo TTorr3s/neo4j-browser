@@ -39,30 +39,16 @@ describe('clickable-urls', () => {
         'http://www.cool.com.au/ersdfs?dfd=dfgd@s=1',
         'http://www.cool.com:81/index.html'
       ]
-      const expected = urls.map(
-        url =>
-          `
-        <div>
-          <span>
-            
-            <a
-              href="${url}"
-              rel="noreferrer"
-              target="_blank"
-            >
-              ${url}
-            </a>
-            
-          </span>
-        </div>
-      `
-      )
 
-      urls.forEach((url, index) =>
-        expect(
-          render(<ClickableUrls text={url} />).container
-        ).toMatchInlineSnapshot(expected[index])
-      )
+      urls.forEach(url => {
+        const { container } = render(<ClickableUrls text={url} />)
+        const link = container.querySelector('a')
+        expect(link).not.toBeNull()
+        expect(link?.getAttribute('href')).toBe(url)
+        expect(link?.getAttribute('target')).toBe('_blank')
+        expect(link?.getAttribute('rel')).toBe('noreferrer')
+        expect(link?.textContent).toBe(url)
+      })
     })
 
     test('does not catch invalid or missing protocol urls', () => {
@@ -108,7 +94,6 @@ describe('clickable-urls', () => {
         .toMatchInlineSnapshot(`
         <div>
           <span>
-            
             <a
               href="http://foo.com/"
               rel="noreferrer"
@@ -125,7 +110,6 @@ describe('clickable-urls', () => {
         .toMatchInlineSnapshot(`
         <div>
           <span>
-            
             <a
               href="http://foo.com/"
               rel="noreferrer"
@@ -142,7 +126,6 @@ describe('clickable-urls', () => {
         .toMatchInlineSnapshot(`
         <div>
           <span>
-            
             <a
               href="http://foo.com/"
               rel="noreferrer"

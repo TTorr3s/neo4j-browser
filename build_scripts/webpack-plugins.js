@@ -151,7 +151,8 @@ module.exports = () => {
   ]
 
   if (!helpers.isProduction) {
-    plugins.push(new webpack.HotModuleReplacementPlugin())
+    // React Fast Refresh for development HMR
+    // Note: webpack-dev-server 4+ automatically enables HotModuleReplacementPlugin when hot: true
     plugins.push(new ReactRefreshWebpackPlugin())
   }
   if (helpers.isProduction) {

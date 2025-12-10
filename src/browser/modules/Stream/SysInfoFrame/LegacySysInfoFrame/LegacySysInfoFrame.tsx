@@ -93,7 +93,7 @@ export class LegacySysInfoFrame extends Component<
   ): void {
     if (prevState.autoRefresh !== this.state.autoRefresh) {
       if (this.state.autoRefresh) {
-        this.timer = setInterval(
+        this.timer = window.setInterval(
           this.getSysInfo.bind(this),
           this.state.autoRefreshInterval * 1000
         )

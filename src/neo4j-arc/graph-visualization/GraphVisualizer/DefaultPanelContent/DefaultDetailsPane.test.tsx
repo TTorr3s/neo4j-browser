@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
 
 import {
@@ -95,9 +95,11 @@ describe('<DetailsPane />', () => {
     expect(screen.queryByText('prop1000')).not.toBeInTheDocument()
 
     const showAllButton = screen.getByText('Show all')
-    showAllButton.click()
+    fireEvent.click(showAllButton)
 
-    expect(screen.getByText('prop1000')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('prop1000')).toBeInTheDocument()
+    })
     expect(
       screen.queryByRole('button', { name: 'Show all' })
     ).not.toBeInTheDocument()
@@ -116,9 +118,11 @@ describe('<DetailsPane />', () => {
     const showMoreButton = screen.getByRole('button', {
       name: `Show ${DETAILS_PANE_STEP_SIZE} more`
     })
-    showMoreButton.click()
+    fireEvent.click(showMoreButton)
 
-    expect(screen.getByText('prop1000')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('prop1000')).toBeInTheDocument()
+    })
     expect(
       screen.queryByRole('button', { name: 'Show all' })
     ).toBeInTheDocument()

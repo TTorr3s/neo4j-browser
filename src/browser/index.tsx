@@ -18,9 +18,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import React from 'react'
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 
 import AppInit from './AppInit'
 import './init'
 
-ReactDOM.render(<AppInit />, document.getElementById('mount'))
+const container = document.getElementById('mount')
+if (container) {
+  const root = createRoot(container)
+  root.render(<AppInit />)
+}

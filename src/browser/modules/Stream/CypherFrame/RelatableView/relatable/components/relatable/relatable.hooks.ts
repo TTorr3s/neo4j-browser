@@ -41,7 +41,7 @@ export function useRelatableActions(): [
   const [action, setAction] = useState<ToolbarAction | null>(null)
   const clearAction = useCallback(() => setAction(null), [setAction])
   const setToolbarAction = useCallback(
-    (name, column) =>
+    (name: string, column: any) =>
       setAction({
         name,
         column

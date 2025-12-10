@@ -22,7 +22,13 @@ import React, { PureComponent } from 'react'
 type State = any
 
 export default class Display extends PureComponent<
-  { if: boolean; lazy?: boolean; inline?: boolean; style?: any },
+  {
+    if: boolean
+    lazy?: boolean
+    inline?: boolean
+    style?: any
+    children?: React.ReactNode
+  },
   State
 > {
   state = {

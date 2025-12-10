@@ -36,8 +36,11 @@ import {
 } from './Auth/ConnectForm'
 import { BaseFrameProps } from './Stream'
 import { StyledLink } from 'browser-components/buttons'
-import { Alert } from '@neo4j-ndl/react'
+import { Alert as NdlAlert } from '@neo4j-ndl/react'
 import styled from 'styled-components'
+
+// Workaround for @neo4j-ndl/react@0.9.2 types incompatibility with @types/react@18
+const Alert = NdlAlert as React.ComponentType<any>
 
 import packageJson from 'project-root/package.json'
 

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { render } from '@testing-library/react'
+import { render, fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
 // eslint-disable-next-line no-restricted-imports
 import { Provider } from 'react-redux'
@@ -29,7 +29,7 @@ import { GrassEditor } from './GrassEditor'
 import reducers from 'shared/rootReducer'
 
 describe('<GrassEditor />', () => {
-  it('loads style rules on style option click', () => {
+  it('loads style rules on style option click', async () => {
     const reducer = combineReducers({ ...(reducers as any) })
     const store: any = createStore(reducer)
     const { container } = render(
@@ -48,9 +48,11 @@ describe('<GrassEditor />', () => {
     ) as HTMLElement
 
     // Click style option to trigger redux action resulting in new graphStyleData
-    largestSizeOption.click()
+    fireEvent.click(largestSizeOption)
 
     // Expect clicked size option to be active
-    expect(largestSizeOption.classList.contains('active')).toBe(true)
+    await waitFor(() => {
+      expect(largestSizeOption.classList.contains('active')).toBe(true)
+    })
   })
 })

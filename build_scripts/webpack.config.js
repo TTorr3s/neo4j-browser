@@ -38,7 +38,6 @@ module.exports = {
     symlinks: false,
     alias: {
       // uuid: path.resolve(__dirname, '../node_modules/uuid/dist/index.js'),
-      'react-dom': '@hot-loader/react-dom',
       'project-root': path.resolve(__dirname, '../'),
       services: path.resolve(helpers.sourcePath, 'shared/services'),
       'browser-services': path.resolve(helpers.browserPath, 'services'),
@@ -57,8 +56,14 @@ module.exports = {
         'neo4j-arc/cypher-language-support'
       ),
       // Fix for react-dnd 16+ with React 17 (jsx-runtime resolution)
-      'react/jsx-runtime': require.resolve('react/jsx-runtime.js'),
-      'react/jsx-dev-runtime': require.resolve('react/jsx-dev-runtime.js')
+      'react/jsx-runtime': path.resolve(
+        __dirname,
+        '../node_modules/react/jsx-runtime.js'
+      ),
+      'react/jsx-dev-runtime': path.resolve(
+        __dirname,
+        '../node_modules/react/jsx-dev-runtime.js'
+      )
     },
     extensions: ['.tsx', '.ts', '.js'],
     fallback: {

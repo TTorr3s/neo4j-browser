@@ -109,15 +109,15 @@ export default function withFilters<Data extends object = any>(
   return [
     withFilters.name,
     null,
-    ({ canFilter }) => canFilter,
-    ({ defaultColumn }) =>
+    ({ canFilter }: { canFilter: boolean }) => canFilter,
+    ({ defaultColumn }: { defaultColumn?: any }) =>
       useMemo(
         (): Partial<IWithFiltersInstance> => ({
           ...tableParams,
           defaultColumn: {
             ...defaultColumn,
             ...tableParams.defaultColumn
-          }
+          } as IWithFiltersInstance['defaultColumn']
         }),
         [
           defaultColumn,

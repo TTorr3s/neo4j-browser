@@ -99,7 +99,6 @@ exports[`ErrorsView does display a nested error for gql status codes 1`] = `
               22G03: Data exception - invalid value type
             </h4>
           </div>
-          
           <div
             class="sc-hGPBjI snaKN"
           >

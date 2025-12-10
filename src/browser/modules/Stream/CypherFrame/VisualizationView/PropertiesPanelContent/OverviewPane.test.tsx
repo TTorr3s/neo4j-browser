@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
 
 import {
@@ -81,7 +81,7 @@ describe('<OverviewPane />', () => {
     )
   }
 
-  test('should handle show all labels', () => {
+  test('should handle show all labels', async () => {
     const stats = {
       ...mockGraphStats,
       labels: getMockLabels(51)
@@ -95,15 +95,17 @@ describe('<OverviewPane />', () => {
     expect(screen.queryByText('label50 (1)')).not.toBeInTheDocument()
 
     const showAllButton = screen.getByRole('button', { name: 'Show all' })
-    showAllButton.click()
+    fireEvent.click(showAllButton)
 
-    expect(screen.getByText('label50 (1)')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('label50 (1)')).toBeInTheDocument()
+    })
     expect(
       screen.queryByRole('button', { name: 'Show all' })
     ).not.toBeInTheDocument()
   })
 
-  test('should handle show more labels', () => {
+  test('should handle show more labels', async () => {
     const stats = {
       ...mockGraphStats,
       labels: getMockLabels(102)
@@ -119,9 +121,11 @@ describe('<OverviewPane />', () => {
     const showMoreButton = screen.getByRole('button', {
       name: `Show ${OVERVIEW_STEP_SIZE} more`
     })
-    showMoreButton.click()
+    fireEvent.click(showMoreButton)
 
-    expect(screen.getByText('label50 (1)')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('label50 (1)')).toBeInTheDocument()
+    })
     expect(
       screen.queryByRole('button', { name: 'Show all' })
     ).toBeInTheDocument()
@@ -130,7 +134,7 @@ describe('<OverviewPane />', () => {
     ).toBeInTheDocument()
   })
 
-  test('should handle show all rel types', () => {
+  test('should handle show all rel types', async () => {
     const stats = {
       ...mockGraphStats,
       relTypes: getRelTypes(51)
@@ -144,15 +148,17 @@ describe('<OverviewPane />', () => {
     expect(screen.queryByText('relType50 (1)')).not.toBeInTheDocument()
 
     const showAllButton = screen.getByRole('button', { name: 'Show all' })
-    showAllButton.click()
+    fireEvent.click(showAllButton)
 
-    expect(screen.getByText('relType50 (1)')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('relType50 (1)')).toBeInTheDocument()
+    })
     expect(
       screen.queryByRole('button', { name: 'Show all' })
     ).not.toBeInTheDocument()
   })
 
-  test('should handle show more rel types', () => {
+  test('should handle show more rel types', async () => {
     const stats = {
       ...mockGraphStats,
       relTypes: getRelTypes(102)
@@ -168,9 +174,11 @@ describe('<OverviewPane />', () => {
     const showMoreButton = screen.getByRole('button', {
       name: `Show ${OVERVIEW_STEP_SIZE} more`
     })
-    showMoreButton.click()
+    fireEvent.click(showMoreButton)
 
-    expect(screen.getByText('relType50 (1)')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('relType50 (1)')).toBeInTheDocument()
+    })
     expect(
       screen.queryByRole('button', { name: 'Show all' })
     ).toBeInTheDocument()
