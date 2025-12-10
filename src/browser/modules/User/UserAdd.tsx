@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { map } from 'lodash-es'
-import React, { Component } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { v4 as uuidv4 } from 'uuid'
@@ -39,7 +39,6 @@ import FrameAside from 'browser/modules/Frame/FrameAside'
 import FrameBodyTemplate from 'browser/modules/Frame/FrameBodyTemplate'
 import FrameError from 'browser/modules/Frame/FrameError'
 import FrameSuccess from 'browser/modules/Frame/FrameSuccess'
-import bolt from 'services/bolt/bolt'
 import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
 import {
   commandSources,
@@ -57,376 +56,420 @@ import {
   isEnterprise
 } from 'shared/modules/dbMeta/dbMetaDuck'
 import { driverDatabaseSelection } from 'shared/modules/features/versionedFeatures'
+import { Bus } from 'suber'
 
-type UserAddState = any
+interface UserAddProps {
+  availableRoles?: string[]
+  roles?: string[]
+  useSystemDb?: string
+  isEnterpriseEdition: boolean
+  isAura: boolean
+  isCollapsed: boolean
+  isFullscreen: boolean
+  isLoading?: boolean
+  frame: { cmd: string }
+  bus: Bus
+}
 
-export class UserAdd extends Component<any, UserAddState> {
-  constructor(props: {}) {
-    super(props)
-    this.state = {
-      availableRoles: this.props.availableRoles || [],
-      roles: this.props.roles || [],
-      username: '',
-      password: '',
-      confirmPassword: '',
-      forcePasswordChange: '',
-      errors: null,
-      success: null,
-      isLoading: false
-    }
+export const UserAdd: React.FC<UserAddProps> = props => {
+  const {
+    availableRoles: propAvailableRoles,
+    roles: propRoles,
+    useSystemDb,
+    isEnterpriseEdition,
+    isAura,
+    isCollapsed,
+    isFullscreen,
+    isLoading: propIsLoading,
+    frame,
+    bus
+  } = props
 
-    this.getRoles()
-  }
+  const [availableRoles, setAvailableRoles] = useState<string[]>(
+    propAvailableRoles || []
+  )
+  const [roles, setRoles] = useState<string[]>(propRoles || [])
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [forcePasswordChange, setForcePasswordChange] = useState(false)
+  const [errors, setErrors] = useState<string[] | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  extractUserNameAndRolesFromBolt(result: any) {
-    const tableArray = bolt.recordsToTableArray(result.records)
-    tableArray.shift()
-    return tableArray
-  }
+  const getRoles = useCallback(() => {
+    if (!bus) return
 
-  removeRole(role: any) {
-    const roles = this.state.roles.slice()
-    roles.splice(this.state.roles.indexOf(role), 1)
-    return roles
-  }
+    bus.self(
+      ROUTED_CYPHER_WRITE_REQUEST,
+      {
+        query: listRolesQuery(Boolean(useSystemDb)),
+        queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+        useDb: useSystemDb
+      },
+      (response: any) => {
+        if (!response.success) {
+          const error =
+            response.error && response.error.message
+              ? response.error.message
+              : 'Unknown error'
+          setErrors(['Unable to get roles list', error])
+          return
+        }
+        setAvailableRoles(
+          map(response.result.records, record => record.get('role'))
+        )
+      }
+    )
+  }, [bus, useSystemDb])
 
-  listRoles() {
+  // Fetch roles on mount (equivalent to constructor call)
+  useEffect(() => {
+    getRoles()
+  }, [getRoles])
+
+  const removeRole = useCallback(
+    (role: string) => {
+      const newRoles = roles.slice()
+      const index = newRoles.indexOf(role)
+      if (index > -1) {
+        newRoles.splice(index, 1)
+      }
+      return newRoles
+    },
+    [roles]
+  )
+
+  const addRoles = useCallback(
+    (createdUsername: string) => {
+      const localErrors: string[] = []
+      roles.forEach((role: string) => {
+        if (bus) {
+          bus.self(
+            ROUTED_CYPHER_WRITE_REQUEST,
+            {
+              query: addRoleToUser(createdUsername, role, Boolean(useSystemDb)),
+              params: {
+                username: createdUsername,
+                role
+              },
+              queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+              useDb: useSystemDb
+            },
+            (response: any) => {
+              if (!response.success) {
+                localErrors.push(response.error)
+              }
+            }
+          )
+        }
+      })
+      if (localErrors.length > 0) {
+        setErrors(localErrors)
+        setIsLoading(false)
+        return
+      }
+      setSuccess(`User '${createdUsername}' created`)
+      setUsername('')
+      setPassword('')
+      setConfirmPassword('')
+      setRoles([])
+      setForcePasswordChange(false)
+      setIsLoading(false)
+    },
+    [bus, roles, useSystemDb]
+  )
+
+  const createUser = useCallback(() => {
+    if (!bus) return
+
+    bus.self(
+      ROUTED_CYPHER_WRITE_REQUEST,
+      {
+        query: createDatabaseUser(
+          { username, password, forcePasswordChange },
+          Boolean(useSystemDb)
+        ),
+        params: {
+          username,
+          password
+        },
+        queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+        useDb: useSystemDb
+      },
+      (response: any) => {
+        if (!response.success) {
+          const error =
+            response.error && response.error.message
+              ? response.error.message
+              : 'Unknown error'
+          setErrors(['Unable to create user', error])
+          setIsLoading(false)
+          return
+        }
+        addRoles(username)
+      }
+    )
+  }, [bus, username, password, forcePasswordChange, useSystemDb, addRoles])
+
+  const submit = useCallback(
+    (event: React.FormEvent) => {
+      event.preventDefault()
+
+      setIsLoading(true)
+      setSuccess(null)
+      setErrors(null)
+
+      const validationErrors: string[] = []
+      if (!username) validationErrors.push('Missing username')
+      if (!password) validationErrors.push('Missing password')
+      if (password !== confirmPassword) {
+        validationErrors.push('Passwords are not the same')
+      }
+      if (validationErrors.length !== 0) {
+        setErrors(validationErrors)
+        setIsLoading(false)
+        return
+      }
+      createUser()
+    },
+    [username, password, confirmPassword, createUser]
+  )
+
+  const updateUsername = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setUsername(event.target.value)
+    },
+    []
+  )
+
+  const updatePassword = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setPassword(event.target.value)
+    },
+    []
+  )
+
+  const confirmUpdatePassword = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setConfirmPassword(event.target.value)
+    },
+    []
+  )
+
+  const updateForcePasswordChange = useCallback(() => {
+    setForcePasswordChange(prev => !prev)
+  }, [])
+
+  const filteredAvailableRoles = useMemo(() => {
+    return availableRoles.filter((role: string) => roles.indexOf(role) < 0)
+  }, [availableRoles, roles])
+
+  const openListUsersFrame = useCallback(() => {
+    const action = executeCommand(':server user list', {
+      source: commandSources.button
+    })
+    bus.send(action.type, action)
+  }, [bus])
+
+  const handleRoleSelect = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setRoles(prev => prev.concat([event.target.value]))
+    },
+    []
+  )
+
+  const handleRemoveRole = useCallback(
+    (role: string) => {
+      setRoles(removeRole(role))
+    },
+    [removeRole]
+  )
+
+  const listRolesDisplay = useMemo(() => {
     return (
-      !!this.state.roles.length && (
+      !!roles.length && (
         <StyleRolesContainer className="roles-inline">
-          {this.state.roles.map((role: any, i: any) => {
+          {roles.map((role: string, i: number) => {
             return (
               <FormButton
                 key={i}
                 label={role}
                 icon={<CloseIcon />}
                 buttonType="tag"
-                onClick={() => {
-                  this.setState({ roles: this.removeRole(role) })
-                }}
+                onClick={() => handleRemoveRole(role)}
               />
             )
           })}
         </StyleRolesContainer>
       )
     )
-  }
+  }, [roles, handleRemoveRole])
 
-  addRoles() {
-    const errors: any = []
-    this.state.roles.forEach((role: any) => {
-      this.props.bus &&
-        this.props.bus.self(
-          ROUTED_CYPHER_WRITE_REQUEST,
-          {
-            query: addRoleToUser(
-              this.state.username,
-              role,
-              Boolean(this.props.useSystemDb)
-            ),
-            params: {
-              username: this.state.username,
-              role
-            },
-            queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-            useDb: this.props.useSystemDb
-          },
-          (response: any) => {
-            if (!response.success) {
-              return errors.push(response.error)
-            }
-          }
-        )
-    })
-    if (errors.length > 0) {
-      return this.setState({ errors: errors, isLoading: false })
-    }
-    return this.setState({
-      success: `User '${this.state.username}' created`,
-      username: '',
-      password: '',
-      confirmPassword: '',
-      roles: [],
-      forcePasswordChange: '',
-      isLoading: false
-    })
-  }
+  const formId = useMemo(() => uuidv4(), [])
+  const usernameId = `username-${formId}`
+  const passwordId = `password-${formId}`
+  const passwordConfirmId = `password-confirm-${formId}`
+  const rolesSelectorId = `roles-selector-${formId}`
 
-  getRoles() {
-    this.props.bus &&
-      this.props.bus.self(
-        ROUTED_CYPHER_WRITE_REQUEST,
-        {
-          query: listRolesQuery(Boolean(this.props.useSystemDb)),
-          queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-          useDb: this.props.useSystemDb
-        },
-        (response: any) => {
-          if (!response.success) {
-            const error =
-              response.error && response.error.message
-                ? response.error.message
-                : 'Unknown error'
-            return this.setState({
-              errors: ['Unable to get roles list', error]
-            })
-          }
-          return this.setState({
-            availableRoles: map(response.result.records, record =>
-              record.get('role')
-            )
-          })
-        }
-      )
-  }
-
-  submit = (event: any) => {
-    event.preventDefault()
-
-    this.setState({ isLoading: true, success: null, errors: null })
-    const errors = []
-    if (!this.state.username) errors.push('Missing username')
-    if (!this.state.password) errors.push('Missing password')
-    if (!(this.state.password === this.state.confirmPassword)) {
-      errors.push('Passwords are not the same')
-    }
-    if (errors.length !== 0) {
-      return this.setState({ errors: errors })
-    } else {
-      this.setState({ errors: null })
-      return this.createUser()
-    }
-  }
-
-  createUser() {
-    this.props.bus &&
-      this.props.bus.self(
-        ROUTED_CYPHER_WRITE_REQUEST,
-        {
-          query: createDatabaseUser(
-            this.state,
-            Boolean(this.props.useSystemDb)
-          ),
-          params: {
-            username: this.state.username,
-            password: this.state.password
-          },
-          queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-          useDb: this.props.useSystemDb
-        },
-        (response: any) => {
-          if (!response.success) {
-            const error =
-              response.error && response.error.message
-                ? response.error.message
-                : 'Unknown error'
-            return this.setState({
-              errors: ['Unable to create user', error],
-              isLoading: false
-            })
-          }
-          return this.addRoles()
-        }
-      )
-  }
-
-  updateUsername(event: any) {
-    return this.setState({ username: event.target.value })
-  }
-
-  updatePassword(event: any) {
-    return this.setState({ password: event.target.value })
-  }
-
-  confirmUpdatePassword(event: any) {
-    return this.setState({ confirmPassword: event.target.value })
-  }
-
-  updateForcePasswordChange() {
-    return this.setState({
-      forcePasswordChange: !this.state.forcePasswordChange
-    })
-  }
-
-  availableRoles() {
-    return this.state.availableRoles.filter(
-      (role: any) => this.state.roles.indexOf(role) < 0
+  const listOfAvailableRoles = useMemo(() => {
+    return availableRoles ? (
+      <RolesSelector
+        roles={filteredAvailableRoles}
+        className="roles"
+        name={rolesSelectorId}
+        id={rolesSelectorId}
+        onChange={handleRoleSelect}
+      />
+    ) : (
+      '-'
     )
-  }
+  }, [
+    availableRoles,
+    filteredAvailableRoles,
+    rolesSelectorId,
+    handleRoleSelect
+  ])
 
-  openListUsersFrame() {
-    const action = executeCommand(':server user list', {
-      source: commandSources.button
-    })
-    this.props.bus.send(action.type, action)
-  }
+  let aside
+  let frameContents
+  let displayErrors = errors ? errors.join(', ') : null
 
-  render() {
-    const { isLoading } = this.props
-    let aside
-    let frameContents
-
-    const listOfAvailableRoles = (rolesSelectorId: any) =>
-      this.state.availableRoles ? (
-        <RolesSelector
-          roles={this.availableRoles()}
-          className="roles"
-          name={rolesSelectorId}
-          id={rolesSelectorId}
-          onChange={(event: any) => {
-            this.setState({
-              roles: this.state.roles.concat([event.target.value])
-            })
-          }}
-        />
-      ) : (
-        '-'
-      )
-
-    let errors = this.state.errors ? this.state.errors.join(', ') : null
-    const formId = uuidv4()
-    const usernameId = `username-${formId}`
-    const passwordId = `password-${formId}`
-    const passwordConfirmId = `password-confirm-${formId}`
-    const rolesSelectorId = `roles-selector-${formId}`
-
-    if (this.props.isAura) {
-      errors = null
-      aside = (
-        <FrameAside
-          title="Frame unavailable"
-          subtitle="Frame not currently available on aura."
-        />
-      )
-      frameContents = (
-        <div>
-          <p>
-            User management is currently only available through cypher commands
-            on Neo4j Aura Enterprise.
-          </p>
-          <p>
-            Read more on user and role management with cypher on{' '}
-            <a
-              href="https://neo4j.com/docs/cypher-manual/current/administration/security/users-and-roles"
-              target="_blank"
-              rel="noreferrer"
-            >
-              the Neo4j Cypher docs.
-            </a>
-          </p>
-        </div>
-      )
-    } else if (!this.props.isEnterpriseEdition) {
-      errors = null
-      aside = (
-        <FrameAside
-          title="Frame unavailable"
-          subtitle="What edition are you running?"
-        />
-      )
-      frameContents = <EnterpriseOnlyFrame command={this.props.frame.cmd} />
-    } else {
-      aside = (
-        <FrameAside
-          title="Add user"
-          subtitle="Add a user to the current database"
-        />
-      )
-      frameContents = (
-        <StyledForm id={`user-add-${formId}`} onSubmit={this.submit}>
-          <StyledFormElement>
-            <StyledLabel htmlFor={usernameId}>Username</StyledLabel>
-            <StyledInput
-              className="username"
-              name={usernameId}
-              id={usernameId}
-              value={this.state.username}
-              onChange={this.updateUsername.bind(this)}
-              disabled={isLoading}
-            />
-          </StyledFormElement>
-
-          <StyledFormElementWrapper>
-            <StyledFormElement>
-              <StyledLabel htmlFor={passwordId}>Password</StyledLabel>
-              <StyledInput
-                type="password"
-                className="password"
-                name={passwordId}
-                id={passwordId}
-                value={this.state.password}
-                onChange={this.updatePassword.bind(this)}
-                disabled={isLoading}
-              />
-            </StyledFormElement>
-            <StyledFormElement>
-              <StyledLabel htmlFor={passwordConfirmId}>
-                Confirm password
-              </StyledLabel>
-              <StyledInput
-                type="password"
-                className="password-confirm"
-                name={passwordConfirmId}
-                id={passwordConfirmId}
-                value={this.state.confirmPassword}
-                onChange={this.confirmUpdatePassword.bind(this)}
-                disabled={isLoading}
-              />
-            </StyledFormElement>
-          </StyledFormElementWrapper>
-
-          <StyledFormElement>
-            <StyledLabel htmlFor={rolesSelectorId}>Roles</StyledLabel>
-            {listOfAvailableRoles(rolesSelectorId)}
-            {this.listRoles()}
-          </StyledFormElement>
-
-          <StyledFormElement>
-            <StyledLabel>
-              <StyledInput
-                onChange={this.updateForcePasswordChange.bind(this)}
-                checked={this.state.forcePasswordChange}
-                disabled={isLoading}
-                type="checkbox"
-              />
-              Force password change
-            </StyledLabel>
-          </StyledFormElement>
-
-          <StyledFormElement>
-            <FormButton
-              data-testid="Add User"
-              type="submit"
-              label="Add User"
-              disabled={isLoading}
-            />
-          </StyledFormElement>
-
-          <StyledLink onClick={this.openListUsersFrame.bind(this)}>
-            See user list
-          </StyledLink>
-        </StyledForm>
-      )
-    }
-
-    const getStatusBar = () => {
-      if (errors) return <FrameError message={errors} code="Error" />
-      if (this.state.success) {
-        return <FrameSuccess message={this.state.success} />
-      }
-      return null
-    }
-
-    return (
-      <FrameBodyTemplate
-        isCollapsed={this.props.isCollapsed}
-        isFullscreen={this.props.isFullscreen}
-        aside={aside}
-        contents={frameContents}
-        statusBar={getStatusBar()}
+  if (isAura) {
+    displayErrors = null
+    aside = (
+      <FrameAside
+        title="Frame unavailable"
+        subtitle="Frame not currently available on aura."
       />
     )
+    frameContents = (
+      <div>
+        <p>
+          User management is currently only available through cypher commands on
+          Neo4j Aura Enterprise.
+        </p>
+        <p>
+          Read more on user and role management with cypher on{' '}
+          <a
+            href="https://neo4j.com/docs/cypher-manual/current/administration/security/users-and-roles"
+            target="_blank"
+            rel="noreferrer"
+          >
+            the Neo4j Cypher docs.
+          </a>
+        </p>
+      </div>
+    )
+  } else if (!isEnterpriseEdition) {
+    displayErrors = null
+    aside = (
+      <FrameAside
+        title="Frame unavailable"
+        subtitle="What edition are you running?"
+      />
+    )
+    frameContents = <EnterpriseOnlyFrame command={frame.cmd} />
+  } else {
+    aside = (
+      <FrameAside
+        title="Add user"
+        subtitle="Add a user to the current database"
+      />
+    )
+    frameContents = (
+      <StyledForm id={`user-add-${formId}`} onSubmit={submit}>
+        <StyledFormElement>
+          <StyledLabel htmlFor={usernameId}>Username</StyledLabel>
+          <StyledInput
+            className="username"
+            name={usernameId}
+            id={usernameId}
+            value={username}
+            onChange={updateUsername}
+            disabled={propIsLoading || isLoading}
+          />
+        </StyledFormElement>
+
+        <StyledFormElementWrapper>
+          <StyledFormElement>
+            <StyledLabel htmlFor={passwordId}>Password</StyledLabel>
+            <StyledInput
+              type="password"
+              className="password"
+              name={passwordId}
+              id={passwordId}
+              value={password}
+              onChange={updatePassword}
+              disabled={propIsLoading || isLoading}
+            />
+          </StyledFormElement>
+          <StyledFormElement>
+            <StyledLabel htmlFor={passwordConfirmId}>
+              Confirm password
+            </StyledLabel>
+            <StyledInput
+              type="password"
+              className="password-confirm"
+              name={passwordConfirmId}
+              id={passwordConfirmId}
+              value={confirmPassword}
+              onChange={confirmUpdatePassword}
+              disabled={propIsLoading || isLoading}
+            />
+          </StyledFormElement>
+        </StyledFormElementWrapper>
+
+        <StyledFormElement>
+          <StyledLabel htmlFor={rolesSelectorId}>Roles</StyledLabel>
+          {listOfAvailableRoles}
+          {listRolesDisplay}
+        </StyledFormElement>
+
+        <StyledFormElement>
+          <StyledLabel>
+            <StyledInput
+              onChange={updateForcePasswordChange}
+              checked={forcePasswordChange}
+              disabled={propIsLoading || isLoading}
+              type="checkbox"
+            />
+            Force password change
+          </StyledLabel>
+        </StyledFormElement>
+
+        <StyledFormElement>
+          <FormButton
+            data-testid="Add User"
+            type="submit"
+            label="Add User"
+            disabled={propIsLoading || isLoading}
+          />
+        </StyledFormElement>
+
+        <StyledLink onClick={openListUsersFrame}>See user list</StyledLink>
+      </StyledForm>
+    )
   }
+
+  const getStatusBar = () => {
+    if (displayErrors)
+      return <FrameError message={displayErrors} code="Error" />
+    if (success) {
+      return <FrameSuccess message={success} />
+    }
+    return null
+  }
+
+  return (
+    <FrameBodyTemplate
+      isCollapsed={isCollapsed}
+      isFullscreen={isFullscreen}
+      aside={aside}
+      contents={frameContents}
+      statusBar={getStatusBar()}
+    />
+  )
 }
 
 const mapStateToProps = (state: any) => {
