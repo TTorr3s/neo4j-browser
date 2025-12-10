@@ -133,9 +133,9 @@ src/
 
 ### Key Technologies
 
-- **React 17.0.2** with functional components and hooks
+- **React 18.3.1** with functional components and hooks
 - **TypeScript 4.9.5**
-- **Redux 3.7.2** + **Redux-Observable 1.2.0** (RxJS 6.6.7)
+- **Redux 4.2.1** + **Redux-Observable 1.2.0** (RxJS 6.6.7)
 - **neo4j-driver 6.0.1** for database connectivity
 - **styled-components 5.3.3** for styling
 - **Monaco Editor 0.55.0** for code editing

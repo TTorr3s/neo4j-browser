@@ -171,13 +171,27 @@ if (auraNtId) {
 }
 store.dispatch(updateUdcData({ auraNtId }) as any)
 
+// StrictMode is only enabled in development to help detect:
+// - Components with unsafe lifecycles
+// - Legacy string ref API usage
+// - Deprecated findDOMNode usage
+// - Unexpected side effects (via double-invoking effects)
+// - Legacy context API
+const isDevelopment = process.env.NODE_ENV === 'development'
+
 const AppInit = (): JSX.Element => {
+  const appContent = <App />
+
   return (
     <Provider store={store as any}>
       {/* @ts-expect-error BusProvider types from react-suber don't include children prop for React 18 */}
       <BusProvider bus={bus}>
         <DndProvider backend={HTML5Backend}>
-          <App />
+          {isDevelopment ? (
+            <React.StrictMode>{appContent}</React.StrictMode>
+          ) : (
+            appContent
+          )}
         </DndProvider>
       </BusProvider>
     </Provider>
