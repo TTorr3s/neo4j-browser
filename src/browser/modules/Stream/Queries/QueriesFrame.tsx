@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Bus } from 'suber'
@@ -59,14 +59,6 @@ import {
   StyledTh
 } from './styled'
 
-type QueriesFrameState = {
-  queries: any[]
-  autoRefresh: boolean
-  autoRefreshInterval: number
-  successMessage: null | string
-  errorMessages: string[]
-}
-
 type QueriesFrameProps = {
   frame?: Frame
   bus: Bus
@@ -75,7 +67,9 @@ type QueriesFrameProps = {
   isCollapsed: boolean
 }
 
-function constructOverviewMessage(queries: any, errors: string[]) {
+const AUTO_REFRESH_INTERVAL = 20 // seconds
+
+function constructOverviewMessage(queries: any[], errors: string[]) {
   const numQueriesMsg = queries.length > 1 ? 'queries' : 'query'
   const successMessage = `Found ${queries.length} ${numQueriesMsg} on one server (neo4j 5.0 clusters not yet supported).`
 
@@ -100,133 +94,150 @@ function prettyPrintDuration(duration: Duration) {
   return resultsString
 }
 
-export class QueriesFrame extends Component<
-  QueriesFrameProps,
-  QueriesFrameState
-> {
-  timer: number | undefined
-  state: QueriesFrameState = {
-    queries: [],
-    autoRefresh: false,
-    autoRefreshInterval: 20, // seconds
-    successMessage: null,
-    errorMessages: []
-  }
+export const QueriesFrame: React.FC<QueriesFrameProps> = ({
+  frame,
+  bus,
+  connectionState,
+  isFullscreen,
+  isCollapsed
+}) => {
+  const [queries, setQueries] = useState<any[]>([])
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [errorMessages, setErrorMessages] = useState<string[]>([])
 
-  componentDidMount(): void {
-    if (this.props.connectionState === CONNECTED_STATE) {
-      this.getRunningQueries()
-    } else {
-      this.setState({
-        errorMessages: ['Unable to connect to neo4j']
-      })
-    }
-  }
+  const timerRef = useRef<number | null>(null)
+  const prevFrameTsRef = useRef<number | undefined>(frame?.ts)
 
-  componentDidUpdate(
-    prevProps: QueriesFrameProps,
-    prevState: QueriesFrameState
-  ): void {
-    if (prevState.autoRefresh !== this.state.autoRefresh) {
-      if (this.state.autoRefresh) {
-        this.timer = setInterval(
-          this.getRunningQueries,
-          this.state.autoRefreshInterval * 1000
-        )
-      } else {
-        clearInterval(this.timer)
-      }
-    }
-    if (
-      this.props.frame &&
-      this.props.frame.ts !== prevProps.frame?.ts &&
-      this.props.frame.isRerun
-    ) {
-      this.getRunningQueries()
-    }
-  }
+  const getRunningQueries = useCallback(
+    (suppressQuerySuccessMessage = false): void => {
+      bus.self(
+        CYPHER_REQUEST,
+        {
+          query:
+            'SHOW TRANSACTIONS YIELD currentQuery, username, metaData, parameters, status, elapsedTime, database, transactionId',
+          queryType: NEO4J_BROWSER_USER_ACTION_QUERY
+        },
+        resp => {
+          if (resp.success) {
+            const queriesResult = resp.result.records.map(
+              ({ host, keys, _fields, error }: any) => {
+                if (error) return { error }
+                const nonNullHost = host ?? resp.result.summary.server.address
+                const data: any = {}
+                keys.forEach((key: string, idx: number) => {
+                  data[key] = _fields[idx]
+                })
 
-  getRunningQueries = (suppressQuerySuccessMessage = false): void => {
-    this.props.bus.self(
-      CYPHER_REQUEST,
-      {
-        query:
-          'SHOW TRANSACTIONS YIELD currentQuery, username, metaData, parameters, status, elapsedTime, database, transactionId',
-        queryType: NEO4J_BROWSER_USER_ACTION_QUERY
-      },
-      resp => {
-        if (resp.success) {
-          const queries = resp.result.records.map(
-            ({ host, keys, _fields, error }: any) => {
-              if (error) return { error }
-              const nonNullHost = host ?? resp.result.summary.server.address
-              const data: any = {}
-              keys.forEach((key: string, idx: number) => {
-                data[key] = _fields[idx]
-              })
-
-              return {
-                ...data,
-                host: `neo4j://${nonNullHost}`,
-                query: data.currentQuery,
-                elapsedTimeMillis: prettyPrintDuration(data.elapsedTime),
-                queryId: data.transactionId
+                return {
+                  ...data,
+                  host: `neo4j://${nonNullHost}`,
+                  query: data.currentQuery,
+                  elapsedTimeMillis: prettyPrintDuration(data.elapsedTime),
+                  queryId: data.transactionId
+                }
               }
+            )
+
+            const errors = queriesResult
+              .filter((_: any) => _.error)
+              .map((e: any) => ({
+                ...e.error
+              }))
+            const validQueries = queriesResult.filter((_: any) => !_.error)
+            const resultMessage = constructOverviewMessage(validQueries, errors)
+
+            setQueries(validQueries)
+            setErrorMessages(errors)
+            if (!suppressQuerySuccessMessage) {
+              setSuccessMessage(resultMessage)
             }
-          )
-
-          const errors = queries
-            .filter((_: any) => _.error)
-            .map((e: any) => ({
-              ...e.error
-            }))
-          const validQueries = queries.filter((_: any) => !_.error)
-          const resultMessage = constructOverviewMessage(validQueries, errors)
-
-          this.setState((prevState: QueriesFrameState) => ({
-            queries: validQueries,
-            errorMessages: errors,
-            successMessage: suppressQuerySuccessMessage
-              ? prevState.successMessage
-              : resultMessage
-          }))
+          }
         }
-      }
-    )
-  }
+      )
+    },
+    [bus]
+  )
 
-  killQueries(queryIdList: string[]): void {
-    this.props.bus.self(
-      CYPHER_REQUEST,
-      {
-        query: `TERMINATE TRANSACTIONS ${queryIdList
-          .map(q => `"${q}"`)
-          .join(',')}`,
-        queryType: NEO4J_BROWSER_USER_ACTION_QUERY
-      },
-      (response: any) => {
-        if (response.success) {
-          this.setState({
-            successMessage: 'Query successfully cancelled',
-            errorMessages: []
-          })
-          this.getRunningQueries(true)
-        } else {
-          this.setState(state => ({
-            errorMessages: state.errorMessages.concat([response.error.message]),
-            successMessage: null
-          }))
+  const killQueries = useCallback(
+    (queryIdList: string[]): void => {
+      bus.self(
+        CYPHER_REQUEST,
+        {
+          query: `TERMINATE TRANSACTIONS ${queryIdList
+            .map(q => `"${q}"`)
+            .join(',')}`,
+          queryType: NEO4J_BROWSER_USER_ACTION_QUERY
+        },
+        (response: any) => {
+          if (response.success) {
+            setSuccessMessage('Query successfully cancelled')
+            setErrorMessages([])
+            getRunningQueries(true)
+          } else {
+            setErrorMessages(prev => [...prev, response.error.message])
+            setSuccessMessage(null)
+          }
         }
+      )
+    },
+    [bus, getRunningQueries]
+  )
+
+  const killQuery = useCallback(
+    (queryId: string): void => {
+      killQueries([queryId])
+    },
+    [killQueries]
+  )
+
+  const handleAutoRefreshChange = useCallback(
+    (checked: boolean): void => {
+      setAutoRefresh(checked)
+      if (checked) {
+        getRunningQueries()
       }
-    )
-  }
+    },
+    [getRunningQueries]
+  )
 
-  killQuery(queryId: string): void {
-    this.killQueries([queryId])
-  }
+  // Initial fetch on mount
+  useEffect(() => {
+    if (connectionState === CONNECTED_STATE) {
+      getRunningQueries()
+    } else {
+      setErrorMessages(['Unable to connect to neo4j'])
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  constructViewFromQueryList = (): JSX.Element | null => {
-    const { queries, errorMessages: errors } = this.state
+  // Handle auto-refresh interval
+  useEffect(() => {
+    if (autoRefresh) {
+      timerRef.current = window.setInterval(
+        getRunningQueries,
+        AUTO_REFRESH_INTERVAL * 1000
+      )
+    }
+
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [autoRefresh, getRunningQueries])
+
+  // Handle frame rerun
+  useEffect(() => {
+    if (frame && frame.ts !== prevFrameTsRef.current && frame.isRerun) {
+      getRunningQueries()
+    }
+    prevFrameTsRef.current = frame?.ts
+  }, [frame, getRunningQueries])
+
+  const constructViewFromQueryList = useCallback((): JSX.Element | null => {
     if (queries.length === 0) {
       return null
     }
@@ -287,13 +298,13 @@ export class QueriesFrame extends Component<
                 </StyledTd>
                 <StyledTd key="actions" width={tableHeaderSizes[6][1]}>
                   <ConfirmationButton
-                    onConfirmed={() => this.killQuery(query.queryId)}
+                    onConfirmed={() => killQuery(query.queryId)}
                   />
                 </StyledTd>
               </tr>
             ))}
 
-            {errors.map((error: any, i: number) => (
+            {errorMessages.map((error: any, i: number) => (
               <tr key={`error${i}`}>
                 <StyledTd colSpan={7} title={error.message}>
                   <Code>Error connecting to: {error.host}</Code>
@@ -304,45 +315,32 @@ export class QueriesFrame extends Component<
         </StyledTable>
       </StyledTableWrapper>
     )
-  }
+  }, [queries, errorMessages, killQuery])
 
-  setAutoRefresh(autoRefresh: boolean): void {
-    this.setState({ autoRefresh })
-
-    if (autoRefresh) {
-      this.getRunningQueries()
-    }
-  }
-
-  render(): JSX.Element {
-    const { isCollapsed, isFullscreen } = this.props
-    const { errorMessages, successMessage, autoRefresh } = this.state
-
-    return (
-      <FrameBodyTemplate
-        isCollapsed={isCollapsed}
-        isFullscreen={isFullscreen}
-        contents={this.constructViewFromQueryList()}
-        statusBar={
-          <StatusbarWrapper>
-            {successMessage ? (
-              <StyledStatusBar>
-                {successMessage}
-                <AutoRefreshSpan>
-                  <AutoRefreshToggle
-                    checked={autoRefresh}
-                    onChange={e => this.setAutoRefresh(e.target.checked)}
-                  />
-                </AutoRefreshSpan>
-              </StyledStatusBar>
-            ) : (
-              errorMessages && <FrameError message={errorMessages.join(',')} />
-            )}
-          </StatusbarWrapper>
-        }
-      />
-    )
-  }
+  return (
+    <FrameBodyTemplate
+      isCollapsed={isCollapsed}
+      isFullscreen={isFullscreen}
+      contents={constructViewFromQueryList()}
+      statusBar={
+        <StatusbarWrapper>
+          {successMessage ? (
+            <StyledStatusBar>
+              {successMessage}
+              <AutoRefreshSpan>
+                <AutoRefreshToggle
+                  checked={autoRefresh}
+                  onChange={e => handleAutoRefreshChange(e.target.checked)}
+                />
+              </AutoRefreshSpan>
+            </StyledStatusBar>
+          ) : (
+            errorMessages && <FrameError message={errorMessages.join(',')} />
+          )}
+        </StatusbarWrapper>
+      }
+    />
+  )
 }
 
 const mapStateToProps = (state: GlobalState) => {

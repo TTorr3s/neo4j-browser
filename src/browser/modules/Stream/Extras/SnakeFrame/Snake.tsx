@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import styled from 'styled-components'
 
 import {
@@ -35,6 +35,11 @@ import {
   transitionDirection
 } from './helpers'
 
+// Game state type - food is added dynamically by newFood()
+type GameState = ReturnType<typeof getInitialState> & {
+  food: { x: number; y: number }
+}
+
 const SnakeCanvas = styled.canvas`
   border: 1px solid #787878;
   &:focus {
@@ -42,25 +47,210 @@ const SnakeCanvas = styled.canvas`
   }
 `
 
-class SnakeFrame extends React.Component<any> {
-  canvas = React.createRef<any>()
-  ctx: any = null
-  gameState: any = getInitialState(
-    this.props.play,
-    this.props.width,
-    this.props.height,
-    this.props.gridSize
-  )
+interface SnakeFrameProps {
+  play: boolean
+  width: number
+  height: number
+  gridSize: number
+  onEat?: (length: number) => void
+  onDie?: () => void
+}
 
-  blockInput = false
-  componentDidMount() {
-    this.ctx = this.canvas.current.getContext('2d')
-    this.canvas.current.addEventListener('keydown', (ev: any) => {
+function SnakeFrame({
+  play,
+  width,
+  height,
+  gridSize,
+  onEat,
+  onDie
+}: SnakeFrameProps): JSX.Element {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null)
+  const gameStateRef = useRef<GameState>(
+    getInitialState(play, width, height, gridSize) as GameState
+  )
+  const blockInputRef = useRef(false)
+  const animationFrameRef = useRef<number | null>(null)
+
+  // Store callbacks in refs to avoid stale closures in game loop
+  const onEatRef = useRef(onEat)
+  const onDieRef = useRef(onDie)
+
+  useEffect(() => {
+    onEatRef.current = onEat
+    onDieRef.current = onDie
+  }, [onEat, onDie])
+
+  const drawFood = useCallback(() => {
+    const ctx = ctxRef.current
+    const gameState = gameStateRef.current
+    if (!ctx) return
+
+    ctx.fillStyle = foodColor
+    rect({
+      ctx,
+      x: gameState.food.x,
+      y: gameState.food.y,
+      width: gameState.snake.width,
+      height: gameState.snake.height
+    })
+  }, [])
+
+  const drawSnake = useCallback(() => {
+    const ctx = ctxRef.current
+    const gameState = gameStateRef.current
+    if (!ctx) return
+
+    ctx.fillStyle = snakeColor
+    const { snake } = gameState
+    snake.body.forEach((part: { x: number; y: number }) => {
+      rect({
+        ctx,
+        x: part.x,
+        y: part.y,
+        width: snake.width,
+        height: snake.height
+      })
+    })
+  }, [])
+
+  const drawWorld = useCallback(() => {
+    const ctx = ctxRef.current
+    const gameState = gameStateRef.current
+    if (!ctx) return
+
+    const { color, width: worldWidth, height: worldHeight } = gameState.world
+    ctx.fillStyle = color
+    rect({
+      ctx,
+      x: 0,
+      y: 0,
+      width: worldWidth,
+      height: worldHeight
+    })
+  }, [])
+
+  const calcNextHeadPos = useCallback((): { x: number; y: number } => {
+    const gameState = gameStateRef.current
+    let { x, y } = gameState.snake.body[0]
+
+    if (gameState.snake.direction === UP) {
+      y -= gameState.step
+      return { x, y }
+    }
+    if (gameState.snake.direction === DOWN) {
+      y += gameState.step
+      return { x, y }
+    }
+    if (gameState.snake.direction === LEFT) {
+      x -= gameState.step
+      return { x, y }
+    }
+    if (gameState.snake.direction === RIGHT) {
+      x += gameState.step
+      return { x, y }
+    }
+    return { x, y }
+  }, [])
+
+  const growSnake = useCallback(() => {
+    const gameState = gameStateRef.current
+    gameState.snake.body.unshift(gameState.snake.body[0])
+  }, [])
+
+  const setNewSpeed = useCallback(() => {
+    const gameState = gameStateRef.current
+    const speedLen =
+      gameState.snake.body.length % 5 ? gameState.speed : gameState.speed - 1
+    gameState.speed = Math.max(speedLen, maxSpeed)
+  }, [])
+
+  const eatMaybe = useCallback(() => {
+    const gameState = gameStateRef.current
+    const { x, y } = gameState.snake.body[0]
+    const { x: fx, y: fy } = gameState.food
+
+    if (x === fx && y === fy) {
+      newFood(gameState)
+      growSnake()
+      onEatRef.current?.(gameState.snake.body.length)
+      setNewSpeed()
+    }
+  }, [growSnake, setNewSpeed])
+
+  const updateCanvas = useCallback(() => {
+    const gameState = gameStateRef.current
+    const ctx = ctxRef.current
+    const canvas = canvasRef.current
+
+    // Helper to schedule next frame
+    const tick = () => {
+      gameState.frame++
+      animationFrameRef.current = window.requestAnimationFrame(updateCanvas)
+    }
+
+    if (gameState.frame % gameState.speed) {
+      tick()
+      return
+    }
+
+    blockInputRef.current = false
+
+    if (!gameState.play) {
+      return
+    }
+
+    if (!canvas || !ctx) {
+      return
+    }
+
+    ctx.clearRect(0, 0, gameState.world.width, gameState.world.height)
+    drawWorld()
+
+    const { x, y } = calcNextHeadPos()
+    if (doesCollide({ x, y }, gameState)) {
+      drawFood()
+      drawSnake()
+      onDieRef.current?.()
+      return
+    }
+
+    gameState.snake.body.unshift({ x, y })
+    gameState.snake.body.pop()
+    drawFood()
+    drawSnake()
+    eatMaybe()
+    tick()
+  }, [drawWorld, calcNextHeadPos, drawFood, drawSnake, eatMaybe])
+
+  const reset = useCallback(() => {
+    gameStateRef.current = getInitialState(
+      play,
+      width,
+      height,
+      gridSize
+    ) as GameState
+  }, [play, width, height, gridSize])
+
+  // Initialize canvas context
+  useEffect(() => {
+    if (canvasRef.current) {
+      ctxRef.current = canvasRef.current.getContext('2d')
+    }
+  }, [])
+
+  // Handle keyboard input
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const handleKeyDown = (ev: KeyboardEvent) => {
       const { key } = ev
-      if (this.blockInput) {
+      if (blockInputRef.current) {
         return
       }
-      const allowedKeys: any = {
+
+      const allowedKeys: Record<string, string> = {
         ArrowDown: DOWN,
         ArrowUp: UP,
         ArrowLeft: LEFT,
@@ -70,171 +260,57 @@ class SnakeFrame extends React.Component<any> {
         a: LEFT,
         d: RIGHT
       }
+
       if (!Object.keys(allowedKeys).includes(key)) {
         return
       }
-      this.blockInput = true
-      this.gameState.snake.direction = transitionDirection(
-        this.gameState.snake.direction,
+
+      blockInputRef.current = true
+      gameStateRef.current.snake.direction = transitionDirection(
+        gameStateRef.current.snake.direction,
         allowedKeys[key]
       )
-    })
-    this.updateCanvas()
-  }
+    }
 
-  componentDidUpdate() {
-    if (this.gameState.play !== this.props.play) {
-      this.gameState.play = this.props.play
-      if (this.props.play) {
-        this.canvas.current.focus()
-        this.reset()
-        this.updateCanvas()
+    canvas.addEventListener('keydown', handleKeyDown)
+    return () => canvas.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Start game loop on mount
+  useEffect(() => {
+    updateCanvas()
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }
+  }, [updateCanvas])
 
-  reset = () => {
-    this.gameState = getInitialState(
-      this.props.play,
-      this.props.width,
-      this.props.height,
-      this.props.gridSize
-    )
-  }
-
-  drawFood = () => {
-    this.ctx.fillStyle = foodColor
-    rect({
-      ctx: this.ctx,
-      x: this.gameState.food.x,
-      y: this.gameState.food.y,
-      width: this.gameState.snake.width,
-      height: this.gameState.snake.height
-    })
-  }
-
-  drawSnake = () => {
-    this.ctx.fillStyle = snakeColor
-    const { snake } = this.gameState
-    snake.body.forEach((part: any) => {
-      rect({
-        ctx: this.ctx,
-        x: part.x,
-        y: part.y,
-        width: snake.width,
-        height: snake.height
-      })
-    })
-  }
-
-  drawWorld = () => {
-    const { color, width, height } = this.gameState.world
-    this.ctx.fillStyle = color
-    rect({
-      ctx: this.ctx,
-      x: 0,
-      y: 0,
-      width: width,
-      height: height
-    })
-  }
-
-  calcNextHeadPos = (): any => {
-    let { x, y } = this.gameState.snake.body[0]
-    if (this.gameState.snake.direction === UP) {
-      y -= this.gameState.step
-      return { x, y }
+  // Handle play prop changes
+  useEffect(() => {
+    const gameState = gameStateRef.current
+    if (gameState.play !== play) {
+      gameState.play = play
+      if (play) {
+        canvasRef.current?.focus()
+        reset()
+        // Cancel any existing animation frame and start fresh
+        if (animationFrameRef.current !== null) {
+          cancelAnimationFrame(animationFrameRef.current)
+        }
+        animationFrameRef.current = window.requestAnimationFrame(updateCanvas)
+      }
     }
-    if (this.gameState.snake.direction === DOWN) {
-      y += this.gameState.step
-      return { x, y }
-    }
-    if (this.gameState.snake.direction === LEFT) {
-      x -= this.gameState.step
-      return { x, y }
-    }
-    if (this.gameState.snake.direction === RIGHT) {
-      x += this.gameState.step
-      return { x, y }
-    }
-  }
+  }, [play, reset, updateCanvas])
 
-  growSnake = () => {
-    this.gameState.snake.body.unshift(this.gameState.snake.body[0])
-  }
-
-  eatMaybe = () => {
-    const { x, y } = this.gameState.snake.body[0]
-    const { x: fx, y: fy } = this.gameState.food
-    if (x === fx && y === fy) {
-      newFood(this.gameState)
-      this.growSnake()
-      this.props.onEat && this.props.onEat(this.gameState.snake.body.length)
-      this.setNewSpeed()
-    }
-  }
-
-  setNewSpeed = () => {
-    const speedLen =
-      this.gameState.snake.body.length % 5
-        ? this.gameState.speed
-        : this.gameState.speed - 1
-    this.gameState.speed = Math.max(speedLen, maxSpeed)
-  }
-
-  updateCanvas = () => {
-    if (this.gameState.frame % this.gameState.speed) {
-      this.tick()
-      return
-    }
-    this.blockInput = false
-    if (!this.gameState.play) {
-      return
-    }
-    if (!this.canvas || !this.canvas.current) {
-      return
-    }
-    if (!this.gameState.play) {
-      return
-    }
-    this.ctx.clearRect(
-      0,
-      0,
-      this.gameState.world.width,
-      this.gameState.world.height
-    )
-    this.drawWorld()
-    const { x, y } = this.calcNextHeadPos()
-    if (doesCollide({ x, y }, this.gameState)) {
-      this.drawFood()
-      this.drawSnake()
-      this.props.onDie && this.props.onDie()
-      return
-    }
-    this.gameState.snake.body.unshift({ x, y })
-    this.gameState.snake.body.pop()
-    this.drawFood()
-    this.drawSnake()
-    this.eatMaybe()
-    this.tick()
-  }
-
-  tick = () => {
-    this.gameState.frame++
-    window.requestAnimationFrame(() => {
-      this.updateCanvas()
-    })
-  }
-
-  render() {
-    return (
-      <SnakeCanvas
-        tabIndex={1}
-        ref={this.canvas}
-        width={this.gameState.world.width}
-        height={this.gameState.world.height}
-      />
-    )
-  }
+  return (
+    <SnakeCanvas
+      tabIndex={1}
+      ref={canvasRef}
+      width={gameStateRef.current.world.width}
+      height={gameStateRef.current.world.height}
+    />
+  )
 }
+
 export default SnakeFrame

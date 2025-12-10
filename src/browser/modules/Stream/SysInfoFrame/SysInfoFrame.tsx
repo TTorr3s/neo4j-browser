@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component, ReactNode, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Bus } from 'suber'
@@ -92,170 +92,182 @@ export type SysInfoFrameProps = {
   rerunWithDb: (cmd: { useDb: string; id: string }) => void
 }
 
-export class SysInfoFrame extends Component<
-  SysInfoFrameProps,
-  SysInfoFrameState
-> {
-  timer: number | null = null
-  state: SysInfoFrameState = {
-    lastFetch: null,
-    storeSizes: [],
-    idAllocation: [],
-    pageCache: [],
-    transactions: [],
-    clusterMembers: [],
-    errorMessage: null,
-    results: false,
-    autoRefresh: false,
-    autoRefreshInterval: 20 // seconds
-  }
+const AUTO_REFRESH_INTERVAL = 20 // seconds
 
-  componentDidMount(): void {
-    this.getSysInfo()
-  }
+export const SysInfoFrame = ({
+  bus,
+  databases,
+  frame,
+  hasMultiDbSupport,
+  isConnected: connected,
+  isEnterprise: enterprise,
+  isFullscreen,
+  isCollapsed,
+  isOnCluster: onCluster,
+  namespacesEnabled,
+  metricsPrefix
+}: SysInfoFrameProps): React.ReactElement => {
+  const [lastFetch, setLastFetch] = useState<number | null>(null)
+  const [storeSizes, setStoreSizes] = useState<DatabaseMetric[]>([])
+  const [idAllocation, setIdAllocation] = useState<DatabaseMetric[]>([])
+  const [pageCache, setPageCache] = useState<DatabaseMetric[]>([])
+  const [transactions, setTransactions] = useState<DatabaseMetric[]>([])
+  const [clusterMembers, setClusterMembers] = useState<DatabaseMetric[]>([])
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [autoRefresh, setAutoRefresh] = useState(false)
 
-  componentDidUpdate(
-    prevProps: SysInfoFrameProps,
-    prevState: SysInfoFrameState
-  ): void {
-    if (prevState.autoRefresh !== this.state.autoRefresh) {
-      if (this.state.autoRefresh) {
-        this.timer = window.setInterval(
-          this.getSysInfo,
-          this.state.autoRefreshInterval * 1000
+  const timerRef = useRef<number | null>(null)
+
+  // Create a setState-like function for the response handlers
+  const updateState = useCallback((newState: Partial<SysInfoFrameState>) => {
+    if (newState.lastFetch !== undefined) setLastFetch(newState.lastFetch)
+    if (newState.storeSizes !== undefined) setStoreSizes(newState.storeSizes)
+    if (newState.idAllocation !== undefined)
+      setIdAllocation(newState.idAllocation)
+    if (newState.pageCache !== undefined) setPageCache(newState.pageCache)
+    if (newState.transactions !== undefined)
+      setTransactions(newState.transactions)
+    if (newState.clusterMembers !== undefined)
+      setClusterMembers(newState.clusterMembers)
+    if (newState.errorMessage !== undefined)
+      setErrorMessage(newState.errorMessage)
+  }, [])
+
+  const runCypherQuery = useCallback(
+    (query: string, responseHandler: (res: any) => void): void => {
+      if (bus && connected) {
+        setLastFetch(Date.now())
+        bus.self(
+          CYPHER_REQUEST,
+          {
+            query,
+            queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+            useDb: frame.useDb
+          },
+          responseHandler
         )
-      } else {
-        this.timer && clearInterval(this.timer)
+        if (onCluster) {
+          bus.self(
+            CYPHER_REQUEST,
+            {
+              query: 'CALL dbms.cluster.overview',
+              queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+              useDb: frame.useDb
+            },
+            helpers.clusterResponseHandler(updateState)
+          )
+        }
       }
-    }
+    },
+    [bus, connected, frame.useDb, onCluster, updateState]
+  )
 
-    if (
-      prevProps.frame.useDb !== this.props.frame.useDb ||
-      prevProps.namespacesEnabled !== this.props.namespacesEnabled ||
-      prevProps.metricsPrefix !== this.props.metricsPrefix
-    ) {
-      this.getSysInfo()
-    }
-  }
-
-  getSysInfo = (): void => {
-    const { frame, hasMultiDbSupport, metricsPrefix, namespacesEnabled } =
-      this.props
-
+  const getSysInfo = useCallback((): void => {
     if (hasMultiDbSupport && frame.useDb) {
-      this.runCypherQuery(
+      runCypherQuery(
         helpers.sysinfoQuery({
           databaseName: frame.useDb,
           namespacesEnabled,
           metricsPrefix
         }),
-        helpers.responseHandler(this.setState.bind(this))
+        helpers.responseHandler(updateState)
       )
     }
-  }
+  }, [
+    hasMultiDbSupport,
+    frame.useDb,
+    namespacesEnabled,
+    metricsPrefix,
+    runCypherQuery,
+    updateState
+  ])
 
-  runCypherQuery = (
-    query: string,
-    responseHandler: (res: any) => void
-  ): void => {
-    const { bus, isConnected } = this.props
-    if (bus && isConnected) {
-      this.setState({ lastFetch: Date.now() })
-      bus.self(
-        CYPHER_REQUEST,
-        {
-          query,
-          queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-          useDb: this.props.frame.useDb
-        },
-        responseHandler
+  const handleAutoRefreshChange = useCallback(
+    (newAutoRefresh: boolean): void => {
+      setAutoRefresh(newAutoRefresh)
+      if (newAutoRefresh) {
+        getSysInfo()
+      }
+    },
+    [getSysInfo]
+  )
+
+  // Initial fetch on mount
+  useEffect(() => {
+    getSysInfo()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refetch when dependencies change
+  useEffect(() => {
+    getSysInfo()
+  }, [frame.useDb, namespacesEnabled, metricsPrefix]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle auto-refresh timer
+  useEffect(() => {
+    if (autoRefresh) {
+      timerRef.current = window.setInterval(
+        getSysInfo,
+        AUTO_REFRESH_INTERVAL * 1000
       )
-      if (this.props.isOnCluster) {
-        this.props.bus.self(
-          CYPHER_REQUEST,
-          {
-            query: 'CALL dbms.cluster.overview',
-            queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
-            useDb: this.props.frame.useDb
-          },
-          helpers.clusterResponseHandler(this.setState.bind(this))
-        )
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
       }
     }
-  }
 
-  setAutoRefresh = (autoRefresh: boolean): void => {
-    this.setState({ autoRefresh })
-
-    if (autoRefresh) {
-      this.getSysInfo()
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
     }
-  }
+  }, [autoRefresh, getSysInfo])
 
-  render(): ReactNode {
-    const {
-      autoRefresh,
-      errorMessage,
-      idAllocation,
-      lastFetch,
-      pageCache,
-      storeSizes,
-      transactions,
-      clusterMembers
-    } = this.state
-    const {
-      databases,
-      isConnected,
-      isEnterprise,
-      hasMultiDbSupport,
-      isCollapsed,
-      isFullscreen
-    } = this.props
+  const content = connected ? (
+    <SysInfoTable
+      pageCache={pageCache}
+      storeSizes={storeSizes}
+      idAllocation={idAllocation}
+      transactions={transactions}
+      databases={databases}
+      clusterMembers={clusterMembers}
+      isEnterpriseEdition={enterprise}
+      hasMultiDbSupport={hasMultiDbSupport}
+    />
+  ) : (
+    <ErrorsView
+      result={{ code: 'No connection', message: 'No connection available' }}
+    />
+  )
 
-    const content = isConnected ? (
-      <SysInfoTable
-        pageCache={pageCache}
-        storeSizes={storeSizes}
-        idAllocation={idAllocation}
-        transactions={transactions}
-        databases={databases}
-        clusterMembers={clusterMembers}
-        isEnterpriseEdition={isEnterprise}
-        hasMultiDbSupport={hasMultiDbSupport}
-      />
-    ) : (
-      <ErrorsView
-        result={{ code: 'No connection', message: 'No connection available' }}
-      />
-    )
-
-    return (
-      <FrameBodyTemplate
-        isCollapsed={isCollapsed}
-        isFullscreen={isFullscreen}
-        contents={content}
-        statusBar={
-          <StatusbarWrapper>
-            <StyledStatusBar>
-              {lastFetch && `Updated: ${new Date(lastFetch).toISOString()}`}
-              {errorMessage && (
-                <InlineError>
-                  <ExclamationTriangleIcon /> {errorMessage}
-                </InlineError>
-              )}
-              <AutoRefreshSpan>
-                <AutoRefreshToggle
-                  checked={autoRefresh}
-                  onChange={e => this.setAutoRefresh(e.target.checked)}
-                />
-              </AutoRefreshSpan>
-            </StyledStatusBar>
-          </StatusbarWrapper>
-        }
-      />
-    )
-  }
+  return (
+    <FrameBodyTemplate
+      isCollapsed={isCollapsed}
+      isFullscreen={isFullscreen}
+      contents={content}
+      statusBar={
+        <StatusbarWrapper>
+          <StyledStatusBar>
+            {lastFetch && `Updated: ${new Date(lastFetch).toISOString()}`}
+            {errorMessage && (
+              <InlineError>
+                <ExclamationTriangleIcon /> {errorMessage}
+              </InlineError>
+            )}
+            <AutoRefreshSpan>
+              <AutoRefreshToggle
+                checked={autoRefresh}
+                onChange={e => handleAutoRefreshChange(e.target.checked)}
+              />
+            </AutoRefreshSpan>
+          </StyledStatusBar>
+        </StatusbarWrapper>
+      }
+    />
+  )
 }
+
 const FrameVersionPicker = (
   props: SysInfoFrameProps & { fallbackDb: string | null }
 ) => {
