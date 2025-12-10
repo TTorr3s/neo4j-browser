@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React, { useState, useCallback } from 'react'
 import { connect } from 'react-redux'
 
 import FrameBodyTemplate from '../../Frame/FrameBodyTemplate'
@@ -28,73 +28,74 @@ import { Lead } from 'browser-components/Text'
 import { H3 } from 'browser-components/headers'
 import { getActiveConnection } from 'shared/modules/connections/connectionsDuck'
 
-type ChangePasswordFrameState = any
-
-class ChangePasswordFrame extends Component<any, ChangePasswordFrameState> {
-  constructor(props: any) {
-    super(props)
-    const connection = this.props.frame.connectionData
-    this.state = {
-      ...connection,
-      passwordChangeNeeded: false,
-      error: {},
-      success: false
-    }
+interface ChangePasswordFrameProps {
+  isCollapsed: boolean
+  isFullscreen: boolean
+  frame: {
+    connectionData?: Record<string, unknown>
   }
+  activeConnection: string | null
+}
 
-  error = (e: any) => {
+interface ChangePasswordFrameState {
+  error: { code?: string; message?: string }
+  success: boolean
+}
+
+function ChangePasswordFrame(props: ChangePasswordFrameProps) {
+  const [state, setState] = useState<ChangePasswordFrameState>({
+    error: {},
+    success: false
+  })
+
+  const handleError = useCallback((e: { code?: string; message?: string }) => {
     if (e.code === 'N/A') {
       e.message = 'Existing password is incorrect'
     }
-    this.setState({ error: e })
-  }
+    setState(prev => ({ ...prev, error: e }))
+  }, [])
 
-  onSuccess = () => {
-    this.setState({ password: '' })
-    this.setState({ success: true })
-  }
+  const handleSuccess = useCallback(() => {
+    setState(prev => ({ ...prev, success: true }))
+  }, [])
 
-  render() {
-    const content = (
-      <>
-        <StyledConnectionAside>
-          <H3>Password change</H3>
-          {this.state.success ? (
-            <Lead>Password change successful</Lead>
-          ) : (
-            <Lead>
-              {this.props.activeConnection
-                ? 'Enter your current password and the new twice to change your password.'
-                : 'Please connect to a database to change the password.'}
-            </Lead>
-          )}
-        </StyledConnectionAside>
-
-        {this.props.activeConnection && (
-          <ConnectionFormController
-            {...this.props}
-            error={this.error}
-            onSuccess={this.onSuccess}
-            forcePasswordChange
-            showExistingPasswordInput
-          />
+  const content = (
+    <>
+      <StyledConnectionAside>
+        <H3>Password change</H3>
+        {state.success ? (
+          <Lead>Password change successful</Lead>
+        ) : (
+          <Lead>
+            {props.activeConnection
+              ? 'Enter your current password and the new twice to change your password.'
+              : 'Please connect to a database to change the password.'}
+          </Lead>
         )}
-      </>
-    )
-    return (
-      <FrameBodyTemplate
-        isCollapsed={this.props.isCollapsed}
-        isFullscreen={this.props.isFullscreen}
-        statusBar={
-          <FrameError
-            code={this.state.error.code}
-            message={this.state.error.message}
-          />
-        }
-        contents={content}
-      />
-    )
-  }
+      </StyledConnectionAside>
+
+      {props.activeConnection && (
+        <ConnectionFormController
+          {...props}
+          error={handleError}
+          onSuccess={handleSuccess}
+          forcePasswordChange
+          showExistingPasswordInput
+        />
+      )}
+    </>
+  )
+
+  return (
+    <FrameBodyTemplate
+      isCollapsed={props.isCollapsed}
+      isFullscreen={props.isFullscreen}
+      statusBar={
+        <FrameError code={state.error.code} message={state.error.message} />
+      }
+      contents={content}
+    />
+  )
 }
 
 const mapStateToProps = (state: any) => {

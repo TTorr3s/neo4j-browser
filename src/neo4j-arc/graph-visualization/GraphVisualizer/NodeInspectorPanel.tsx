@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React from 'react'
 
 import { ChevronLeftIcon, ChevronRightIcon } from '../../common'
 
@@ -55,94 +55,90 @@ interface NodeInspectorPanelProps {
 
 export const defaultPanelWidth = (): number =>
   Math.max(window.innerWidth / 5, panelMinWidth)
-export class NodeInspectorPanel extends Component<NodeInspectorPanelProps> {
-  render(): JSX.Element {
-    const {
-      expanded,
-      graphStyle,
-      hasTruncatedFields,
-      hoveredItem,
-      selectedItem,
-      setWidth,
-      stats,
-      toggleExpanded,
-      width,
-      DetailsPaneOverride,
-      OverviewPaneOverride
-    } = this.props
-    const relevantItems = ['node', 'relationship']
-    const hoveringNodeOrRelationship =
-      hoveredItem && relevantItems.includes(hoveredItem.type)
-    const shownEl = hoveringNodeOrRelationship ? hoveredItem : selectedItem
-    const DetailsPane =
-      DetailsPaneOverride !== undefined
-        ? DetailsPaneOverride
-        : DefaultDetailsPane
-    const OverviewPane =
-      OverviewPaneOverride !== undefined
-        ? OverviewPaneOverride
-        : DefaultOverviewPane
 
-    return (
-      <>
-        <StyledNodeInspectorTopMenuChevron
-          aria-label={
-            expanded
-              ? 'Collapse the node properties display'
-              : 'Expand the node properties display'
-          }
-          expanded={expanded}
-          onClick={toggleExpanded}
-          title={
-            expanded
-              ? 'Collapse the node properties display'
-              : 'Expand the node properties display'
-          }
+export function NodeInspectorPanel({
+  expanded,
+  graphStyle,
+  hasTruncatedFields,
+  hoveredItem,
+  selectedItem,
+  setWidth,
+  stats,
+  toggleExpanded,
+  width,
+  DetailsPaneOverride,
+  OverviewPaneOverride
+}: NodeInspectorPanelProps): JSX.Element {
+  const relevantItems = ['node', 'relationship']
+  const hoveringNodeOrRelationship =
+    hoveredItem && relevantItems.includes(hoveredItem.type)
+  const shownEl = hoveringNodeOrRelationship ? hoveredItem : selectedItem
+  const DetailsPane =
+    DetailsPaneOverride !== undefined ? DetailsPaneOverride : DefaultDetailsPane
+  const OverviewPane =
+    OverviewPaneOverride !== undefined
+      ? OverviewPaneOverride
+      : DefaultOverviewPane
+
+  return (
+    <>
+      <StyledNodeInspectorTopMenuChevron
+        aria-label={
+          expanded
+            ? 'Collapse the node properties display'
+            : 'Expand the node properties display'
+        }
+        expanded={expanded}
+        onClick={toggleExpanded}
+        title={
+          expanded
+            ? 'Collapse the node properties display'
+            : 'Expand the node properties display'
+        }
+      >
+        {expanded ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+      </StyledNodeInspectorTopMenuChevron>
+
+      <NodeInspectorDrawer width={width} isOpen={expanded}>
+        <Resizable
+          size={{
+            width: width,
+            height: '100%'
+          }}
+          onResize={(_e, _direction, ref, _d) => {
+            const width = Number.parseInt(ref.style.width.slice(0, -2))
+            setWidth(width)
+          }}
+          data-testid="vizInspector"
         >
-          {expanded ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-        </StyledNodeInspectorTopMenuChevron>
-
-        <NodeInspectorDrawer width={width} isOpen={expanded}>
-          <Resizable
-            size={{
-              width: width,
-              height: '100%'
-            }}
-            onResize={(_e, _direction, ref, _d) => {
-              const width = Number.parseInt(ref.style.width.slice(0, -2))
-              setWidth(width)
-            }}
-            data-testid="vizInspector"
-          >
-            <PaneContainer paneWidth={width}>
-              {shownEl.type === 'node' || shownEl.type === 'relationship' ? (
-                <DetailsPane
-                  vizItem={shownEl}
-                  graphStyle={graphStyle}
-                  nodeInspectorWidth={width}
-                />
-              ) : (
-                <OverviewPane
-                  graphStyle={graphStyle}
-                  hasTruncatedFields={hasTruncatedFields}
-                  stats={stats}
-                  nodeCount={
-                    shownEl.type === 'canvas' ? shownEl.item.nodeCount : null
-                  }
-                  relationshipCount={
-                    shownEl.type === 'canvas'
-                      ? shownEl.item.relationshipCount
-                      : null
-                  }
-                  infoMessage={
-                    shownEl.type === 'status-item' ? shownEl.item : null
-                  }
-                />
-              )}
-            </PaneContainer>
-          </Resizable>
-        </NodeInspectorDrawer>
-      </>
-    )
-  }
+          <PaneContainer paneWidth={width}>
+            {shownEl.type === 'node' || shownEl.type === 'relationship' ? (
+              <DetailsPane
+                vizItem={shownEl}
+                graphStyle={graphStyle}
+                nodeInspectorWidth={width}
+              />
+            ) : (
+              <OverviewPane
+                graphStyle={graphStyle}
+                hasTruncatedFields={hasTruncatedFields}
+                stats={stats}
+                nodeCount={
+                  shownEl.type === 'canvas' ? shownEl.item.nodeCount : null
+                }
+                relationshipCount={
+                  shownEl.type === 'canvas'
+                    ? shownEl.item.relationshipCount
+                    : null
+                }
+                infoMessage={
+                  shownEl.type === 'status-item' ? shownEl.item : null
+                }
+              />
+            )}
+          </PaneContainer>
+        </Resizable>
+      </NodeInspectorDrawer>
+    </>
+  )
 }

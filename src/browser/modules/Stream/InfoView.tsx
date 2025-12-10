@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React from 'react'
 
 import {
   StyledDiv,
@@ -28,25 +28,26 @@ import {
   StyledInfoMessage
 } from './styled'
 
-export class InfoView extends Component<any> {
-  shouldComponentUpdate() {
-    return false
-  }
-
-  render() {
-    const { title, description } = this.props
-    return (
-      <StyledHelpFrame>
-        <StyledHelpContent>
-          <StyledHelpDescription>
-            <StyledInfoMessage>INFO</StyledInfoMessage>
-            <StyledH4>{title}</StyledH4>
-          </StyledHelpDescription>
-          <StyledDiv>
-            <StyledHelpDescription>{description}</StyledHelpDescription>
-          </StyledDiv>
-        </StyledHelpContent>
-      </StyledHelpFrame>
-    )
-  }
+interface InfoViewProps {
+  title: string
+  description: React.ReactNode
 }
+
+export const InfoView = React.memo(function InfoView({
+  title,
+  description
+}: InfoViewProps) {
+  return (
+    <StyledHelpFrame>
+      <StyledHelpContent>
+        <StyledHelpDescription>
+          <StyledInfoMessage>INFO</StyledInfoMessage>
+          <StyledH4>{title}</StyledH4>
+        </StyledHelpDescription>
+        <StyledDiv>
+          <StyledHelpDescription>{description}</StyledHelpDescription>
+        </StyledDiv>
+      </StyledHelpContent>
+    </StyledHelpFrame>
+  )
+})

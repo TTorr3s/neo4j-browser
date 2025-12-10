@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React, { useState, useCallback } from 'react'
 
 import FrameBodyTemplate from '../../Frame/FrameBodyTemplate'
 import FrameError from '../../Frame/FrameError'
@@ -29,59 +29,55 @@ import { BaseFrameProps } from '../Stream'
 import { Neo4jError } from 'neo4j-driver'
 
 type ConnectionFrameState = { error: Partial<Neo4jError>; success?: true }
-class ConnectionFrame extends Component<BaseFrameProps, ConnectionFrameState> {
-  state: ConnectionFrameState = {
+
+function ConnectionFrame(props: BaseFrameProps) {
+  const [state, setState] = useState<ConnectionFrameState>({
     error: {}
-  }
+  })
 
-  error(e: any) {
-    this.setState({ error: e })
-  }
+  const handleError = useCallback((e: Partial<Neo4jError>) => {
+    setState(prev => ({ ...prev, error: e }))
+  }, [])
 
-  success() {
-    this.setState({ success: true })
-  }
+  const handleSuccess = useCallback(() => {
+    setState(prev => ({ ...prev, success: true }))
+  }, [])
 
-  render() {
-    return (
-      <FrameBodyTemplate
-        isCollapsed={this.props.isCollapsed}
-        isFullscreen={this.props.isFullscreen}
-        statusBar={
-          <FrameError
-            code={this.state.error.code}
-            message={this.state.error.message}
-          />
-        }
-        contents={
-          <>
-            <StyledConnectionAside>
-              {this.state.success ? (
-                <>
-                  <H3>Connected to Neo4j</H3>
-                  <Lead>Nice to meet you.</Lead>
-                </>
-              ) : (
-                <>
-                  <H3>Connect to Neo4j</H3>
-                  <Lead>
-                    Database access might require an authenticated connection
-                  </Lead>
-                </>
-              )}
-            </StyledConnectionAside>
-            <StyledConnectionBodyContainer>
-              <ConnectionForm
-                {...this.props}
-                onSuccess={this.success.bind(this)}
-                error={this.error.bind(this)}
-              />
-            </StyledConnectionBodyContainer>
-          </>
-        }
-      />
-    )
-  }
+  return (
+    <FrameBodyTemplate
+      isCollapsed={props.isCollapsed}
+      isFullscreen={props.isFullscreen}
+      statusBar={
+        <FrameError code={state.error.code} message={state.error.message} />
+      }
+      contents={
+        <>
+          <StyledConnectionAside>
+            {state.success ? (
+              <>
+                <H3>Connected to Neo4j</H3>
+                <Lead>Nice to meet you.</Lead>
+              </>
+            ) : (
+              <>
+                <H3>Connect to Neo4j</H3>
+                <Lead>
+                  Database access might require an authenticated connection
+                </Lead>
+              </>
+            )}
+          </StyledConnectionAside>
+          <StyledConnectionBodyContainer>
+            <ConnectionForm
+              {...props}
+              onSuccess={handleSuccess}
+              error={handleError}
+            />
+          </StyledConnectionBodyContainer>
+        </>
+      }
+    />
+  )
 }
 
 export default ConnectionFrame

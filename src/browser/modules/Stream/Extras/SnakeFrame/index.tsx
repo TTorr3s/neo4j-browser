@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React from 'react'
+import React, { useState, useCallback } from 'react'
 import styled from 'styled-components'
 
 import FrameBodyTemplate from '../../../Frame/FrameBodyTemplate'
@@ -64,84 +64,92 @@ export const InitialStartButton: any = styled(FormButton)<{
   color: #ffffff;
 `
 
-type SnakeFrameState = any
+interface SnakeFrameState {
+  score: number
+  play: boolean
+  initialLoad: boolean
+}
 
-export class SnakeFrame extends React.Component<{}, SnakeFrameState> {
-  state = {
+export function SnakeFrame() {
+  const [state, setState] = useState<SnakeFrameState>({
     score: 0,
     play: false,
     initialLoad: true
-  }
+  })
 
-  setScore = (score: any) => {
-    this.setState({ score: score - 1 })
-  }
+  const setScore = useCallback((score: number) => {
+    setState(prev => ({ ...prev, score: score - 1 }))
+  }, [])
 
-  stop = () => {
-    this.setState({ play: false })
-  }
+  const stop = useCallback(() => {
+    setState(prev => ({ ...prev, play: false }))
+  }, [])
 
-  play = () => {
-    this.setState({ play: true, score: 0, initialLoad: false })
-  }
+  const play = useCallback(() => {
+    setState({ play: true, score: 0, initialLoad: false })
+  }, [])
 
-  render() {
-    const game = (
-      <GameDiv
+  const game = (
+    <GameDiv
+      width={width}
+      height={height}
+      style={{ display: state.initialLoad ? 'none' : 'block' }}
+    >
+      <Snake
+        play={state.play}
         width={width}
         height={height}
-        style={{ display: this.state.initialLoad ? 'none' : 'block' }}
-      >
-        <Snake
-          play={this.state.play}
-          width={width}
-          height={height}
-          gridSize={20}
-          onEat={this.setScore}
-          onDie={this.stop}
-        />
-        <Score
-          initialLoad={this.state.initialLoad}
-          playing={this.state.play}
-          score={this.state.score}
-        />
-        {!this.state.play && (
-          <FormButton onClick={this.play}>Start game!</FormButton>
-        )}
-      </GameDiv>
-    )
-    const splash = this.state.initialLoad && (
-      <SplashScreen width={width} height={height} backgroundColor={worldColor}>
-        <SplashContents>
-          <h2>Snake game!</h2>
-          <InitialStartButton backgroundColor={foodColor} onClick={this.play}>
-            Start the game!
-          </InitialStartButton>
-          <p>
-            Use <strong>arrow keys</strong> or <strong>a-s-w-d</strong> to
-            control the snake.
-            <br />
-            How much can you eat?
-          </p>
-        </SplashContents>
-      </SplashScreen>
-    )
-    return (
-      <PaddedDiv>
-        {game}
-        {splash}
-      </PaddedDiv>
-    )
-  }
+        gridSize={20}
+        onEat={setScore}
+        onDie={stop}
+      />
+      <Score
+        initialLoad={state.initialLoad}
+        playing={state.play}
+        score={state.score}
+      />
+      {!state.play && <FormButton onClick={play}>Start game!</FormButton>}
+    </GameDiv>
+  )
+
+  const splash = state.initialLoad && (
+    <SplashScreen width={width} height={height} backgroundColor={worldColor}>
+      <SplashContents>
+        <h2>Snake game!</h2>
+        <InitialStartButton backgroundColor={foodColor} onClick={play}>
+          Start the game!
+        </InitialStartButton>
+        <p>
+          Use <strong>arrow keys</strong> or <strong>a-s-w-d</strong> to control
+          the snake.
+          <br />
+          How much can you eat?
+        </p>
+      </SplashContents>
+    </SplashScreen>
+  )
+
+  return (
+    <PaddedDiv>
+      {game}
+      {splash}
+    </PaddedDiv>
+  )
 }
 
-const Frame = (props: any) => {
+interface FrameProps {
+  isCollapsed: boolean
+  isFullscreen: boolean
+}
+
+const Frame = (props: FrameProps) => {
   return (
     <FrameBodyTemplate
       isCollapsed={props.isCollapsed}
       isFullscreen={props.isFullscreen}
-      contents={<SnakeFrame {...props} />}
+      contents={<SnakeFrame />}
     />
   )
 }
+
 export default Frame

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
+import React, { useCallback } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Action, Dispatch } from 'redux'
@@ -77,26 +77,22 @@ export type ErrorsViewProps = {
   gqlErrorsEnabled: boolean
 }
 
-class ErrorsViewComponent extends Component<ErrorsViewProps> {
-  shouldComponentUpdate(props: ErrorsViewProps): boolean {
-    return (
-      !deepEquals(props.result, this.props.result) ||
-      !deepEquals(props.params, this.props.params)
-    )
-  }
+const ErrorsViewComponent = React.memo(
+  function ErrorsViewComponent({
+    result,
+    bus,
+    params,
+    executeCmd,
+    setEditorContent,
+    neo4jVersion,
+    depth = 0,
+    gqlErrorsEnabled
+  }: ErrorsViewProps): JSX.Element | null {
+    const handleSetMissingParamsTemplateHelpMessageClick = useCallback(() => {
+      bus.send(GENERATE_SET_MISSING_PARAMS_TEMPLATE, undefined)
+    }, [bus])
 
-  render(): null | JSX.Element {
-    const {
-      bus,
-      params,
-      executeCmd,
-      setEditorContent,
-      neo4jVersion,
-      depth = 0,
-      gqlErrorsEnabled
-    } = this.props
-
-    const error = this.props.result as BrowserError
+    const error = result as BrowserError
     if (!error) {
       return null
     }
@@ -108,10 +104,6 @@ class ErrorsViewComponent extends Component<ErrorsViewProps> {
 
     if (!formattedError?.title) {
       return null
-    }
-
-    const handleSetMissingParamsTemplateHelpMessageClick = () => {
-      bus.send(GENERATE_SET_MISSING_PARAMS_TEMPLATE, undefined)
     }
 
     return (
@@ -173,8 +165,14 @@ class ErrorsViewComponent extends Component<ErrorsViewProps> {
         </StyledHelpContent>
       </StyledHelpFrame>
     )
+  },
+  (prevProps, nextProps) => {
+    return (
+      deepEquals(prevProps.result, nextProps.result) &&
+      deepEquals(prevProps.params, nextProps.params)
+    )
   }
-}
+)
 
 const gqlErrorsEnabled = (state: GlobalState): boolean => {
   const featureEnabled = shouldShowGqlErrorsAndNotifications(state)
