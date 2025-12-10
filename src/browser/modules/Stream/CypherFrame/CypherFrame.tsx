@@ -20,9 +20,8 @@
 import { saveAs } from 'services/exporting/fileSaver'
 import { map } from 'lodash'
 import { QueryResult, Record as Neo4jRecord } from 'neo4j-driver'
-import React, { Component } from 'react'
-import { connect } from 'react-redux'
-import { Dispatch } from 'redux'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 
 import {
   AlertIcon,
@@ -74,7 +73,6 @@ import { GlobalState } from 'shared/globalState'
 import * as ViewTypes from 'shared/modules/frames/frameViewTypes'
 import {
   Frame,
-  SetRecentViewAction,
   getRecentView,
   setRecentView
 } from 'shared/modules/frames/framesDuck'
@@ -97,345 +95,97 @@ function isQueryResult(result: BrowserRequestResult): result is QueryResult {
   return result !== null && result !== undefined && 'summary' in result
 }
 
-export type CypherFrameProps = BaseFrameProps & {
-  autoComplete: boolean
-  initialNodeDisplay: number
-  maxNeighbours: number
-  maxRows: number
-  request: BrowserRequest
-  onRecentViewChanged: (view: ViewTypes.FrameView) => void
-}
+export type CypherFrameProps = BaseFrameProps
 
-type CypherFrameState = {
-  openView?: ViewTypes.FrameView
-  hasVis: boolean
-  errors?: unknown
-  asciiMaxColWidth?: number
-  asciiSetColWidth?: string
-  planExpand: PlanExpand
-}
 export type PlanExpand = 'EXPAND' | 'COLLAPSE'
 
-export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
-  visElement: null | {
-    svgElement: SVGElement
-    graphElement: GraphElement
-    type: ExportType
-  } = null
-  state: CypherFrameState = {
-    openView: undefined,
-    hasVis: false,
-    asciiMaxColWidth: undefined,
-    asciiSetColWidth: undefined,
-    planExpand: 'EXPAND'
-  }
+type VisElement = {
+  svgElement: SVGElement
+  graphElement: GraphElement
+  type: ExportType
+}
 
-  changeView(view: ViewTypes.FrameView): void {
-    this.setState({ openView: view })
-    if (this.props.onRecentViewChanged) {
-      this.props.onRecentViewChanged(view)
-    }
-  }
+function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
+  const {
+    frame = {} as Frame,
+    isCollapsed,
+    isFullscreen,
+    setExportItems
+  } = props
 
-  shouldComponentUpdate(
-    props: CypherFrameProps,
-    state: CypherFrameState
-  ): boolean {
-    return (
-      this.props.request.updated !== props.request.updated ||
-      this.state.openView !== state.openView ||
-      this.props.isCollapsed !== props.isCollapsed ||
-      this.props.isFullscreen !== props.isFullscreen ||
-      this.state.asciiMaxColWidth !== state.asciiMaxColWidth ||
-      this.state.asciiSetColWidth !== state.asciiSetColWidth ||
-      this.state.planExpand !== state.planExpand ||
-      this.state.hasVis !== state.hasVis
-    )
-  }
+  const dispatch = useDispatch()
 
-  componentDidUpdate(): void {
-    // When going from REQUEST_STATUS_PENDING to some other status
-    // we want to show an initial view.
-    // This happens on first render of a response and on re-runs
-    if (this.props.request.status !== REQUEST_STATUS_PENDING) {
-      const openView = initialView(this.props, this.state)
-      if (openView !== this.state.openView) {
-        const hasVis = openView === ViewTypes.ERRORS ? false : this.state.hasVis
-        this.setState({ openView, hasVis })
-      }
-    } else {
-      this.visElement = null
-      this.setState({ hasVis: false })
-    }
-
-    // When frame re-use leads to result without visualization
-    const doneLoading = this.props.request.status === REQUEST_STATUS_SUCCESS
-    const currentlyShowingViz = this.state.openView === ViewTypes.VISUALIZATION
-    if (doneLoading && currentlyShowingViz && !this.canShowViz()) {
-      const view = initialView(this.props, {
-        ...this.state,
-        openView: undefined // initial view was not meant to override another view
-      })
-      if (view) this.setState({ openView: view })
-    }
-
-    const textDownloadEnabled = () =>
-      this.getRecords().length > 0 &&
-      this.state.openView &&
-      [
-        ViewTypes.TEXT,
-        ViewTypes.TABLE,
-        ViewTypes.CODE,
-        ViewTypes.VISUALIZATION
-      ].includes(this.state.openView)
-    const graphicsDownloadEnabled = () =>
-      this.visElement &&
-      this.state.openView &&
-      [ViewTypes.PLAN, ViewTypes.VISUALIZATION].includes(this.state.openView)
-
-    const downloadText = [
-      { name: 'CSV', download: this.exportCSV },
-      { name: 'JSON', download: this.exportJSON }
-    ]
-    const downloadGraphics = [
-      { name: 'PNG', download: this.exportPNG },
-      { name: 'SVG', download: this.exportSVG }
-    ]
-
-    this.props.setExportItems([
-      ...(textDownloadEnabled() ? downloadText : []),
-      ...(this.hasStringPlan() && this.state.openView === ViewTypes.PLAN
-        ? [{ name: 'TXT', download: this.exportStringPlan }]
-        : []),
-      ...(graphicsDownloadEnabled() ? downloadGraphics : [])
-    ])
-  }
-
-  componentDidMount(): void {
-    const view = initialView(this.props, this.state)
-    if (view) this.setState({ openView: view })
-  }
-
-  getRecords = (): Neo4jRecord[] => {
-    if (this.props.request.result && 'records' in this.props.request.result) {
-      return this.props.request.result.records
-    }
-    return []
-  }
-
-  canShowViz = (): boolean =>
-    resultHasNodes(this.props.request) && !this.state.errors
-
-  sidebar = (): JSX.Element => (
-    <FrameSidebar>
-      {this.canShowViz() && (
-        <CypherFrameButton
-          data-testid="cypherFrameSidebarVisualization"
-          selected={this.state.openView === ViewTypes.VISUALIZATION}
-          onClick={() => {
-            this.changeView(ViewTypes.VISUALIZATION)
-          }}
-        >
-          <VisualizationIcon />
-        </CypherFrameButton>
-      )}
-      {!resultIsError(this.props.request) && (
-        <CypherFrameButton
-          data-testid="cypherFrameSidebarTable"
-          selected={this.state.openView === ViewTypes.TABLE}
-          onClick={() => {
-            this.changeView(ViewTypes.TABLE)
-          }}
-        >
-          <TableIcon />
-        </CypherFrameButton>
-      )}
-      {resultHasRows(this.props.request) &&
-        !resultIsError(this.props.request) && (
-          <CypherFrameButton
-            data-testid="cypherFrameSidebarAscii"
-            selected={this.state.openView === ViewTypes.TEXT}
-            onClick={() => {
-              this.changeView(ViewTypes.TEXT)
-            }}
-          >
-            <AsciiIcon />
-          </CypherFrameButton>
-        )}
-      {resultHasPlan(this.props.request) && (
-        <CypherFrameButton
-          data-testid="cypherFrameSidebarPlan"
-          selected={this.state.openView === ViewTypes.PLAN}
-          onClick={() => this.changeView(ViewTypes.PLAN)}
-        >
-          <PlanIcon />
-        </CypherFrameButton>
-      )}
-      {resultHasWarnings(this.props.request) && (
-        <CypherFrameButton
-          selected={this.state.openView === ViewTypes.WARNINGS}
-          onClick={() => {
-            this.changeView(ViewTypes.WARNINGS)
-          }}
-        >
-          <AlertIcon />
-        </CypherFrameButton>
-      )}
-      {resultIsError(this.props.request) ? (
-        <CypherFrameButton
-          selected={this.state.openView === ViewTypes.ERRORS}
-          onClick={() => {
-            this.changeView(ViewTypes.ERRORS)
-          }}
-        >
-          <ErrorIcon />
-        </CypherFrameButton>
-      ) : (
-        <CypherFrameButton
-          data-testid="cypherFrameSidebarCode"
-          selected={this.state.openView === ViewTypes.CODE}
-          onClick={() => {
-            this.changeView(ViewTypes.CODE)
-          }}
-        >
-          <CodeIcon />
-        </CypherFrameButton>
-      )}
-    </FrameSidebar>
+  // Selectors
+  const maxRows = useSelector((state: GlobalState) => getMaxRows(state))
+  const initialNodeDisplay = useSelector((state: GlobalState) =>
+    getInitialNodeDisplay(state)
+  )
+  const maxNeighbours = useSelector((state: GlobalState) =>
+    getMaxNeighbours(state)
+  )
+  const autoComplete = useSelector((state: GlobalState) =>
+    shouldAutoComplete(state)
+  )
+  const recentView = useSelector((state: GlobalState) => getRecentView(state))
+  const request = useSelector((state: GlobalState) =>
+    getRequest(state, frame.requestId)
   )
 
-  getSpinner(): JSX.Element {
-    return (
-      <Centered>
-        <SpinnerContainer>
-          <SpinnerIcon />
-        </SpinnerContainer>
-      </Centered>
-    )
-  }
+  // State
+  const [openView, setOpenView] = useState<ViewTypes.FrameView | undefined>(
+    undefined
+  )
+  const [hasVis, setHasVis] = useState<boolean>(false)
+  const [asciiMaxColWidth, setAsciiMaxColWidth] = useState<number | undefined>(
+    undefined
+  )
+  const [asciiSetColWidth, setAsciiSetColWidthState] = useState<
+    string | undefined
+  >(undefined)
+  const [planExpand, setPlanExpand] = useState<PlanExpand>('EXPAND')
 
-  getFrameContents(
-    request: BrowserRequest,
-    result: BrowserRequestResult,
-    query: string
-  ): JSX.Element {
-    return (
-      <StyledFrameBody
-        data-testid="frame-loaded-contents"
-        isFullscreen={this.props.isFullscreen}
-        isCollapsed={this.props.isCollapsed}
-        preventOverflow={this.state.openView === ViewTypes.VISUALIZATION}
-        removePadding
-      >
-        <Display if={this.state.openView === ViewTypes.TEXT} lazy>
-          <AsciiView
-            asciiSetColWidth={this.state.asciiSetColWidth}
-            maxRows={this.props.maxRows}
-            result={result}
-            updated={this.props.request.updated}
-            setAsciiMaxColWidth={asciiMaxColWidth =>
-              this.setState({ asciiMaxColWidth })
-            }
-          />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.TABLE} lazy>
-          <RelatableView updated={this.props.request.updated} result={result} />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.CODE} lazy>
-          <CodeView result={result} request={request} query={query} />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.ERRORS} lazy>
-          <ErrorsView result={result} updated={this.props.request.updated} />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.WARNINGS} lazy>
-          <WarningsView result={result} updated={this.props.request.updated} />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.PLAN} lazy>
-          <PlanView
-            planExpand={this.state.planExpand}
-            result={result}
-            updated={this.props.request.updated}
-            isFullscreen={this.props.isFullscreen}
-            assignVisElement={(
-              svgElement: SVGElement,
-              graphElement: GraphElement
-            ) => {
-              this.visElement = { svgElement, graphElement, type: 'plan' }
-              this.setState({ hasVis: true })
-            }}
-            setPlanExpand={(planExpand: PlanExpand) =>
-              this.setState({ planExpand })
-            }
-          />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.VISUALIZATION} lazy>
-          <VisualizationConnectedBus
-            isFullscreen={this.props.isFullscreen}
-            result={result}
-            updated={this.props.request.updated}
-            assignVisElement={(
-              svgElement: SVGElement,
-              graphElement: GraphElement
-            ) => {
-              this.visElement = { svgElement, graphElement, type: 'graph' }
-              this.setState({ hasVis: true })
-            }}
-            initialNodeDisplay={this.props.initialNodeDisplay}
-            autoComplete={this.props.autoComplete}
-            maxNeighbours={this.props.maxNeighbours}
-          />
-        </Display>
-      </StyledFrameBody>
-    )
-  }
+  // Refs
+  const visElement = useRef<VisElement | null>(null)
+  const prevRequestUpdated = useRef<number | undefined>(undefined)
 
-  getStatusbar(result: BrowserRequestResult): JSX.Element {
-    return (
-      <StyledStatsBarContainer>
-        <Display if={this.state.openView === ViewTypes.TEXT} lazy>
-          <AsciiStatusbar
-            asciiMaxColWidth={this.state.asciiMaxColWidth}
-            asciiSetColWidth={this.state.asciiSetColWidth}
-            maxRows={this.props.maxRows}
-            result={result}
-            updated={this.props.request.updated}
-            setAsciiSetColWidth={asciiSetColWidth =>
-              this.setState({ asciiSetColWidth })
-            }
-          />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.TABLE} lazy>
-          <RelatableStatusbar
-            updated={this.props.request.updated}
-            result={result}
-          />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.CODE} lazy>
-          <CodeStatusbar result={result} />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.ERRORS} lazy>
-          <ErrorsStatusbar result={result} />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.WARNINGS} lazy>
-          <WarningsStatusbar
-            result={result}
-            updated={this.props.request.updated}
-          />
-        </Display>
-        <Display if={this.state.openView === ViewTypes.PLAN} lazy>
-          <PlanStatusbar
-            result={result}
-            setPlanExpand={(planExpand: PlanExpand) =>
-              this.setState({ planExpand })
-            }
-          />
-        </Display>
-      </StyledStatsBarContainer>
-    )
-  }
+  // Callbacks
+  const onRecentViewChanged = useCallback(
+    (view: ViewTypes.FrameView) => {
+      dispatch(setRecentView(view))
+    },
+    [dispatch]
+  )
 
-  exportCSV = async (): Promise<void> => {
-    const records = this.getRecords()
+  const changeView = useCallback(
+    (view: ViewTypes.FrameView): void => {
+      setOpenView(view)
+      onRecentViewChanged(view)
+    },
+    [onRecentViewChanged]
+  )
+
+  // Memoized values
+  const records = useMemo((): Neo4jRecord[] => {
+    if (request?.result && 'records' in request.result) {
+      return request.result.records
+    }
+    return []
+  }, [request?.result])
+
+  const canShowViz = useCallback((): boolean => {
+    return resultHasNodes(request)
+  }, [request])
+
+  const hasStringPlan = useCallback((): boolean => {
+    const result = request?.result
+    if (!isQueryResult(result)) return false
+    const plan = result.summary?.plan
+    if (!plan) return false
+    return !!plan.arguments?.['string-representation']
+  }, [request?.result])
+
+  // Export callbacks
+  const exportCSV = useCallback(async (): Promise<void> => {
     const firstRecord = records[0]
     const keys = firstRecord?.length > 0 ? firstRecord.keys : []
 
@@ -450,28 +200,19 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
       type: 'text/csv;charset=utf-8'
     })
     await saveAs(blob, 'export.csv')
-  }
+  }, [records])
 
-  exportJSON = async (): Promise<void> => {
-    const records = this.getRecords()
+  const exportJSON = useCallback(async (): Promise<void> => {
     const exportData = map(records, recordToJSONMapper)
     const data = stringifyMod(exportData, stringModifier, true)
     const blob = new Blob([data], {
       type: 'application/json;charset=utf-8'
     })
     await saveAs(blob, 'records.json')
-  }
+  }, [records])
 
-  hasStringPlan = (): boolean => {
-    const result = this.props.request?.result
-    if (!isQueryResult(result)) return false
-    const plan = result.summary?.plan
-    if (!plan) return false
-    return !!plan.arguments?.['string-representation']
-  }
-
-  exportStringPlan = async (): Promise<void> => {
-    const result = this.props.request?.result
+  const exportStringPlan = useCallback(async (): Promise<void> => {
+    const result = request?.result
     if (!isQueryResult(result)) return
     const plan = result.summary?.plan
     if (!plan) return
@@ -482,71 +223,368 @@ export class CypherFrame extends Component<CypherFrameProps, CypherFrameState> {
       })
       await saveAs(blob, 'plan.txt')
     }
-  }
+  }, [request?.result])
 
-  exportPNG = (): void => {
-    if (this.visElement) {
-      const { svgElement, graphElement, type } = this.visElement
+  const exportPNG = useCallback((): void => {
+    if (visElement.current) {
+      const { svgElement, graphElement, type } = visElement.current
       downloadPNGFromSVG(svgElement, graphElement, type)
     }
-  }
+  }, [])
 
-  exportSVG = (): void => {
-    if (this.visElement) {
-      const { svgElement, graphElement, type } = this.visElement
+  const exportSVG = useCallback((): void => {
+    if (visElement.current) {
+      const { svgElement, graphElement, type } = visElement.current
       downloadSVG(svgElement, graphElement, type)
     }
-  }
+  }, [])
 
-  render(): JSX.Element {
-    const { frame = {} as Frame, request = {} as BrowserRequest } = this.props
-    const { cmd: query = '' } = frame
-    const { result = {} as BrowserRequestResult, status: requestStatus } =
-      request
+  // Effect for initial view on mount
+  useEffect(() => {
+    const view = initialView({ request, frame, recentView }, { openView })
+    if (view) {
+      setOpenView(view)
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-    const frameContents =
-      requestStatus === REQUEST_STATUS_PENDING ? (
-        this.getSpinner()
-      ) : isCancelStatus(requestStatus) ? (
-        <CancelView requestStatus={requestStatus} />
-      ) : (
-        this.getFrameContents(request, result, query)
+  // Effect for handling request status changes
+  useEffect(() => {
+    // When going from REQUEST_STATUS_PENDING to some other status
+    // we want to show an initial view.
+    // This happens on first render of a response and on re-runs
+    if (request?.status !== REQUEST_STATUS_PENDING) {
+      const view = initialView({ request, frame, recentView }, { openView })
+      if (view !== openView) {
+        const newHasVis = view === ViewTypes.ERRORS ? false : hasVis
+        setOpenView(view)
+        if (newHasVis !== hasVis) {
+          setHasVis(newHasVis)
+        }
+      }
+    } else {
+      visElement.current = null
+      if (hasVis) {
+        setHasVis(false)
+      }
+    }
+
+    prevRequestUpdated.current = request?.updated
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.updated, request?.status])
+
+  // Effect for resetting view when no visualization available
+  useEffect(() => {
+    const doneLoading = request?.status === REQUEST_STATUS_SUCCESS
+    const currentlyShowingViz = openView === ViewTypes.VISUALIZATION
+    if (doneLoading && currentlyShowingViz && !canShowViz()) {
+      const view = initialView(
+        { request, frame, recentView },
+        { openView: undefined } // initial view was not meant to override another view
       )
-    const statusBar =
-      this.state.openView !== ViewTypes.VISUALIZATION &&
-      requestStatus !== 'error'
-        ? this.getStatusbar(result)
-        : null
+      if (view) {
+        setOpenView(view)
+      }
+    }
+  }, [request?.status, openView, canShowViz, request, frame, recentView])
 
+  // Effect for updating export items
+  useEffect(() => {
+    const textDownloadEnabled = () =>
+      records.length > 0 &&
+      openView &&
+      [
+        ViewTypes.TEXT,
+        ViewTypes.TABLE,
+        ViewTypes.CODE,
+        ViewTypes.VISUALIZATION
+      ].includes(openView)
+
+    const graphicsDownloadEnabled = () =>
+      visElement.current &&
+      openView &&
+      [ViewTypes.PLAN, ViewTypes.VISUALIZATION].includes(openView)
+
+    const downloadText = [
+      { name: 'CSV', download: exportCSV },
+      { name: 'JSON', download: exportJSON }
+    ]
+    const downloadGraphics = [
+      { name: 'PNG', download: exportPNG },
+      { name: 'SVG', download: exportSVG }
+    ]
+
+    setExportItems([
+      ...(textDownloadEnabled() ? downloadText : []),
+      ...(hasStringPlan() && openView === ViewTypes.PLAN
+        ? [{ name: 'TXT', download: exportStringPlan }]
+        : []),
+      ...(graphicsDownloadEnabled() ? downloadGraphics : [])
+    ])
+  }, [
+    openView,
+    records.length,
+    hasVis,
+    hasStringPlan,
+    exportCSV,
+    exportJSON,
+    exportPNG,
+    exportSVG,
+    exportStringPlan,
+    setExportItems
+  ])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setExportItems([])
+    }
+  }, [setExportItems])
+
+  // Sidebar render function
+  const sidebar = useCallback(
+    (): JSX.Element => (
+      <FrameSidebar>
+        {canShowViz() && (
+          <CypherFrameButton
+            data-testid="cypherFrameSidebarVisualization"
+            selected={openView === ViewTypes.VISUALIZATION}
+            onClick={() => {
+              changeView(ViewTypes.VISUALIZATION)
+            }}
+          >
+            <VisualizationIcon />
+          </CypherFrameButton>
+        )}
+        {!resultIsError(request) && (
+          <CypherFrameButton
+            data-testid="cypherFrameSidebarTable"
+            selected={openView === ViewTypes.TABLE}
+            onClick={() => {
+              changeView(ViewTypes.TABLE)
+            }}
+          >
+            <TableIcon />
+          </CypherFrameButton>
+        )}
+        {resultHasRows(request) && !resultIsError(request) && (
+          <CypherFrameButton
+            data-testid="cypherFrameSidebarAscii"
+            selected={openView === ViewTypes.TEXT}
+            onClick={() => {
+              changeView(ViewTypes.TEXT)
+            }}
+          >
+            <AsciiIcon />
+          </CypherFrameButton>
+        )}
+        {resultHasPlan(request) && (
+          <CypherFrameButton
+            data-testid="cypherFrameSidebarPlan"
+            selected={openView === ViewTypes.PLAN}
+            onClick={() => changeView(ViewTypes.PLAN)}
+          >
+            <PlanIcon />
+          </CypherFrameButton>
+        )}
+        {resultHasWarnings(request) && (
+          <CypherFrameButton
+            selected={openView === ViewTypes.WARNINGS}
+            onClick={() => {
+              changeView(ViewTypes.WARNINGS)
+            }}
+          >
+            <AlertIcon />
+          </CypherFrameButton>
+        )}
+        {resultIsError(request) ? (
+          <CypherFrameButton
+            selected={openView === ViewTypes.ERRORS}
+            onClick={() => {
+              changeView(ViewTypes.ERRORS)
+            }}
+          >
+            <ErrorIcon />
+          </CypherFrameButton>
+        ) : (
+          <CypherFrameButton
+            data-testid="cypherFrameSidebarCode"
+            selected={openView === ViewTypes.CODE}
+            onClick={() => {
+              changeView(ViewTypes.CODE)
+            }}
+          >
+            <CodeIcon />
+          </CypherFrameButton>
+        )}
+      </FrameSidebar>
+    ),
+    [canShowViz, openView, request, changeView]
+  )
+
+  const getSpinner = (): JSX.Element => {
     return (
-      <FrameBodyTemplate
-        isCollapsed={this.props.isCollapsed}
-        isFullscreen={this.props.isFullscreen}
-        sidebar={requestStatus !== 'error' ? this.sidebar : undefined}
-        contents={frameContents}
-        statusBar={statusBar}
-        removePadding
-      />
+      <Centered>
+        <SpinnerContainer>
+          <SpinnerIcon />
+        </SpinnerContainer>
+      </Centered>
     )
   }
-  componentWillUnmount(): void {
-    this.props.setExportItems([])
+
+  const getFrameContents = (
+    req: BrowserRequest,
+    result: BrowserRequestResult,
+    query: string
+  ): JSX.Element => {
+    return (
+      <StyledFrameBody
+        data-testid="frame-loaded-contents"
+        isFullscreen={isFullscreen}
+        isCollapsed={isCollapsed}
+        preventOverflow={openView === ViewTypes.VISUALIZATION}
+        removePadding
+      >
+        <Display if={openView === ViewTypes.TEXT} lazy>
+          <AsciiView
+            asciiSetColWidth={asciiSetColWidth}
+            maxRows={maxRows}
+            result={result}
+            updated={request?.updated}
+            setAsciiMaxColWidth={setAsciiMaxColWidth}
+          />
+        </Display>
+        <Display if={openView === ViewTypes.TABLE} lazy>
+          <RelatableView updated={request?.updated} result={result} />
+        </Display>
+        <Display if={openView === ViewTypes.CODE} lazy>
+          <CodeView result={result} request={req} query={query} />
+        </Display>
+        <Display if={openView === ViewTypes.ERRORS} lazy>
+          <ErrorsView result={result} updated={request?.updated} />
+        </Display>
+        <Display if={openView === ViewTypes.WARNINGS} lazy>
+          <WarningsView result={result} updated={request?.updated} />
+        </Display>
+        <Display if={openView === ViewTypes.PLAN} lazy>
+          <PlanView
+            planExpand={planExpand}
+            result={result}
+            updated={request?.updated}
+            isFullscreen={isFullscreen}
+            assignVisElement={(
+              svgElement: SVGElement,
+              graphElement: GraphElement
+            ) => {
+              visElement.current = { svgElement, graphElement, type: 'plan' }
+              setHasVis(true)
+            }}
+            setPlanExpand={(expand: PlanExpand) => setPlanExpand(expand)}
+          />
+        </Display>
+        <Display if={openView === ViewTypes.VISUALIZATION} lazy>
+          <VisualizationConnectedBus
+            isFullscreen={isFullscreen}
+            result={result}
+            updated={request?.updated}
+            assignVisElement={(
+              svgElement: SVGElement,
+              graphElement: GraphElement
+            ) => {
+              visElement.current = { svgElement, graphElement, type: 'graph' }
+              setHasVis(true)
+            }}
+            initialNodeDisplay={initialNodeDisplay}
+            autoComplete={autoComplete}
+            maxNeighbours={maxNeighbours}
+          />
+        </Display>
+      </StyledFrameBody>
+    )
   }
+
+  const getStatusbar = (result: BrowserRequestResult): JSX.Element => {
+    return (
+      <StyledStatsBarContainer>
+        <Display if={openView === ViewTypes.TEXT} lazy>
+          <AsciiStatusbar
+            asciiMaxColWidth={asciiMaxColWidth}
+            asciiSetColWidth={asciiSetColWidth}
+            maxRows={maxRows}
+            result={result}
+            updated={request?.updated}
+            setAsciiSetColWidth={setAsciiSetColWidthState}
+          />
+        </Display>
+        <Display if={openView === ViewTypes.TABLE} lazy>
+          <RelatableStatusbar updated={request?.updated} result={result} />
+        </Display>
+        <Display if={openView === ViewTypes.CODE} lazy>
+          <CodeStatusbar result={result} />
+        </Display>
+        <Display if={openView === ViewTypes.ERRORS} lazy>
+          <ErrorsStatusbar result={result} />
+        </Display>
+        <Display if={openView === ViewTypes.WARNINGS} lazy>
+          <WarningsStatusbar result={result} updated={request?.updated} />
+        </Display>
+        <Display if={openView === ViewTypes.PLAN} lazy>
+          <PlanStatusbar
+            result={result}
+            setPlanExpand={(expand: PlanExpand) => setPlanExpand(expand)}
+          />
+        </Display>
+      </StyledStatsBarContainer>
+    )
+  }
+
+  const { cmd: query = '' } = frame
+  const { result = {} as BrowserRequestResult, status: requestStatus } =
+    request || ({} as BrowserRequest)
+
+  const frameContents =
+    requestStatus === REQUEST_STATUS_PENDING ? (
+      getSpinner()
+    ) : isCancelStatus(requestStatus) ? (
+      <CancelView requestStatus={requestStatus} />
+    ) : (
+      getFrameContents(request, result, query)
+    )
+
+  const statusBar =
+    openView !== ViewTypes.VISUALIZATION && requestStatus !== 'error'
+      ? getStatusbar(result)
+      : null
+
+  return (
+    <FrameBodyTemplate
+      isCollapsed={isCollapsed}
+      isFullscreen={isFullscreen}
+      sidebar={requestStatus !== 'error' ? sidebar : undefined}
+      contents={frameContents}
+      statusBar={statusBar}
+      removePadding
+    />
+  )
 }
 
-const mapStateToProps = (state: GlobalState, ownProps: BaseFrameProps) => ({
-  maxRows: getMaxRows(state),
-  initialNodeDisplay: getInitialNodeDisplay(state),
-  maxNeighbours: getMaxNeighbours(state),
-  autoComplete: shouldAutoComplete(state),
-  recentView: getRecentView(state),
-  request: getRequest(state, ownProps.frame.requestId)
-})
+// Custom comparison function for React.memo
+// Returns true if props are equal (do NOT re-render)
+function arePropsEqual(
+  prevProps: CypherFrameProps,
+  nextProps: CypherFrameProps
+): boolean {
+  return (
+    prevProps.isCollapsed === nextProps.isCollapsed &&
+    prevProps.isFullscreen === nextProps.isFullscreen &&
+    prevProps.frame?.requestId === nextProps.frame?.requestId
+  )
+}
 
-const mapDispatchToProps = (dispatch: Dispatch<SetRecentViewAction>) => ({
-  onRecentViewChanged: (view: ViewTypes.FrameView) => {
-    dispatch(setRecentView(view))
-  }
-})
+const CypherFrame = React.memo(CypherFrameComponent, arePropsEqual)
 
-export default connect(mapStateToProps, mapDispatchToProps)(CypherFrame)
+// Export the class for backwards compatibility in tests
+export { CypherFrameComponent as CypherFrame }
+
+export default CypherFrame

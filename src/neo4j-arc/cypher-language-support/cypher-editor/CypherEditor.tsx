@@ -21,23 +21,17 @@ import { QueryOrCommand, parse } from '@neo4j-cypher/editor-support'
 import { debounce } from 'lodash-es'
 import 'monaco-editor/esm/vs/editor/editor.all.js'
 
-// // núcleo del editor
-// import 'monaco-editor/esm/vs/editor/editor.api'
-
-// // contributions válidas
-// import 'monaco-editor/esm/vs/editor/contrib/find/browser/findController'
-// import 'monaco-editor/esm/vs/editor/contrib/wordOperations/browser/wordOperations'
-// import 'monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard'
-// import 'monaco-editor/esm/vs/editor/contrib/caretOperations/browser/caretOperations'
-// import 'monaco-editor/esm/vs/editor/contrib/multicursor/browser/multicursor'
-// import 'monaco-editor/esm/vs/editor/contrib/smartSelect/browser/smartSelect'
-// import 'monaco-editor/esm/vs/editor/contrib/indentation/browser/indentation'
-// import 'monaco-editor/esm/vs/editor/contrib/bracketMatching/browser/bracketMatching'
-// import 'monaco-editor/esm/vs/editor/contrib/suggest/browser/suggestController'
-
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import { QueryResult } from 'neo4j-driver-core'
-import React from 'react'
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react'
 import styled from 'styled-components'
 import { ResizeObserver } from '@juggle/resize-observer'
 import { keys } from '../../common/utils/objectUtils'
@@ -65,523 +59,741 @@ const MonacoStyleWrapper = styled.div`
 const EXPLAIN_QUERY_PREFIX = 'EXPLAIN '
 const EXPLAIN_QUERY_PREFIX_LENGTH = EXPLAIN_QUERY_PREFIX.length
 const EDITOR_UPDATE_DEBOUNCE_TIME = 300
-type CypherEditorDefaultProps = {
-  className: string
-  enableMultiStatementMode: boolean
-  fontLigatures: boolean
-  history: string[]
-  id: string
-  isFullscreen: boolean
-  onChange: (value: string) => void
-  onDisplayHelpKeys: () => void
+const UNRUN_CMD_HISTORY_INDEX = -1
+
+export type CypherEditorProps = {
+  className?: string
+  enableMultiStatementMode?: boolean
+  fontLigatures?: boolean
+  history?: string[]
+  id?: string
+  isFullscreen?: boolean
+  onChange?: (value: string) => void
+  onDisplayHelpKeys?: () => void
   onExecute?: (value: string) => void
-  sendCypherQuery: (query: string) => Promise<QueryResult>
-  additionalCommands: Partial<
+  sendCypherQuery?: (query: string) => Promise<QueryResult>
+  additionalCommands?: Partial<
     Record<
       monaco.KeyCode,
       { handler: monaco.editor.ICommandHandler; context?: string }
     >
   >
   tabIndex?: number
-  useDb: null | string
-  value: string
+  useDb?: null | string
+  value?: string
 }
 
-export type CypherEditorProps = CypherEditorDefaultProps
-const cypherEditorDefaultProps: CypherEditorDefaultProps = {
-  className: '',
-  enableMultiStatementMode: false,
-  fontLigatures: true,
-  history: [],
-  id: 'main',
-  isFullscreen: false,
-  onChange: () => undefined,
-  onDisplayHelpKeys: () => undefined,
-  sendCypherQuery: () =>
-    new Promise(res =>
-      res({
-        result: { summary: { notifications: [] } }
-      } as any)
-    ),
-  additionalCommands: {},
-  useDb: null,
-  value: ''
+export interface CypherEditorHandle {
+  focus: () => void
+  getValue: () => string
+  setValue: (value: string) => void
+  setPosition: (pos: { lineNumber: number; column: number }) => void
+  resize: (fillContainer: boolean) => void
 }
 
-type CypherEditorState = {
-  currentHistoryIndex: number
-  draft: string
-  isEditorFocusable: boolean
-}
-const UNRUN_CMD_HISTORY_INDEX = -1
+export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
+  (
+    {
+      className = '',
+      enableMultiStatementMode = false,
+      fontLigatures = true,
+      history = [],
+      id = 'main',
+      isFullscreen = false,
+      onChange = () => undefined,
+      onDisplayHelpKeys = () => undefined,
+      onExecute,
+      sendCypherQuery = () =>
+        Promise.resolve({
+          result: { summary: { notifications: [] } }
+        } as unknown as QueryResult),
+      additionalCommands = {},
+      tabIndex,
+      useDb = null,
+      value = ''
+    },
+    ref
+  ) => {
+    // Refs for Monaco resources
+    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+    const containerRef = useRef<HTMLElement | null>(null)
+    const wrapperRef = useRef<HTMLDivElement>(null)
+    const commandDisposablesRef = useRef<monaco.IDisposable[]>([])
+    const editorEventDisposablesRef = useRef<monaco.IDisposable[]>([])
+    const isMountedRef = useRef(false)
+    const resizeObserverRef = useRef<ResizeObserver | null>(null)
+    const debouncedUpdateCodeRef = useRef<ReturnType<typeof debounce> | null>(
+      null
+    )
 
-export class CypherEditor extends React.Component<
-  CypherEditorProps,
-  CypherEditorState
-> {
-  state: CypherEditorState = {
-    currentHistoryIndex: UNRUN_CMD_HISTORY_INDEX,
-    isEditorFocusable: true,
-    draft: ''
-  }
-  resizeObserver: ResizeObserver
-  editor?: monaco.editor.IStandaloneCodeEditor
-  container?: HTMLElement
-  wrapperRef = React.createRef<HTMLDivElement>()
-  // Store disposables for keybindings to clean up on unmount
-  private commandDisposables: monaco.IDisposable[] = []
-  // Store disposables for editor event listeners
-  private editorEventDisposables: monaco.IDisposable[] = []
-  // Track if component is mounted to prevent state updates after unmount
-  private _isComponentMounted = false
+    // State
+    // Note: currentHistoryIndex and draft are used via functional state updates in Monaco action handlers
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [currentHistoryIndex, setCurrentHistoryIndex] = useState(
+      UNRUN_CMD_HISTORY_INDEX
+    )
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [draft, setDraft] = useState('')
+    const [isEditorFocusable, setIsEditorFocusable] = useState(true)
 
-  constructor(props: CypherEditorProps) {
-    super(props)
-    this.wrapperRef = React.createRef()
-    // Wrapped in requestAnimationFrame to avoid the error "ResizeObserver loop limit exceeded"
-    this.resizeObserver = new ResizeObserver(() => {
-      window.requestAnimationFrame(() => {
-        this.editor?.layout()
+    // Helper to get Monaco container ID
+    const getMonacoId = useCallback((): string => `monaco-${id}`, [id])
+
+    // Helper to check if editor is multiline
+    const isMultiLine = useCallback((): boolean => {
+      return (editorRef.current?.getModel()?.getLineCount() || 0) > 1
+    }, [])
+
+    // Helper to update gutter character width
+    const updateGutterCharWidth = useCallback(
+      (dbName: string): void => {
+        editorRef.current?.updateOptions({
+          lineNumbersMinChars:
+            dbName.length && !isMultiLine() ? dbName.length * 1.3 : 2
+        })
+      },
+      [isMultiLine]
+    )
+
+    // Internal setValue that also positions cursor at end
+    const internalSetValue = useCallback((newValue: string): void => {
+      if (!editorRef.current) return
+      editorRef.current.setValue(newValue)
+      editorRef.current.focus()
+
+      const lines = editorRef.current.getModel()?.getLinesContent() || []
+      const linesLength = lines.length
+      editorRef.current.setPosition({
+        lineNumber: linesLength,
+        column: lines[linesLength - 1].length + 1
       })
-    })
-  }
+    }, [])
 
-  static defaultProps = cypherEditorDefaultProps
+    // Add warnings based on parsed statements
+    const addWarnings = useCallback(
+      (statements: QueryOrCommand[]): void => {
+        const model = editorRef.current?.getModel()
+        if (!statements.length || !model) return
 
-  private getMonacoId = (): string => `monaco-${this.props.id}`
-  private debouncedUpdateCode = debounce(() => {
-    const text = this.editor?.getModel()?.getLinesContent().join('\n') || ''
+        const monacoId = getMonacoId()
 
-    this.props.onChange?.(text)
-    this.addWarnings(parse(text).referencesListener.queriesAndCommands)
-  }, EDITOR_UPDATE_DEBOUNCE_TIME)
-  focus = (): void => {
-    this.editor?.focus()
-  }
-  setPosition = (pos: { lineNumber: number; column: number }): void => {
-    this.editor?.setPosition(pos)
-  }
-  private newLine = (): void =>
-    this.editor?.trigger('keyboard', 'type', { text: '\n' })
-  private isMultiLine = (): boolean =>
-    (this.editor?.getModel()?.getLineCount() || 0) > 1
+        // clearing markers again solves issue with incorrect multi-statement warning when user spam clicks setting on and off
+        monaco.editor.setModelMarkers(model, monacoId, [])
 
-  private updateGutterCharWidth = (dbName: string): void => {
-    this.editor?.updateOptions({
-      lineNumbersMinChars:
-        dbName.length && !this.isMultiLine() ? dbName.length * 1.3 : 2
-    })
-  }
-
-  resize = (fillContainer: boolean): void => {
-    if (!this.container || !this.editor) return
-    const contentHeight = this.editor.getContentHeight()
-
-    const height = fillContainer
-      ? Math.min(window.innerHeight - 20, this.container.scrollHeight)
-      : Math.min(276, contentHeight) // Upper bound is 12 lines * 23px line height = 276px
-
-    this.container.style.height = `${height}px`
-    this.editor.layout({
-      height,
-      width: this.container.offsetWidth
-    })
-  }
-
-  getValue = (): string => this.editor?.getValue() || ''
-  setValue = (value: string): void => {
-    this.setState({ currentHistoryIndex: UNRUN_CMD_HISTORY_INDEX })
-    this.internalSetValue(value)
-  }
-  private internalSetValue = (value: string): void => {
-    if (!this.editor) return
-    this.editor.setValue(value)
-    this.editor.focus()
-
-    const lines = this.editor.getModel()?.getLinesContent() || []
-    const linesLength = lines.length
-    this.editor.setPosition({
-      lineNumber: linesLength,
-      column: lines[linesLength - 1].length + 1
-    })
-  }
-
-  private handleUp = (): void => {
-    if (this.isMultiLine()) {
-      this.editor?.trigger('', 'cursorUp', null)
-    } else {
-      this.viewHistoryPrevious()
-    }
-  }
-
-  private viewHistoryPrevious = (): void => {
-    const { history } = this.props
-    const { currentHistoryIndex } = this.state
-    const newHistoryIndex = currentHistoryIndex + 1
-
-    if (history.length === 0) return
-    if (newHistoryIndex === history.length) return
-
-    if (currentHistoryIndex === UNRUN_CMD_HISTORY_INDEX) {
-      // Save what's currently in the editor as a local draft
-      this.setState({
-        draft: this.editor?.getValue() || '',
-        currentHistoryIndex: 0
-      })
-    }
-
-    this.internalSetValue(history[newHistoryIndex])
-    this.setState({ currentHistoryIndex: newHistoryIndex })
-  }
-
-  private handleDown = (): void => {
-    if (this.isMultiLine()) {
-      this.editor?.trigger('', 'cursorDown', null)
-    } else {
-      this.viewHistoryNext()
-    }
-  }
-
-  private viewHistoryNext = (): void => {
-    const { history } = this.props
-    const { currentHistoryIndex } = this.state
-    const newHistoryIndex = currentHistoryIndex - 1
-
-    if (history.length === 0) return
-    if (currentHistoryIndex === UNRUN_CMD_HISTORY_INDEX) return
-
-    if (newHistoryIndex === UNRUN_CMD_HISTORY_INDEX) {
-      // Read saved draft
-      this.internalSetValue(this.state.draft)
-    } else {
-      this.internalSetValue(this.props.history[newHistoryIndex])
-    }
-
-    this.setState({ currentHistoryIndex: newHistoryIndex })
-  }
-
-  private execute = (): void => {
-    const value = this.getValue()
-    const onlyWhitespace = value.trim() === ''
-
-    if (!onlyWhitespace) {
-      this.props.onExecute?.(value)
-      this.setState({ currentHistoryIndex: UNRUN_CMD_HISTORY_INDEX })
-    }
-  }
-
-  private onContentUpdate = (): void => {
-    const model = this.editor?.getModel()
-    if (!model) return
-
-    monaco.editor.setModelMarkers(model, this.getMonacoId(), [])
-
-    this.updateGutterCharWidth(this.props.useDb || '')
-    this.debouncedUpdateCode()
-  }
-
-  private addWarnings = (statements: QueryOrCommand[]): void => {
-    const model = this.editor?.getModel()
-    if (!statements.length || !model) return
-
-    // clearing markers again solves issue with incorrect multi-statement warning when user spam clicks setting on and off
-    monaco.editor.setModelMarkers(model, this.getMonacoId(), [])
-
-    // add multi statement warning if multi setting is off
-    if (statements.length > 1 && !this.props.enableMultiStatementMode) {
-      const secondStatementLine = statements[1].start.line
-      monaco.editor.setModelMarkers(model, this.getMonacoId(), [
-        {
-          startLineNumber: secondStatementLine,
-          startColumn: 1,
-          endLineNumber: secondStatementLine,
-          endColumn: 1000,
-          message:
-            'To use multi statement queries, please enable multi statement in the settings panel.',
-          severity: monaco.MarkerSeverity.Warning
+        // add multi statement warning if multi setting is off
+        if (statements.length > 1 && !enableMultiStatementMode) {
+          const secondStatementLine = statements[1].start.line
+          monaco.editor.setModelMarkers(model, monacoId, [
+            {
+              startLineNumber: secondStatementLine,
+              startColumn: 1,
+              endLineNumber: secondStatementLine,
+              endColumn: 1000,
+              message:
+                'To use multi statement queries, please enable multi statement in the settings panel.',
+              severity: monaco.MarkerSeverity.Warning
+            }
+          ])
         }
-      ])
-    }
 
-    // add a warning for each notification returned by explain query
-    statements.forEach(statement => {
-      const text = statement.getText()
-      if (!shouldCheckForHints(text)) {
-        return
+        // add a warning for each notification returned by explain query
+        statements.forEach(statement => {
+          const text = statement.getText()
+          if (!shouldCheckForHints(text)) {
+            return
+          }
+          const statementLineNumber = statement.start.line - 1
+
+          sendCypherQuery(EXPLAIN_QUERY_PREFIX + text)
+            .then((result: QueryResult) => {
+              // Check if component is still mounted before updating markers
+              // This prevents memory leaks and errors from accessing disposed resources
+              if (!isMountedRef.current) {
+                return
+              }
+
+              const currentModel = editorRef.current?.getModel()
+              if (!currentModel) {
+                return
+              }
+
+              if (result.summary.notifications.length > 0) {
+                monaco.editor.setModelMarkers(currentModel, monacoId, [
+                  ...monaco.editor.getModelMarkers({ owner: monacoId }),
+                  ...result.summary.notifications.map(
+                    ({ description, position, title }) => {
+                      const line = 'line' in position ? (position.line ?? 0) : 0
+                      const column =
+                        'column' in position ? (position.column ?? 0) : 0
+                      return {
+                        startLineNumber: statementLineNumber + line,
+                        startColumn:
+                          statement.start.column +
+                          (line === 1
+                            ? column - EXPLAIN_QUERY_PREFIX_LENGTH
+                            : column),
+                        endLineNumber: statement.stop.line,
+                        endColumn: statement.stop.column + 2,
+                        message: title + '\n\n' + description,
+                        severity: monaco.MarkerSeverity.Warning
+                      }
+                    }
+                  )
+                ])
+              }
+            })
+            .catch(() => {
+              /* Parent should ensure connection */
+            })
+        })
+      },
+      [enableMultiStatementMode, getMonacoId, sendCypherQuery]
+    )
+
+    // Content update handler
+    const onContentUpdate = useCallback((): void => {
+      const model = editorRef.current?.getModel()
+      if (!model) return
+
+      monaco.editor.setModelMarkers(model, getMonacoId(), [])
+
+      updateGutterCharWidth(useDb || '')
+
+      // Use the debounced function if it exists
+      if (debouncedUpdateCodeRef.current) {
+        debouncedUpdateCodeRef.current()
       }
-      const statementLineNumber = statement.start.line - 1
+    }, [getMonacoId, updateGutterCharWidth, useDb])
 
-      this.props
-        .sendCypherQuery(EXPLAIN_QUERY_PREFIX + text)
-        .then((result: QueryResult) => {
-          // Check if component is still mounted before updating markers
-          // This prevents memory leaks and errors from accessing disposed resources
-          if (!this._isComponentMounted) {
-            return
+    // Resize handler
+    const resize = useCallback((fillContainer: boolean): void => {
+      if (!containerRef.current || !editorRef.current) return
+      const contentHeight = editorRef.current.getContentHeight()
+
+      const height = fillContainer
+        ? Math.min(window.innerHeight - 20, containerRef.current.scrollHeight)
+        : Math.min(276, contentHeight) // Upper bound is 12 lines * 23px line height = 276px
+
+      containerRef.current.style.height = `${height}px`
+      editorRef.current.layout({
+        height,
+        width: containerRef.current.offsetWidth
+      })
+    }, [])
+
+    // Expose public API via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          editorRef.current?.focus()
+        },
+        getValue: () => {
+          return editorRef.current?.getValue() || ''
+        },
+        setValue: (newValue: string) => {
+          setCurrentHistoryIndex(UNRUN_CMD_HISTORY_INDEX)
+          internalSetValue(newValue)
+        },
+        setPosition: (pos: { lineNumber: number; column: number }) => {
+          editorRef.current?.setPosition(pos)
+        },
+        resize
+      }),
+      [internalSetValue, resize]
+    )
+
+    // Initialize Monaco editor on mount
+    useLayoutEffect(() => {
+      const monacoId = getMonacoId()
+      const container = document.getElementById(monacoId)
+      if (!container) return
+
+      containerRef.current = container
+
+      // Create ResizeObserver - wrapped in requestAnimationFrame to avoid
+      // the error "ResizeObserver loop limit exceeded"
+      resizeObserverRef.current = new ResizeObserver(() => {
+        window.requestAnimationFrame(() => {
+          editorRef.current?.layout()
+        })
+      })
+
+      // Create debounced update function
+      debouncedUpdateCodeRef.current = debounce(() => {
+        const text =
+          editorRef.current?.getModel()?.getLinesContent().join('\n') || ''
+        onChange?.(text)
+        addWarnings(parse(text).referencesListener.queriesAndCommands)
+      }, EDITOR_UPDATE_DEBOUNCE_TIME)
+
+      // Create Monaco editor
+      editorRef.current = monaco.editor.create(container, {
+        autoClosingOvertype: 'always',
+        contextmenu: true,
+        cursorStyle: 'block',
+        fontFamily: '"Fira Code", Monaco, "Courier New", Terminal, monospace',
+        fontLigatures,
+        fontSize: 17,
+        fontWeight: '400',
+        hideCursorInOverviewRuler: true,
+        language: 'cypher',
+        lightbulb: { enabled: monaco.editor.ShowLightbulbIconMode.Off },
+        lineHeight: 23,
+        lineNumbers: (line: number) =>
+          (editorRef.current?.getModel()?.getLineCount() || 0) > 1
+            ? line.toString()
+            : `${useDb || ''}$`,
+        links: false,
+        minimap: { enabled: false },
+        // Disable features that can cause "Canceled" errors during disposal
+        occurrencesHighlight: 'off',
+        overviewRulerBorder: false,
+        overviewRulerLanes: 0,
+        quickSuggestions: true,
+        renderLineHighlight: 'none',
+        scrollbar: {
+          alwaysConsumeMouseWheel: false,
+          useShadows: false
+        },
+        scrollBeyondLastColumn: 0,
+        scrollBeyondLastLine: false,
+        selectionHighlight: false,
+        value,
+        wordWrap: 'on',
+        wrappingStrategy: 'advanced',
+        tabIndex
+      })
+
+      const { KeyCode, KeyMod } = monaco
+      const editorId = id
+
+      // Clear any previous disposables (safety measure)
+      commandDisposablesRef.current.forEach(d => d.dispose())
+      commandDisposablesRef.current = []
+
+      // Use addAction instead of addCommand - addAction properly disposes with the editor
+      // This fixes a bug where keybindings from disposed editors would remain active globally
+      if (onExecute) {
+        commandDisposablesRef.current.push(
+          editorRef.current.addAction({
+            id: `${editorId}-enter`,
+            label: 'Execute or New Line',
+            keybindings: [KeyCode.Enter],
+            precondition: '!suggestWidgetVisible && !findWidgetVisible',
+            run: () => {
+              if ((editorRef.current?.getModel()?.getLineCount() || 0) > 1) {
+                editorRef.current?.trigger('keyboard', 'type', { text: '\n' })
+              } else {
+                const currentValue = editorRef.current?.getValue() || ''
+                const onlyWhitespace = currentValue.trim() === ''
+                if (!onlyWhitespace) {
+                  onExecute(currentValue)
+                  setCurrentHistoryIndex(UNRUN_CMD_HISTORY_INDEX)
+                }
+              }
+            }
+          })
+        )
+      }
+
+      commandDisposablesRef.current.push(
+        editorRef.current.addAction({
+          id: `${editorId}-up`,
+          label: 'Handle Up',
+          keybindings: [KeyCode.UpArrow],
+          precondition: '!suggestWidgetVisible',
+          run: () => {
+            if ((editorRef.current?.getModel()?.getLineCount() || 0) > 1) {
+              editorRef.current?.trigger('', 'cursorUp', null)
+            } else {
+              // History previous - inline to avoid stale closures
+              if (history.length === 0) return
+
+              setCurrentHistoryIndex(prevIndex => {
+                const newHistoryIndex = prevIndex + 1
+                if (newHistoryIndex === history.length) return prevIndex
+
+                if (prevIndex === UNRUN_CMD_HISTORY_INDEX) {
+                  setDraft(editorRef.current?.getValue() || '')
+                }
+
+                const historyValue = history[newHistoryIndex]
+                if (editorRef.current) {
+                  editorRef.current.setValue(historyValue)
+                  editorRef.current.focus()
+                  const lines =
+                    editorRef.current.getModel()?.getLinesContent() || []
+                  const linesLength = lines.length
+                  editorRef.current.setPosition({
+                    lineNumber: linesLength,
+                    column: lines[linesLength - 1].length + 1
+                  })
+                }
+                return newHistoryIndex
+              })
+            }
           }
+        })
+      )
 
-          const currentModel = this.editor?.getModel()
-          if (!currentModel) {
-            return
-          }
+      commandDisposablesRef.current.push(
+        editorRef.current.addAction({
+          id: `${editorId}-down`,
+          label: 'Handle Down',
+          keybindings: [KeyCode.DownArrow],
+          precondition: '!suggestWidgetVisible',
+          run: () => {
+            if ((editorRef.current?.getModel()?.getLineCount() || 0) > 1) {
+              editorRef.current?.trigger('', 'cursorDown', null)
+            } else {
+              // History next - inline to avoid stale closures
+              if (history.length === 0) return
 
-          if (result.summary.notifications.length > 0) {
-            monaco.editor.setModelMarkers(currentModel, this.getMonacoId(), [
-              ...monaco.editor.getModelMarkers({ owner: this.getMonacoId() }),
-              ...result.summary.notifications.map(
-                ({ description, position, title }) => {
-                  const line = 'line' in position ? (position.line ?? 0) : 0
-                  const column =
-                    'column' in position ? (position.column ?? 0) : 0
-                  return {
-                    startLineNumber: statementLineNumber + line,
-                    startColumn:
-                      statement.start.column +
-                      (line === 1
-                        ? column - EXPLAIN_QUERY_PREFIX_LENGTH
-                        : column),
-                    endLineNumber: statement.stop.line,
-                    endColumn: statement.stop.column + 2,
-                    message: title + '\n\n' + description,
-                    severity: monaco.MarkerSeverity.Warning
+              setCurrentHistoryIndex(prevIndex => {
+                if (prevIndex === UNRUN_CMD_HISTORY_INDEX) return prevIndex
+
+                const newHistoryIndex = prevIndex - 1
+
+                if (newHistoryIndex === UNRUN_CMD_HISTORY_INDEX) {
+                  setDraft(currentDraft => {
+                    if (editorRef.current) {
+                      editorRef.current.setValue(currentDraft)
+                      editorRef.current.focus()
+                      const lines =
+                        editorRef.current.getModel()?.getLinesContent() || []
+                      const linesLength = lines.length
+                      editorRef.current.setPosition({
+                        lineNumber: linesLength,
+                        column: lines[linesLength - 1].length + 1
+                      })
+                    }
+                    return currentDraft
+                  })
+                } else {
+                  const historyValue = history[newHistoryIndex]
+                  if (editorRef.current) {
+                    editorRef.current.setValue(historyValue)
+                    editorRef.current.focus()
+                    const lines =
+                      editorRef.current.getModel()?.getLinesContent() || []
+                    const linesLength = lines.length
+                    editorRef.current.setPosition({
+                      lineNumber: linesLength,
+                      column: lines[linesLength - 1].length + 1
+                    })
                   }
                 }
-              )
-            ])
+
+                return newHistoryIndex
+              })
+            }
           }
         })
-        .catch(() => {
-          /* Parent should ensure connection */
+      )
+
+      commandDisposablesRef.current.push(
+        editorRef.current.addAction({
+          id: `${editorId}-shift-enter`,
+          label: 'New Line',
+          keybindings: [KeyMod.Shift | KeyCode.Enter],
+          run: () => {
+            editorRef.current?.trigger('keyboard', 'type', { text: '\n' })
+          }
         })
-    })
-  }
+      )
 
-  componentDidMount = (): void => {
-    this.container = document.getElementById(this.getMonacoId()) ?? undefined
-    if (!this.container) return
+      if (onExecute) {
+        commandDisposablesRef.current.push(
+          editorRef.current.addAction({
+            id: `${editorId}-ctrl-enter`,
+            label: 'Execute',
+            keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+            run: () => {
+              const currentValue = editorRef.current?.getValue() || ''
+              const onlyWhitespace = currentValue.trim() === ''
+              if (!onlyWhitespace) {
+                onExecute(currentValue)
+                setCurrentHistoryIndex(UNRUN_CMD_HISTORY_INDEX)
+              }
+            }
+          })
+        )
+      }
 
-    this.editor = monaco.editor.create(this.container, {
-      autoClosingOvertype: 'always',
-      contextmenu: true,
-      cursorStyle: 'block',
-      fontFamily: '"Fira Code", Monaco, "Courier New", Terminal, monospace',
-      fontLigatures: this.props.fontLigatures,
-      fontSize: 17,
-      fontWeight: '400',
-      hideCursorInOverviewRuler: true,
-      language: 'cypher',
-      lightbulb: { enabled: monaco.editor.ShowLightbulbIconMode.Off },
-      lineHeight: 23,
-      lineNumbers: (line: number) =>
-        this.isMultiLine() ? line.toString() : `${this.props.useDb || ''}$`,
-      links: false,
-      minimap: { enabled: false },
-      overviewRulerBorder: false,
-      overviewRulerLanes: 0,
-      quickSuggestions: true,
-      renderLineHighlight: 'none',
-      scrollbar: {
-        alwaysConsumeMouseWheel: false,
-        useShadows: false
-      },
-      scrollBeyondLastColumn: 0,
-      scrollBeyondLastLine: false,
-      selectionHighlight: false,
-      value: this.props.value,
-      wordWrap: 'on',
-      wrappingStrategy: 'advanced',
-      tabIndex: this.props.tabIndex
-    })
+      commandDisposablesRef.current.push(
+        editorRef.current.addAction({
+          id: `${editorId}-ctrl-up`,
+          label: 'History Previous',
+          keybindings: [KeyMod.CtrlCmd | KeyCode.UpArrow],
+          run: () => {
+            if (history.length === 0) return
 
-    const { KeyCode, KeyMod } = monaco
-    const editorId = this.props.id
+            setCurrentHistoryIndex(prevIndex => {
+              const newHistoryIndex = prevIndex + 1
+              if (newHistoryIndex === history.length) return prevIndex
 
-    // Clear any previous disposables
-    this.commandDisposables.forEach(d => d.dispose())
-    this.commandDisposables = []
+              if (prevIndex === UNRUN_CMD_HISTORY_INDEX) {
+                setDraft(editorRef.current?.getValue() || '')
+              }
 
-    // Use addAction instead of addCommand - addAction properly disposes with the editor
-    // This fixes a bug where keybindings from disposed editors would remain active globally
-    if (this.props.onExecute) {
-      this.commandDisposables.push(
-        this.editor.addAction({
-          id: `${editorId}-enter`,
-          label: 'Execute or New Line',
-          keybindings: [KeyCode.Enter],
+              const historyValue = history[newHistoryIndex]
+              if (editorRef.current) {
+                editorRef.current.setValue(historyValue)
+                editorRef.current.focus()
+                const lines =
+                  editorRef.current.getModel()?.getLinesContent() || []
+                const linesLength = lines.length
+                editorRef.current.setPosition({
+                  lineNumber: linesLength,
+                  column: lines[linesLength - 1].length + 1
+                })
+              }
+              return newHistoryIndex
+            })
+          }
+        })
+      )
+
+      commandDisposablesRef.current.push(
+        editorRef.current.addAction({
+          id: `${editorId}-ctrl-down`,
+          label: 'History Next',
+          keybindings: [KeyMod.CtrlCmd | KeyCode.DownArrow],
+          run: () => {
+            if (history.length === 0) return
+
+            setCurrentHistoryIndex(prevIndex => {
+              if (prevIndex === UNRUN_CMD_HISTORY_INDEX) return prevIndex
+
+              const newHistoryIndex = prevIndex - 1
+
+              if (newHistoryIndex === UNRUN_CMD_HISTORY_INDEX) {
+                setDraft(currentDraft => {
+                  if (editorRef.current) {
+                    editorRef.current.setValue(currentDraft)
+                    editorRef.current.focus()
+                    const lines =
+                      editorRef.current.getModel()?.getLinesContent() || []
+                    const linesLength = lines.length
+                    editorRef.current.setPosition({
+                      lineNumber: linesLength,
+                      column: lines[linesLength - 1].length + 1
+                    })
+                  }
+                  return currentDraft
+                })
+              } else {
+                const historyValue = history[newHistoryIndex]
+                if (editorRef.current) {
+                  editorRef.current.setValue(historyValue)
+                  editorRef.current.focus()
+                  const lines =
+                    editorRef.current.getModel()?.getLinesContent() || []
+                  const linesLength = lines.length
+                  editorRef.current.setPosition({
+                    lineNumber: linesLength,
+                    column: lines[linesLength - 1].length + 1
+                  })
+                }
+              }
+
+              return newHistoryIndex
+            })
+          }
+        })
+      )
+
+      commandDisposablesRef.current.push(
+        editorRef.current.addAction({
+          id: `${editorId}-ctrl-period`,
+          label: 'Display Help Keys',
+          keybindings: [KeyMod.CtrlCmd | KeyCode.Period],
+          run: () => onDisplayHelpKeys()
+        })
+      )
+
+      commandDisposablesRef.current.push(
+        editorRef.current.addAction({
+          id: `${editorId}-escape`,
+          label: 'Escape',
+          keybindings: [KeyCode.Escape],
           precondition: '!suggestWidgetVisible && !findWidgetVisible',
           run: () => {
-            this.isMultiLine() ? this.newLine() : this.execute()
+            wrapperRef.current?.focus()
           }
         })
       )
-    }
 
-    this.commandDisposables.push(
-      this.editor.addAction({
-        id: `${editorId}-up`,
-        label: 'Handle Up',
-        keybindings: [KeyCode.UpArrow],
-        precondition: '!suggestWidgetVisible',
-        run: () => this.handleUp()
-      })
-    )
-
-    this.commandDisposables.push(
-      this.editor.addAction({
-        id: `${editorId}-down`,
-        label: 'Handle Down',
-        keybindings: [KeyCode.DownArrow],
-        precondition: '!suggestWidgetVisible',
-        run: () => this.handleDown()
-      })
-    )
-
-    this.commandDisposables.push(
-      this.editor.addAction({
-        id: `${editorId}-shift-enter`,
-        label: 'New Line',
-        keybindings: [KeyMod.Shift | KeyCode.Enter],
-        run: () => this.newLine()
-      })
-    )
-
-    if (this.props.onExecute) {
-      this.commandDisposables.push(
-        this.editor.addAction({
-          id: `${editorId}-ctrl-enter`,
-          label: 'Execute',
-          keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
-          run: () => this.execute()
-        })
-      )
-    }
-
-    this.commandDisposables.push(
-      this.editor.addAction({
-        id: `${editorId}-ctrl-up`,
-        label: 'History Previous',
-        keybindings: [KeyMod.CtrlCmd | KeyCode.UpArrow],
-        run: () => this.viewHistoryPrevious()
-      })
-    )
-
-    this.commandDisposables.push(
-      this.editor.addAction({
-        id: `${editorId}-ctrl-down`,
-        label: 'History Next',
-        keybindings: [KeyMod.CtrlCmd | KeyCode.DownArrow],
-        run: () => this.viewHistoryNext()
-      })
-    )
-
-    this.commandDisposables.push(
-      this.editor.addAction({
-        id: `${editorId}-ctrl-period`,
-        label: 'Display Help Keys',
-        keybindings: [KeyMod.CtrlCmd | KeyCode.Period],
-        run: () => this.props.onDisplayHelpKeys()
-      })
-    )
-
-    this.commandDisposables.push(
-      this.editor.addAction({
-        id: `${editorId}-escape`,
-        label: 'Escape',
-        keybindings: [KeyCode.Escape],
-        precondition: '!suggestWidgetVisible && !findWidgetVisible',
-        run: () => {
-          this.wrapperRef.current?.focus()
+      // Register additional commands
+      keys(additionalCommands).forEach(key => {
+        const command = additionalCommands[key]
+        if (!command || !editorRef.current) {
+          return
         }
+        commandDisposablesRef.current.push(
+          editorRef.current.addAction({
+            id: `${editorId}-additional-${key}`,
+            label: `Additional Command ${key}`,
+            keybindings: [key],
+            precondition: command.context,
+            run: () => {
+              if (editorRef.current) {
+                command.handler(editorRef.current)
+              }
+            }
+          })
+        )
       })
-    )
 
-    keys(this.props.additionalCommands).forEach(key => {
-      const command = this.props.additionalCommands[key]
-      if (!command || !this.editor) {
-        return
+      // Initial content update
+      const model = editorRef.current.getModel()
+      if (model) {
+        monaco.editor.setModelMarkers(model, monacoId, [])
+        const dbName = useDb || ''
+        editorRef.current.updateOptions({
+          lineNumbersMinChars:
+            dbName.length &&
+            !((editorRef.current.getModel()?.getLineCount() || 0) > 1)
+              ? dbName.length * 1.3
+              : 2
+        })
+        debouncedUpdateCodeRef.current?.()
       }
-      this.commandDisposables.push(
-        this.editor.addAction({
-          id: `${editorId}-additional-${key}`,
-          label: `Additional Command ${key}`,
-          keybindings: [key],
-          precondition: command.context,
-          run: () => command.handler(this.editor!)
+
+      // Store event listener disposables for cleanup
+      editorEventDisposablesRef.current.push(
+        editorRef.current.onDidChangeModelContent(() => {
+          const currentModel = editorRef.current?.getModel()
+          if (!currentModel) return
+
+          monaco.editor.setModelMarkers(currentModel, monacoId, [])
+
+          const dbName = useDb || ''
+          editorRef.current?.updateOptions({
+            lineNumbersMinChars:
+              dbName.length &&
+              !((editorRef.current?.getModel()?.getLineCount() || 0) > 1)
+                ? dbName.length * 1.3
+                : 2
+          })
+
+          debouncedUpdateCodeRef.current?.()
         })
       )
-    })
 
-    this.onContentUpdate()
+      editorEventDisposablesRef.current.push(
+        editorRef.current.onDidContentSizeChange(() => {
+          if (!containerRef.current || !editorRef.current) return
+          const contentHeight = editorRef.current.getContentHeight()
 
-    // Store event listener disposables for cleanup
-    this.editorEventDisposables.push(
-      this.editor.onDidChangeModelContent(this.onContentUpdate)
-    )
-    this.editorEventDisposables.push(
-      this.editor.onDidContentSizeChange(() =>
-        this.resize(this.props.isFullscreen)
+          const height = isFullscreen
+            ? Math.min(
+                window.innerHeight - 20,
+                containerRef.current.scrollHeight
+              )
+            : Math.min(276, contentHeight)
+
+          containerRef.current.style.height = `${height}px`
+          editorRef.current.layout({
+            height,
+            width: containerRef.current.offsetWidth
+          })
+        })
       )
-    )
 
-    this.resizeObserver.observe(this.container)
-    this._isComponentMounted = true
-  }
+      resizeObserverRef.current.observe(container)
+      isMountedRef.current = true
 
-  render(): JSX.Element {
+      // Cleanup
+      return () => {
+        isMountedRef.current = false
+
+        // Cancel debounced operations FIRST to prevent callbacks during disposal
+        debouncedUpdateCodeRef.current?.cancel()
+
+        // Disconnect resize observer before editor disposal
+        resizeObserverRef.current?.disconnect()
+
+        // Dispose all command/action bindings - this is critical!
+        // Without this, the keybindings remain active globally even after editor disposal
+        commandDisposablesRef.current.forEach(d => {
+          try {
+            d.dispose()
+          } catch {
+            // Ignore disposal errors
+          }
+        })
+        commandDisposablesRef.current = []
+
+        // Dispose editor event listeners to prevent memory leaks
+        editorEventDisposablesRef.current.forEach(d => {
+          try {
+            d.dispose()
+          } catch {
+            // Ignore disposal errors
+          }
+        })
+        editorEventDisposablesRef.current = []
+
+        // Dispose the editor last - wrap in try-catch to handle "Canceled" errors
+        // that can occur when Monaco's internal Delayers are interrupted
+        try {
+          editorRef.current?.dispose()
+        } catch {
+          // Monaco may throw "Canceled" errors during disposal when internal
+          // async operations (like WordHighlighter) are interrupted - this is safe to ignore
+        }
+        editorRef.current = null
+      }
+      // We intentionally only run this on mount/unmount
+      // The callbacks are inlined to capture current values
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // Update fontLigatures when prop changes
+    useEffect(() => {
+      editorRef.current?.updateOptions({ fontLigatures })
+    }, [fontLigatures])
+
+    // Redraw line numbers when useDb changes
+    useEffect(() => {
+      if (!editorRef.current) return
+      const cursorPosition = editorRef.current.getPosition() as monaco.IPosition
+      editorRef.current.setValue(editorRef.current.getValue() || '')
+      if (cursorPosition) {
+        editorRef.current.setPosition(cursorPosition)
+      }
+    }, [useDb])
+
+    // Re-check warnings when enableMultiStatementMode changes
+    useEffect(() => {
+      onContentUpdate()
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [enableMultiStatementMode])
+
+    // Update tabIndex when isEditorFocusable or tabIndex changes
+    useEffect(() => {
+      editorRef.current?.updateOptions({
+        tabIndex: isEditorFocusable ? tabIndex : -1
+      })
+    }, [isEditorFocusable, tabIndex])
+
     return (
       <MonacoStyleWrapper
-        id={this.getMonacoId()}
-        className={this.props.className}
-        ref={this.wrapperRef}
+        id={getMonacoId()}
+        className={className}
+        ref={wrapperRef}
         tabIndex={-1}
         onFocus={() => {
-          this.setState({ isEditorFocusable: false })
+          setIsEditorFocusable(false)
         }}
         onBlur={() => {
-          this.setState({ isEditorFocusable: true })
+          setIsEditorFocusable(true)
         }}
       />
     )
   }
+)
 
-  componentDidUpdate(prevProps: CypherEditorProps): void {
-    const { useDb, fontLigatures, enableMultiStatementMode, tabIndex } =
-      this.props
-    if (fontLigatures !== prevProps.fontLigatures) {
-      this.editor?.updateOptions({ fontLigatures })
-    }
-
-    // Line numbers need to be redrawn after db is changed
-    if (useDb !== prevProps.useDb) {
-      const cursorPosition = this.editor?.getPosition() as monaco.IPosition
-      this.editor?.setValue(this.editor?.getValue() || '')
-      this.editor?.setPosition(cursorPosition)
-    }
-
-    // If changing multistatement setting, add or remove warnings if needed
-    if (enableMultiStatementMode !== prevProps.enableMultiStatementMode) {
-      this.onContentUpdate()
-    }
-
-    this.editor?.updateOptions({
-      tabIndex: this.state.isEditorFocusable ? tabIndex : -1
-    })
-  }
-
-  componentWillUnmount = (): void => {
-    this._isComponentMounted = false
-
-    // Dispose all command/action bindings first - this is critical!
-    // Without this, the keybindings remain active globally even after editor disposal
-    this.commandDisposables.forEach(d => d.dispose())
-    this.commandDisposables = []
-
-    // Dispose editor event listeners to prevent memory leaks
-    this.editorEventDisposables.forEach(d => d.dispose())
-    this.editorEventDisposables = []
-
-    this.editor?.dispose()
-    this.debouncedUpdateCode?.cancel()
-    this.resizeObserver.disconnect()
-  }
-}
+CypherEditor.displayName = 'CypherEditor'

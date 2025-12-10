@@ -19,7 +19,10 @@
  */
 
 export { CypherEditor } from './cypher-editor/CypherEditor'
-export type { CypherEditorProps } from './cypher-editor/CypherEditor'
+export type {
+  CypherEditorProps,
+  CypherEditorHandle
+} from './cypher-editor/CypherEditor'
 export {
   setupAutocomplete,
   setEditorTheme,

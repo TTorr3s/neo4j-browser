@@ -23,6 +23,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend'
 import { Provider } from 'react-redux'
 import { BusProvider } from 'react-suber'
 import { configureStore, Middleware, Tuple } from '@reduxjs/toolkit'
+import { BusContext } from 'browser-hooks/useBus'
 import { AnyAction } from 'redux'
 import { createEpicMiddleware } from 'redux-observable'
 import {
@@ -186,13 +187,15 @@ const AppInit = (): JSX.Element => {
     <Provider store={store as any}>
       {/* @ts-expect-error BusProvider types from react-suber don't include children prop for React 18 */}
       <BusProvider bus={bus}>
-        <DndProvider backend={HTML5Backend}>
-          {isDevelopment ? (
-            <React.StrictMode>{appContent}</React.StrictMode>
-          ) : (
-            appContent
-          )}
-        </DndProvider>
+        <BusContext.Provider value={bus}>
+          <DndProvider backend={HTML5Backend}>
+            {isDevelopment ? (
+              <React.StrictMode>{appContent}</React.StrictMode>
+            ) : (
+              appContent
+            )}
+          </DndProvider>
+        </BusContext.Provider>
       </BusProvider>
     </Provider>
   )

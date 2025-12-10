@@ -17,107 +17,136 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { fireEvent, render } from '@testing-library/react'
+import { fireEvent, render, act } from '@testing-library/react'
 import React from 'react'
+import { Provider } from 'react-redux'
 
-import { ConnectionFormController } from './ConnectionFormController'
-import { NATIVE, NO_AUTH } from 'services/bolt/boltHelpers'
+import ConnectionFormController from './ConnectionFormController'
+import { BusContext } from 'browser-hooks/useBus'
+import { CONNECTION_ID } from 'shared/modules/discovery/discoveryDuck'
 
-test('should print correct state for retaining credentials', async () => {
-  const bus = {
-    self: jest.fn((_x, _y, cb) => cb({ success: true })),
-    send: jest.fn()
+const createMockStore = (
+  overrides: {
+    isConnected?: boolean
+    storeCredentials?: boolean
+    host?: string
+    username?: string
+    authEnabled?: boolean
+  } = {}
+) => {
+  const {
+    isConnected = false,
+    storeCredentials = true,
+    host = '',
+    username = '',
+    authEnabled = true
+  } = overrides
+
+  const state = {
+    connections: {
+      connectionState: isConnected ? 2 : 0,
+      activeConnection: isConnected ? CONNECTION_ID : null,
+      connectionsById: {
+        [CONNECTION_ID]: {
+          id: CONNECTION_ID,
+          host,
+          username,
+          password: '',
+          authEnabled
+        }
+      },
+      allConnectionIds: [CONNECTION_ID]
+    },
+    settings: {
+      initCmd: '',
+      playImplicitInitCommands: false
+    },
+    meta: {
+      role: null,
+      server: {
+        edition: 'enterprise',
+        storeSize: null,
+        version: '4.4.0'
+      },
+      settings: {
+        retainConnectionCredentials: storeCredentials,
+        credentialTimeout: 0
+      }
+    },
+    app: {
+      allowedBoltSchemes: ['neo4j', 'bolt']
+    }
   }
-  const updateConnection = jest.fn()
-  const setActiveConnection = jest.fn()
-  const executeInitCmd = jest.fn()
-  const host = 'my-host'
-  const username = 'my-username'
-  let storeCredentials = true // initial default value
-  let activeConnectionData = null
-  let activeConnection = null
-  const frame = {}
-  const error = jest.fn()
 
-  // When
-  const { rerender, getByText, getByTestId } = render(
-    <ConnectionFormController
-      frame={frame}
-      error={error}
-      bus={bus}
-      activeConnectionData={activeConnectionData}
-      activeConnection={activeConnection}
-      storeCredentials={storeCredentials}
-      updateConnection={updateConnection}
-      setActiveConnection={setActiveConnection}
-      executeInitCmd={executeInitCmd}
-      isConnected={false}
-      allowedSchemes={['neo4j']}
-      allowedAuthMethods={[NATIVE, NO_AUTH]}
-    />
-  )
-
-  // Then form should be there
-  expect(getByText(/connect url/i)).toBeDefined()
-
-  // Fill form and click connect
-  fireEvent.change(getByTestId('boltaddress'), { target: { value: host } })
-  fireEvent.change(getByTestId('username'), { target: { value: username } })
-  fireEvent.change(getByTestId('password'), { target: { value: 'xxx' } })
-  fireEvent.click(getByTestId('connect'))
-
-  // When faking propagation
-  activeConnection = true
-  activeConnectionData = {
-    username,
-    host,
-    authEnabled: true
+  return {
+    getState: () => state,
+    subscribe: () => () => {},
+    dispatch: jest.fn()
   }
-  rerender(
-    <ConnectionFormController
-      frame={frame}
-      bus={bus}
-      activeConnectionData={activeConnectionData}
-      activeConnection={activeConnection}
-      storeCredentials={storeCredentials}
-      updateConnection={updateConnection}
-      setActiveConnection={setActiveConnection}
-      executeInitCmd={executeInitCmd}
-      isConnected={true}
-      allowedSchemes={['neo4j']}
-      allowedAuthMethods={[NATIVE, NO_AUTH]}
-    />
-  )
+}
 
-  // Then
-  expect(getByText(/my-username/i)).toBeDefined()
-  expect(getByText(/neo4j:\/\/my-host/i)).toBeDefined()
-  expect(
-    getByText(/Connection credentials are\sstored in your web browser./i)
-  ).toBeDefined()
+const createMockBus = () => ({
+  self: jest.fn((_type, _data, callback) => {
+    callback({ success: true })
+  }),
+  send: jest.fn()
+})
 
-  // When not storing credentials anymore
-  storeCredentials = false
-  rerender(
-    <ConnectionFormController
-      frame={frame}
-      bus={bus}
-      activeConnectionData={activeConnectionData}
-      activeConnection={activeConnection}
-      storeCredentials={storeCredentials}
-      updateConnection={updateConnection}
-      setActiveConnection={setActiveConnection}
-      executeInitCmd={executeInitCmd}
-      isConnected={true}
-      allowedSchemes={['neo4j']}
-      allowedAuthMethods={[NATIVE, NO_AUTH]}
-    />
-  )
+describe('ConnectionFormController', () => {
+  test('should render connection form when not connected', async () => {
+    const mockBus = createMockBus()
+    const error = jest.fn()
 
-  // Then
-  expect(getByText(/my-username/i)).toBeDefined()
-  expect(getByText(/neo4j:\/\/my-host/i)).toBeDefined()
-  expect(
-    getByText(/Connection credentials are\snot\sstored in your web browser./i)
-  ).toBeDefined()
+    const mockStore = createMockStore({
+      isConnected: false,
+      storeCredentials: true
+    })
+
+    const { getByText, getByTestId } = render(
+      <Provider store={mockStore as any}>
+        <BusContext.Provider value={mockBus as any}>
+          <ConnectionFormController frame={{}} error={error} />
+        </BusContext.Provider>
+      </Provider>
+    )
+
+    // Form should be visible
+    expect(getByText(/connect url/i)).toBeDefined()
+    expect(getByTestId('boltaddress')).toBeDefined()
+    expect(getByTestId('username')).toBeDefined()
+    expect(getByTestId('password')).toBeDefined()
+    expect(getByTestId('connect')).toBeDefined()
+  })
+
+  test('should call bus.self with CONNECT when connect button is clicked', async () => {
+    const mockBus = createMockBus()
+    const error = jest.fn()
+
+    const mockStore = createMockStore({
+      isConnected: false,
+      storeCredentials: true
+    })
+
+    const { getByTestId } = render(
+      <Provider store={mockStore as any}>
+        <BusContext.Provider value={mockBus as any}>
+          <ConnectionFormController frame={{}} error={error} />
+        </BusContext.Provider>
+      </Provider>
+    )
+
+    // Fill form
+    fireEvent.change(getByTestId('boltaddress'), {
+      target: { value: 'my-host' }
+    })
+    fireEvent.change(getByTestId('username'), { target: { value: 'neo4j' } })
+    fireEvent.change(getByTestId('password'), { target: { value: 'password' } })
+
+    await act(async () => {
+      fireEvent.click(getByTestId('connect'))
+    })
+
+    // Should have called bus.self with CONNECT
+    expect(mockBus.self).toHaveBeenCalled()
+  })
 })

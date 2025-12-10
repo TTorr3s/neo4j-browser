@@ -17,14 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component } from 'react'
-import { connect } from 'react-redux'
-import { withBus } from 'react-suber'
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  ChangeEvent
+} from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 
 import ChangePasswordForm from './ChangePasswordForm'
 import ConnectForm from './ConnectForm'
 import ConnectedView from './ConnectedView'
 import { StyledConnectionBody } from './styled'
+import { useBus } from 'browser-hooks/useBus'
 import { NATIVE, NO_AUTH } from 'services/bolt/boltHelpers'
 import {
   generateBoltUrl,
@@ -42,7 +48,7 @@ import {
   getActiveConnection,
   getActiveConnectionData,
   getConnectionData,
-  isConnected,
+  isConnected as isConnectedSelector,
   setActiveConnection,
   updateConnection
 } from 'shared/modules/connections/connectionsDuck'
@@ -62,9 +68,9 @@ import {
   AUTH_STORAGE_CONNECTION_PROFILES,
   isCloudHost
 } from 'shared/services/utils'
-import { Neo4jError } from 'neo4j-driver'
 import { GlobalState } from 'shared/globalState'
 
+// Helper functions (outside component)
 const isAuraHost = (host: string) => isCloudHost(host, NEO4J_CLOUD_DOMAINS)
 
 function getAllowedAuthMethodsForHost(host: string): AuthenticationMethod[] {
@@ -74,403 +80,553 @@ function getAllowedAuthMethodsForHost(host: string): AuthenticationMethod[] {
 const getAllowedSchemesForHost = (host: string, allowedSchemes: string[]) =>
   isAuraHost(host) ? CLOUD_SCHEMES : allowedSchemes
 
-export class ConnectionFormController extends Component<any, any> {
-  constructor(props: any) {
-    super(props)
-    const connection = this.getConnection()
+// Types
+interface ConnectionFormControllerProps {
+  frame: {
+    connectionData?: {
+      host?: string
+      username?: string
+      password?: string
+      authenticationMethod?: AuthenticationMethod
+      supportsMultiDb?: boolean
+    }
+  }
+  onSuccess?: () => void
+  showExistingPasswordInput?: boolean
+  error: (
+    err: Error | { code?: string; message?: string } | Record<string, never>
+  ) => void
+  children?: React.ReactNode
+  passwordChangeNeeded?: boolean
+  forcePasswordChange?: boolean
+}
 
+interface ConnectionState {
+  requestedUseDb: string
+  host: string
+  hostInputVal: string
+  username: string
+  password: string
+  authenticationMethod: AuthenticationMethod
+  isLoading: boolean
+  connecting: boolean
+  passwordChangeNeeded: boolean
+  forcePasswordChange: boolean
+  used: boolean
+  profiles: ConnectionProfile[]
+  supportsMultiDb?: boolean
+}
+
+export const ConnectionFormController: React.FC<
+  ConnectionFormControllerProps
+> = ({
+  frame,
+  onSuccess,
+  showExistingPasswordInput,
+  error,
+  children,
+  passwordChangeNeeded: initialPasswordChangeNeeded = false,
+  forcePasswordChange: initialForcePasswordChange = false
+}) => {
+  // Redux selectors
+  const discoveredData = useSelector((state: GlobalState) =>
+    getConnectionData(state, CONNECTION_ID)
+  )
+  const initCmd = useSelector(getInitCmd)
+  const activeConnection = useSelector(getActiveConnection)
+  const activeConnectionData = useSelector(getActiveConnectionData)
+  const playImplicitInitCommands = useSelector(getPlayImplicitInitCommands)
+  const storeCredentials = useSelector(shouldRetainConnectionCredentials)
+  const isConnected = useSelector(isConnectedSelector)
+  const allowedSchemes = useSelector(getAllowedBoltSchemes)
+
+  // Redux dispatch
+  const dispatch = useDispatch()
+
+  // Bus hook
+  const bus = useBus()
+
+  // Refs for cleanup and retry logic
+  const mountedRef = useRef(true)
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const successCallbackRef = useRef(onSuccess || (() => {}))
+
+  // Update success callback ref when prop changes
+  useEffect(() => {
+    successCallbackRef.current = onSuccess || (() => {})
+  }, [onSuccess])
+
+  // Get connection data from props or discovered data
+  const getConnection = useCallback(() => {
+    return discoveredData || frame.connectionData || {}
+  }, [discoveredData, frame.connectionData])
+
+  // Initialize state
+  const initializeState = useCallback((): ConnectionState => {
+    const connection = discoveredData || frame.connectionData || {}
     const { searchParams } = new URL(window.location.href)
     const searchParamAuthMethod = searchParams.get('preselectAuthMethod')
-    const authenticationMethod =
+    const authMethod =
       searchParamAuthMethod ??
       ((connection && connection.authenticationMethod) || NATIVE)
 
-    const allowedSchemes = getAllowedSchemesForHost(
-      connection.host,
-      props.allowedSchemes
+    const hostAllowedSchemes = getAllowedSchemesForHost(
+      connection.host || '',
+      allowedSchemes
     )
 
-    this.state = {
+    // supportsMultiDb may come from frame.connectionData but not from discoveredData (Connection type)
+    const supportsMultiDb = frame.connectionData?.supportsMultiDb
+
+    return {
       requestedUseDb: '',
-      ...connection,
-      host: generateBoltUrl(allowedSchemes, connection.host),
-      authenticationMethod,
+      host: generateBoltUrl(hostAllowedSchemes, connection.host || ''),
+      hostInputVal: '',
+      username: connection.username || '',
+      password: connection.password || '',
+      authenticationMethod: authMethod as AuthenticationMethod,
       isLoading: false,
       connecting: false,
-      passwordChangeNeeded: props.passwordChangeNeeded || false,
-      forcePasswordChange: props.forcePasswordChange || false,
-      successCallback: props.onSuccess || (() => {}),
-      used: props.isConnected,
-      profiles: []
+      passwordChangeNeeded: initialPasswordChangeNeeded,
+      forcePasswordChange: initialForcePasswordChange,
+      used: isConnected,
+      profiles: [],
+      supportsMultiDb
     }
-  }
+  }, [
+    discoveredData,
+    frame.connectionData,
+    allowedSchemes,
+    initialPasswordChangeNeeded,
+    initialForcePasswordChange,
+    isConnected
+  ])
 
-  componentDidMount(): void {
-    const { authenticationMethod } = this.state
-    if (authenticationMethod === NO_AUTH) {
-      this.connect(() => this.setState({ connecting: false }))
-      this.setState({ connecting: true })
-    }
-    this.loadProfiles()
-  }
+  // State
+  const [state, setState] = useState<ConnectionState>(initializeState)
 
-  getConnection() {
-    return this.props.discoveredData || this.props.frame.connectionData || {}
-  }
-
-  loadProfiles = () => {
+  // Load profiles from localStorage
+  const loadProfiles = useCallback(() => {
     const savedProfiles = localStorage.getItem(AUTH_STORAGE_CONNECTION_PROFILES)
     if (savedProfiles) {
-      this.setState({ profiles: JSON.parse(savedProfiles) })
+      setState(prev => ({ ...prev, profiles: JSON.parse(savedProfiles) }))
     }
-  }
+  }, [])
 
-  onProfileSave = (profile: ConnectionProfile) => {
-    const { profiles } = this.state
-    const updatedProfiles = [...profiles, profile]
-    this.setState({ profiles: updatedProfiles })
-    localStorage.setItem(
-      AUTH_STORAGE_CONNECTION_PROFILES,
-      JSON.stringify(updatedProfiles)
-    )
-  }
+  // Profile management handlers
+  const onProfileSave = useCallback((profile: ConnectionProfile) => {
+    setState(prev => {
+      const updatedProfiles = [...prev.profiles, profile]
+      localStorage.setItem(
+        AUTH_STORAGE_CONNECTION_PROFILES,
+        JSON.stringify(updatedProfiles)
+      )
+      return { ...prev, profiles: updatedProfiles }
+    })
+  }, [])
 
-  onProfileSelect = (profile: ConnectionProfile) => {
-    this.setState({
+  const onProfileSelect = useCallback((profile: ConnectionProfile) => {
+    setState(prev => ({
+      ...prev,
       host: profile.host,
       username: profile.username,
       password: profile.password,
-      authenticationMethod: profile.authenticationMethod
-    })
-  }
+      authenticationMethod: profile.authenticationMethod as AuthenticationMethod
+    }))
+  }, [])
 
-  tryConnect = (password: any, doneFn: any) => {
-    this.props.error({})
-    this.props.bus.self(
-      VERIFY_CREDENTIALS,
-      { ...this.state, password },
-      (res: any) => doneFn(res)
+  // Save credentials to Redux store
+  const saveCredentials = useCallback(() => {
+    dispatch(
+      updateConnection({
+        id: CONNECTION_ID,
+        host: state.host,
+        username: state.username,
+        password: state.password,
+        authenticationMethod: state.authenticationMethod
+      })
     )
-  }
+  }, [
+    dispatch,
+    state.host,
+    state.username,
+    state.password,
+    state.authenticationMethod
+  ])
 
-  connect = (
-    doneFn = () => {},
-    onError: any = null,
-    noResetConnectionOnFail = false
-  ) => {
-    this.props.error({})
-    this.props.bus.self(
-      CONNECT,
-      {
-        ...this.state,
-        noResetConnectionOnFail
-      },
-      (res: any) => {
-        if (res.success) {
-          doneFn()
-          this.saveAndStart()
-        } else {
-          if (
-            res.error.code === 'Neo.ClientError.Security.CredentialsExpired'
-          ) {
-            doneFn()
-            this.setState({ passwordChangeNeeded: true })
-          } else if (
-            !isAuraHost(this.state.host) &&
-            isNonSupportedRoutingSchemeError(res.error)
-          ) {
-            // Need to switch scheme to bolt:// for Neo4j 3.x connections
-            const url = toggleSchemeRouting(this.state.host)
-            this.props.error(
-              Error(
-                `Could not connect with the "${getScheme(
-                  this.state.host
-                )}://" scheme to this Neo4j server. Automatic retry using the "${getScheme(
-                  url
-                )}://" scheme in a moment...`
-              )
-            )
-            this.setState({ host: url, hostInputVal: url }, () => {
-              setTimeout(() => {
-                this.connect(doneFn, onError, noResetConnectionOnFail)
-              }, 5000)
-            })
-            return
-          } else {
-            doneFn()
-            if (onError) {
-              return onError(res)
-            }
-            this.props.error(res.error)
+  // Execute init command
+  const executeInitCmd = useCallback(() => {
+    dispatch(executeSystemCommand(initCmd))
+  }, [dispatch, initCmd])
+
+  // Save and start connection
+  const saveAndStart = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      forcePasswordChange: false,
+      used: true,
+      username: '',
+      password: ''
+    }))
+
+    successCallbackRef.current()
+    bus.send(FOCUS)
+    saveCredentials()
+    dispatch(setActiveConnection(CONNECTION_ID))
+
+    if (playImplicitInitCommands) {
+      executeInitCmd()
+    }
+  }, [bus, saveCredentials, dispatch, playImplicitInitCommands, executeInitCmd])
+
+  // Try connect (for password verification)
+  const tryConnect = useCallback(
+    (password: string, doneFn: (res: { success: boolean }) => void) => {
+      error({})
+      bus.self(
+        VERIFY_CREDENTIALS,
+        { ...state, password },
+        (res: { success: boolean }) => {
+          if (mountedRef.current) {
+            doneFn(res)
           }
         }
+      )
+    },
+    [bus, error, state]
+  )
+
+  // Main connect function
+  const connect = useCallback(
+    (
+      doneFn: () => void = () => {},
+      onError:
+        | ((res: { error: { code: string; message?: string } }) => void)
+        | null = null,
+      noResetConnectionOnFail = false
+    ) => {
+      error({})
+      bus.self(
+        CONNECT,
+        {
+          ...state,
+          noResetConnectionOnFail
+        },
+        (res: {
+          success: boolean
+          error?: { code: string; message?: string }
+        }) => {
+          if (!mountedRef.current) return
+
+          if (res.success) {
+            doneFn()
+            saveAndStart()
+          } else if (res.error) {
+            if (
+              res.error.code === 'Neo.ClientError.Security.CredentialsExpired'
+            ) {
+              doneFn()
+              setState(prev => ({ ...prev, passwordChangeNeeded: true }))
+            } else if (
+              !isAuraHost(state.host) &&
+              res.error.message &&
+              isNonSupportedRoutingSchemeError(
+                res.error as { code: string; message: string }
+              )
+            ) {
+              // Need to switch scheme to bolt:// for Neo4j 3.x connections
+              const url = toggleSchemeRouting(state.host)
+              error(
+                Error(
+                  `Could not connect with the "${getScheme(
+                    state.host
+                  )}://" scheme to this Neo4j server. Automatic retry using the "${getScheme(
+                    url
+                  )}://" scheme in a moment...`
+                )
+              )
+              setState(prev => ({ ...prev, host: url, hostInputVal: url }))
+
+              // Schedule retry
+              retryTimeoutRef.current = setTimeout(() => {
+                if (mountedRef.current) {
+                  connect(doneFn, onError, noResetConnectionOnFail)
+                }
+              }, 5000)
+            } else {
+              doneFn()
+              if (onError) {
+                onError({ error: res.error })
+              } else {
+                error(res.error)
+              }
+            }
+          }
+        }
+      )
+    },
+    [bus, error, state, saveAndStart]
+  )
+
+  // Change handlers
+  const onDatabaseChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const requestedUseDb = event.target.value
+      setState(prev => ({ ...prev, requestedUseDb }))
+      error({})
+    },
+    [error]
+  )
+
+  const onUsernameChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const username = event.target.value
+      setState(prev => ({ ...prev, username }))
+      error({})
+    },
+    [error]
+  )
+
+  const onPasswordChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const password = event.target.value
+      setState(prev => ({ ...prev, password }))
+      error({})
+    },
+    [error]
+  )
+
+  const onAuthenticationMethodChange = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const authenticationMethod = event.target.value as AuthenticationMethod
+      setState(prev => {
+        const username =
+          authenticationMethod === NO_AUTH ? '' : prev.username || 'neo4j'
+        const password = authenticationMethod === NO_AUTH ? '' : prev.password
+        return { ...prev, authenticationMethod, username, password }
+      })
+      error({})
+    },
+    [error]
+  )
+
+  const onHostChange = useCallback(
+    (fallbackScheme: string, val: string) => {
+      const hostAllowedSchemes = getAllowedSchemesForHost(val, allowedSchemes)
+      const url = generateBoltUrl(hostAllowedSchemes, val, fallbackScheme)
+      setState(prev => ({
+        ...prev,
+        host: url,
+        hostInputVal: url
+      }))
+      error({})
+    },
+    [allowedSchemes, error]
+  )
+
+  const onChangePasswordChange = useCallback(() => {
+    error({})
+  }, [error])
+
+  // Password change handler
+  const onChangePassword = useCallback(
+    ({
+      newPassword,
+      error: passwordError
+    }: {
+      newPassword?: string
+      error?: { code: string; message: string }
+    }) => {
+      setState(prev => ({ ...prev, isLoading: true }))
+
+      if (passwordError && passwordError.code) {
+        setState(prev => ({ ...prev, isLoading: false }))
+        return error(passwordError)
       }
-    )
-  }
 
-  onDatebaseChange = (event: any) => {
-    const requestedUseDb = event.target.value
-    this.setState({ requestedUseDb })
-    this.props.error({})
-  }
+      if (state.password === null) {
+        setState(prev => ({ ...prev, isLoading: false }))
+        return error({ message: 'Please set existing password' })
+      }
 
-  onUsernameChange = (event: any) => {
-    const username = event.target.value
-    this.setState({ username })
-    this.props.error({})
-  }
+      error({})
 
-  onPasswordChange = (event: any) => {
-    const password = event.target.value
-    this.setState({ password })
-    this.props.error({})
-  }
+      bus.self(
+        FORCE_CHANGE_PASSWORD,
+        {
+          host: state.host,
+          username: state.username,
+          password: state.password,
+          newPassword
+        },
+        (response: {
+          success: boolean
+          error?: { code: string; message: string }
+        }) => {
+          if (!mountedRef.current) return
 
-  onAuthenticationMethodChange(event: any) {
-    const authenticationMethod = event.target.value
-    const username =
-      authenticationMethod === NO_AUTH ? '' : this.state.username || 'neo4j'
-    const password = authenticationMethod === NO_AUTH ? '' : this.state.password
-    this.setState({ authenticationMethod, username, password })
-    this.props.error({})
-  }
+          if (response.success) {
+            setState(prev => ({ ...prev, password: newPassword || '' }))
 
-  onHostChange(fallbackScheme: any, val: any) {
-    const allowedSchemes = getAllowedSchemesForHost(
-      val,
-      this.props.allowedSchemes
-    )
-    const url = generateBoltUrl(allowedSchemes, val, fallbackScheme)
-    this.setState({
-      host: url,
-      hostInputVal: url
-    })
-    this.props.error({})
-  }
-
-  onChangePasswordChange(): void {
-    this.props.error({})
-  }
-
-  onChangePassword({
-    newPassword,
-    error
-  }: {
-    newPassword?: string
-    error?: { code: string; message: string }
-  }): void {
-    this.setState({ isLoading: true })
-    if (error && error.code) {
-      this.setState({ isLoading: false })
-      return this.props.error(error)
-    }
-    if (this.state.password === null) {
-      this.setState({ isLoading: false })
-      return this.props.error({ message: 'Please set existing password' })
-    }
-    this.props.error({})
-    this.props.bus.self(
-      FORCE_CHANGE_PASSWORD,
-      {
-        host: this.state.host,
-        username: this.state.username,
-        password: this.state.password,
-        newPassword
-      },
-      (response: any) => {
-        if (response.success) {
-          return this.setState({ password: newPassword }, () => {
             let retries = 5
-            const retryFn = (res: any) => {
+            const retryFn = (res: {
+              error: { code: string; message?: string }
+            }) => {
+              if (!mountedRef.current) return
+
               // New password not accepted yet, initiate retry
               if (res.error.code === 'Neo.ClientError.Security.Unauthorized') {
                 retries--
                 if (retries > 0) {
-                  setTimeout(
-                    () =>
-                      this.connect(
+                  setTimeout(() => {
+                    if (mountedRef.current) {
+                      connect(
                         () => {
-                          this.setState({ isLoading: false })
+                          if (mountedRef.current) {
+                            setState(prev => ({ ...prev, isLoading: false }))
+                          }
                         },
                         retryFn,
                         true
-                      ),
-                    200
-                  )
+                      )
+                    }
+                  }, 200)
                 }
               } else {
-                this.props.error(res.error)
+                error(res.error)
               }
             }
-            this.connect(
+
+            connect(
               () => {
-                this.setState({ isLoading: false })
+                if (mountedRef.current) {
+                  setState(prev => ({ ...prev, isLoading: false }))
+                }
               },
               retryFn,
               true
             )
-          })
+          } else {
+            setState(prev => ({ ...prev, isLoading: false }))
+            if (response.error) {
+              error(response.error)
+            }
+          }
         }
-        this.setState({ isLoading: false })
-        this.props.error(response.error)
+      )
+    },
+    [bus, error, state.host, state.username, state.password, connect]
+  )
+
+  // Set connecting state
+  const setConnecting = useCallback((connecting: boolean) => {
+    setState(prev => ({ ...prev, connecting }))
+  }, [])
+
+  // Effect: Auto-connect if NO_AUTH and load profiles on mount
+  useEffect(() => {
+    mountedRef.current = true
+
+    if (state.authenticationMethod === NO_AUTH) {
+      setState(prev => ({ ...prev, connecting: true }))
+      connect(() => {
+        if (mountedRef.current) {
+          setState(prev => ({ ...prev, connecting: false }))
+        }
+      })
+    }
+
+    loadProfiles()
+
+    return () => {
+      mountedRef.current = false
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
       }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Render
+  let view: React.ReactNode
+
+  if (
+    state.forcePasswordChange ||
+    (!isConnected && state.passwordChangeNeeded)
+  ) {
+    view = (
+      <ChangePasswordForm
+        showExistingPasswordInput={showExistingPasswordInput}
+        onChangePasswordClick={onChangePassword}
+        onChange={onChangePasswordChange}
+        tryConnect={(
+          password: string,
+          doneFn: (res: { success: boolean }) => void
+        ) => {
+          setState(prev => ({ ...prev, isLoading: true }))
+          tryConnect(password, doneFn)
+        }}
+        isLoading={state.isLoading}
+      >
+        {children}
+      </ChangePasswordForm>
+    )
+  } else if (
+    isConnected &&
+    activeConnectionData &&
+    activeConnectionData.authEnabled !== false // falsy value (except false) indicates we don't know yet, so see that as enabled.
+  ) {
+    view = (
+      <ConnectedView
+        host={state.host}
+        username={activeConnectionData.username}
+        storeCredentials={storeCredentials}
+        hideStoreCredentials={state.authenticationMethod === NO_AUTH}
+      />
+    )
+  } else if (
+    isConnected &&
+    activeConnectionData &&
+    activeConnectionData.authEnabled === false // explicit false = auth disabled for sure
+  ) {
+    view = (
+      <StyledConnectionBody>
+        You have a working connection and server auth is disabled.
+      </StyledConnectionBody>
+    )
+  } else if (!isConnected && !state.passwordChangeNeeded) {
+    const host = state.hostInputVal || state.host
+    const hostAllowedSchemes = getAllowedSchemesForHost(host, allowedSchemes)
+
+    view = (
+      <ConnectForm
+        onConnectClick={connect}
+        onHostChange={onHostChange}
+        onUsernameChange={onUsernameChange}
+        onPasswordChange={onPasswordChange}
+        onDatabaseChange={onDatabaseChange}
+        onAuthenticationMethodChange={onAuthenticationMethodChange}
+        connecting={state.connecting}
+        setIsConnecting={setConnecting}
+        host={host}
+        username={state.username}
+        password={state.password}
+        database={state.requestedUseDb}
+        supportsMultiDb={state.supportsMultiDb || false}
+        used={state.used}
+        allowedSchemes={hostAllowedSchemes}
+        allowedAuthMethods={getAllowedAuthMethodsForHost(
+          state.hostInputVal || state.host
+        )}
+        authenticationMethod={state.authenticationMethod}
+        onProfileSave={onProfileSave}
+        onProfileSelect={onProfileSelect}
+        profiles={state.profiles}
+      />
     )
   }
 
-  saveAndStart(): void {
-    this.setState({ forcePasswordChange: false, used: true })
-    this.state.successCallback()
-    this.props.bus && this.props.bus.send(FOCUS)
-    this.saveCredentials()
-    this.props.setActiveConnection(CONNECTION_ID)
-
-    if (this.props.playImplicitInitCommands) {
-      this.props.executeInitCmd()
-    }
-    //We don't know if credentials should be stored yet
-    // so we remove them from the form
-    this.setState({ username: '', password: '' })
-  }
-
-  saveCredentials(): void {
-    this.props.updateConnection({
-      id: CONNECTION_ID,
-      host: this.state.host,
-      username: this.state.username,
-      password: this.state.password,
-      authenticationMethod: this.state.authenticationMethod
-    })
-  }
-
-  render() {
-    let view
-    if (
-      this.state.forcePasswordChange ||
-      (!this.props.isConnected && this.state.passwordChangeNeeded)
-    ) {
-      view = (
-        <ChangePasswordForm
-          showExistingPasswordInput={this.props.showExistingPasswordInput}
-          onChangePasswordClick={this.onChangePassword.bind(this)}
-          onChange={this.onChangePasswordChange.bind(this)}
-          tryConnect={(password: any, doneFn: any) => {
-            this.setState({ isLoading: true }, () =>
-              this.tryConnect(password, doneFn)
-            )
-          }}
-          isLoading={this.state.isLoading}
-        >
-          {this.props.children}
-        </ChangePasswordForm>
-      )
-    } else if (
-      this.props.isConnected &&
-      this.props.activeConnectionData &&
-      this.props.activeConnectionData.authEnabled !== false // falsy value indicates (except false) we don't know yet, so see that as enabled.
-    ) {
-      view = (
-        <ConnectedView
-          host={this.state.host}
-          username={this.props.activeConnectionData.username}
-          storeCredentials={this.props.storeCredentials}
-          hideStoreCredentials={this.state.authenticationMethod === NO_AUTH}
-        />
-      )
-    } else if (
-      this.props.isConnected &&
-      this.props.activeConnectionData &&
-      this.props.activeConnectionData.authEnabled === false // explicit false = auth disabled for sure
-    ) {
-      view = (
-        <StyledConnectionBody>
-          You have a working connection and server auth is disabled.
-        </StyledConnectionBody>
-      )
-    } else if (!this.props.isConnected && !this.state.passwordChangeNeeded) {
-      const host = this.state.hostInputVal || this.state.host
-      const allowedSchemes = getAllowedSchemesForHost(
-        host,
-        this.props.allowedSchemes
-      )
-      view = (
-        <ConnectForm
-          onConnectClick={this.connect.bind(this)}
-          onHostChange={this.onHostChange.bind(this)}
-          onUsernameChange={this.onUsernameChange}
-          onPasswordChange={this.onPasswordChange}
-          onDatabaseChange={this.onDatebaseChange}
-          onAuthenticationMethodChange={this.onAuthenticationMethodChange.bind(
-            this
-          )}
-          connecting={this.state.connecting}
-          setIsConnecting={(connecting: boolean) =>
-            this.setState({ connecting })
-          }
-          host={host}
-          username={this.state.username}
-          password={this.state.password}
-          database={this.state.requestedUseDb}
-          supportsMultiDb={this.state.supportsMultiDb}
-          used={this.state.used}
-          allowedSchemes={allowedSchemes}
-          allowedAuthMethods={getAllowedAuthMethodsForHost(
-            this.state.hostInputVal || this.state.host
-          )}
-          authenticationMethod={this.state.authenticationMethod}
-          onProfileSave={this.onProfileSave}
-          onProfileSelect={this.onProfileSelect}
-          profiles={this.state.profiles}
-        />
-      )
-    }
-    return view
-  }
+  return <>{view}</>
 }
 
-const mapStateToProps = (state: GlobalState) => {
-  return {
-    discoveredData: getConnectionData(state, CONNECTION_ID),
-    initCmd: getInitCmd(state),
-    activeConnection: getActiveConnection(state),
-    activeConnectionData: getActiveConnectionData(state),
-    playImplicitInitCommands: getPlayImplicitInitCommands(state),
-    storeCredentials: shouldRetainConnectionCredentials(state),
-    isConnected: isConnected(state),
-    allowedSchemes: getAllowedBoltSchemes(state)
-  }
-}
-
-const mapDispatchToProps = (dispatch: any) => {
-  return {
-    updateConnection: (connection: any) => {
-      dispatch(updateConnection(connection))
-    },
-    setActiveConnection: (id: string) => dispatch(setActiveConnection(id)),
-    dispatchInitCmd: (initCmd: any) => dispatch(executeSystemCommand(initCmd))
-  }
-}
-
-const mergeProps = (stateProps: any, dispatchProps: any, ownProps: any) => {
-  return {
-    playImplicitInitCommands: stateProps.playImplicitInitCommands,
-    activeConnection: stateProps.activeConnection,
-    activeConnectionData: stateProps.activeConnectionData,
-    storeCredentials: stateProps.storeCredentials,
-    isConnected: stateProps.isConnected,
-    allowedSchemes: stateProps.allowedSchemes,
-    discoveredData: stateProps.discoveredData,
-    ...ownProps,
-    ...dispatchProps,
-    executeInitCmd: () => {
-      dispatchProps.dispatchInitCmd(stateProps.initCmd)
-    }
-  }
-}
-
-export default withBus(
-  connect(
-    mapStateToProps,
-    mapDispatchToProps,
-    mergeProps
-  )(ConnectionFormController)
-)
+export default ConnectionFormController

@@ -17,7 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { CypherEditor } from 'neo4j-arc/cypher-language-support'
+import {
+  CypherEditor,
+  CypherEditorHandle
+} from 'neo4j-arc/cypher-language-support'
 import { QueryResult } from 'neo4j-driver'
 import React, { Dispatch, useEffect, useRef, useState } from 'react'
 import { connect } from 'react-redux'
@@ -116,7 +119,7 @@ export function MainEditor({
   const [currentlyEditing, setCurrentlyEditing] = useState<SavedScript | null>(
     null
   )
-  const editorRef = useRef<CypherEditor>(null)
+  const editorRef = useRef<CypherEditorHandle>(null)
 
   const toggleFullscreen = () => {
     setFullscreen(fs => !fs)

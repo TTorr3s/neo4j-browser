@@ -17,69 +17,85 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { render } from '@testing-library/react'
+import { render, act } from '@testing-library/react'
 import React from 'react'
 import { Provider } from 'react-redux'
 
-import { CypherFrame, CypherFrameProps } from './CypherFrame'
+import CypherFrame, { CypherFrameProps } from './CypherFrame'
 import { Frame } from 'shared/modules/frames/framesDuck'
-import {
-  BrowserRequest,
-  BrowserRequestResult
-} from 'shared/modules/requests/requestsDuck'
+import { BrowserRequestResult } from 'shared/modules/requests/requestsDuck'
 
 import { initialState as initialExperimentalFeatureState } from 'shared/modules/experimentalFeatures/experimentalFeaturesDuck'
 
-const createProps = (
-  status: string,
-  result: BrowserRequestResult
-): CypherFrameProps => ({
-  autoComplete: true,
-  initialNodeDisplay: 10,
-  onRecentViewChanged: () => undefined,
-  maxRows: 10,
-  maxNeighbours: 10,
+const REQUEST_ID = 'test-request-id'
+
+const createProps = (): CypherFrameProps => ({
   activeConnectionData: null,
   isCollapsed: false,
   isFullscreen: false,
   setExportItems: () => undefined,
   stack: [],
-  frame: { cmd: 'return 1' } as Frame & { isPinned: false },
-  request: {
-    status,
-    updated: Math.random(),
-    result
-  } as BrowserRequest
+  frame: { cmd: 'return 1', requestId: REQUEST_ID } as Frame & {
+    isPinned: false
+  }
 })
+
+const createState = (status: string, result: BrowserRequestResult) => ({
+  settings: {
+    maxRows: 1000,
+    maxFieldItems: 1000,
+    initialNodeDisplay: 10,
+    maxNeighbours: 10,
+    autoComplete: true
+  },
+  app: {},
+  connections: {},
+  experimentalFeatures: initialExperimentalFeatureState,
+  frames: {
+    byId: {},
+    allIds: [],
+    recentView: null,
+    nodePropertiesExpandedByDefault: true
+  },
+  requests: {
+    [REQUEST_ID]: {
+      status,
+      updated: Date.now(),
+      result,
+      type: 'cypher'
+    }
+  }
+})
+
+const createStore = (state: ReturnType<typeof createState>) => ({
+  subscribe: () => () => {},
+  dispatch: () => {},
+  getState: () => state
+})
+
 const withProvider = (store: any, children: any) => {
   return <Provider store={store}>{children}</Provider>
 }
 
 describe('CypherFrame', () => {
-  const store = {
-    subscribe: () => {},
-    dispatch: () => {},
-    getState: () => ({
-      settings: {
-        maxRows: 1000,
-        maxFieldItems: 1000
-      },
-      app: {},
-      connections: {},
-      experimentalFeatures: initialExperimentalFeatureState
-    })
-  }
-  test('renders accordingly from pending to success to error to success', () => {
+  test('renders accordingly from pending to success to error to success', async () => {
     // Given
-    const pendingProps = createProps('pending', undefined)
-    const successProps = createProps('success', {
+    const props = createProps()
+
+    // Create cached state objects to prevent infinite loops
+    const pendingState = createState('pending', undefined)
+    const successState = createState('success', {
       records: [{ keys: ['name'], _fields: ['Molly'], get: () => 'Molly' }]
     } as any)
-    const errorProps = createProps('error', { code: 'Test.Error' } as any)
+    const errorState = createState('error', { code: 'Test.Error' } as any)
+
+    const pendingStore = createStore(pendingState)
+    const successStore = createStore(successState)
+    const errorStore = createStore(errorState)
 
     // When
     const { queryByText, getByText, getAllByText, getByTestId, rerender } =
-      render(withProvider(store, <CypherFrame {...pendingProps} />))
+      render(withProvider(pendingStore, <CypherFrame {...props} />))
 
     // Then
     expect(getByTestId('spinner')).not.toBeNull()
@@ -88,7 +104,9 @@ describe('CypherFrame', () => {
     expect(queryByText(/Error/)).toBeNull()
 
     // When successful request
-    rerender(withProvider(store, <CypherFrame {...successProps} />))
+    await act(async () => {
+      rerender(withProvider(successStore, <CypherFrame {...props} />))
+    })
 
     // Then
     expect(getByText(/Molly/i)).not.toBeNull()
@@ -97,7 +115,9 @@ describe('CypherFrame', () => {
     expect(queryByText(/Error/)).toBeNull()
 
     // When error request
-    rerender(withProvider(store, <CypherFrame {...errorProps} />))
+    await act(async () => {
+      rerender(withProvider(errorStore, <CypherFrame {...props} />))
+    })
 
     // Then
     expect(queryByText(/Table/i)).toBeNull()
@@ -106,7 +126,9 @@ describe('CypherFrame', () => {
     expect(getAllByText(/Test.Error/)).not.toBeNull()
 
     // When successful request again
-    rerender(withProvider(store, <CypherFrame {...successProps} />))
+    await act(async () => {
+      rerender(withProvider(successStore, <CypherFrame {...props} />))
+    })
 
     // Then
     expect(getByText(/Molly/i)).not.toBeNull()

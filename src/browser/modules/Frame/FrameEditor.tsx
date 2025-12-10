@@ -62,7 +62,10 @@ import * as sidebar from 'shared/modules/sidebar/sidebarDuck'
 import { base, stopIconColor } from 'browser-styles/themes'
 import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
 import { QueryResult } from 'neo4j-driver'
-import { CypherEditor } from 'neo4j-arc/cypher-language-support'
+import {
+  CypherEditor,
+  CypherEditorHandle
+} from 'neo4j-arc/cypher-language-support'
 import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
 
 type FrameEditorBaseProps = {
@@ -103,7 +106,7 @@ function FrameEditor({
     // makes sure the frame is updated as links in frame is followed
     editorRef.current?.setValue(frame.cmd)
   }, [frame.cmd])
-  const editorRef = useRef<CypherEditor>(null)
+  const editorRef = useRef<CypherEditorHandle>(null)
 
   function run(cmd: string) {
     reRun(frame, cmd)
