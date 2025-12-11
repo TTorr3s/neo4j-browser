@@ -45,11 +45,11 @@ interface ExpandableContentProps {
   summary: string
 }
 
-const ExpandableContent: React.FC<ExpandableContentProps> = ({
+const ExpandableContent = ({
   title,
   content,
   summary
-}) => {
+}: ExpandableContentProps) => {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -85,8 +85,8 @@ interface CodeViewComponentProps {
   maxFieldItems?: number
 }
 
-export const CodeViewComponent: React.FC<CodeViewComponentProps> = memo(
-  ({ request = {}, query, maxFieldItems }) => {
+export const CodeViewComponent = memo(
+  ({ request = {}, query, maxFieldItems }: CodeViewComponentProps) => {
     if (request.status !== 'success') return null
 
     const requestResult = request.result as {
@@ -157,7 +157,7 @@ interface CodeViewProps {
   query?: string
 }
 
-export const CodeView: React.FC<CodeViewProps> = props => {
+export const CodeView = (props: CodeViewProps) => {
   const maxFieldItems = useSelector((state: GlobalState) =>
     getMaxFieldItems(state)
   )

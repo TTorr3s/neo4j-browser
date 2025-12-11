@@ -65,12 +65,12 @@ interface NavigationProps {
   bottomNavItems?: NavItem[]
 }
 
-const Navigation: React.FC<NavigationProps> = ({
+const Navigation = ({
   selectedDrawerName,
   onNavClick,
   topNavItems,
   bottomNavItems = []
-}) => {
+}: NavigationProps) => {
   const [transitionState, setTransitionState] = useState<DrawerTransitionState>(
     selectedDrawerName ? Open : Closed
   )

@@ -8,7 +8,7 @@ const toExport = {
     'babel-plugin-dynamic-import-node'
   ].filter(Boolean),
   presets: [
-    '@babel/preset-react',
+    ['@babel/preset-react', { runtime: 'automatic' }],
     [
       '@babel/preset-env',
       {

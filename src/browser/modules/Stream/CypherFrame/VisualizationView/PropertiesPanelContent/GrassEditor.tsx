@@ -49,10 +49,10 @@ type GrassEditorProps = {
   selectedRelType?: { relType: string; propertyKeys: string[] }
 }
 
-export const GrassEditorComponent: React.FC<GrassEditorProps> = ({
+export const GrassEditorComponent = ({
   selectedLabel,
   selectedRelType
-}) => {
+}: GrassEditorProps) => {
   const dispatch = useDispatch()
   const graphStyleData = useSelector((state: GlobalState) =>
     actions.getGraphStyleData(state)

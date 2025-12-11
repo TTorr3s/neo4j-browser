@@ -76,7 +76,7 @@ type LegacyQueriesFrameState = {
 
 const AUTO_REFRESH_INTERVAL = 20 // seconds
 
-export const LegacyQueriesFrame: React.FC<LegacyQueriesFrameProps> = ({
+export const LegacyQueriesFrame = ({
   frame,
   bus,
   hasListQueriesProcedure,
@@ -85,7 +85,7 @@ export const LegacyQueriesFrame: React.FC<LegacyQueriesFrameProps> = ({
   isFullscreen,
   isCollapsed,
   isOnCluster
-}) => {
+}: LegacyQueriesFrameProps) => {
   const [queries, setQueries] = useState<any[]>([])
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [success, setSuccess] = useState<

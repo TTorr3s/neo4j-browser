@@ -117,9 +117,7 @@ interface ConnectionState {
   supportsMultiDb?: boolean
 }
 
-export const ConnectionFormController: React.FC<
-  ConnectionFormControllerProps
-> = ({
+export const ConnectionFormController = ({
   frame,
   onSuccess,
   showExistingPasswordInput,
@@ -127,7 +125,7 @@ export const ConnectionFormController: React.FC<
   children,
   passwordChangeNeeded: initialPasswordChangeNeeded = false,
   forcePasswordChange: initialForcePasswordChange = false
-}) => {
+}: ConnectionFormControllerProps) => {
   // Redux selectors
   const discoveredData = useSelector((state: GlobalState) =>
     getConnectionData(state, CONNECTION_ID)

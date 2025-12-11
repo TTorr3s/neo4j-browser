@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useEffect, memo } from 'react'
+import { useEffect } from 'react'
 import { connect } from 'react-redux'
 
 import { canUseDOM } from 'services/utils'
@@ -56,7 +56,7 @@ interface SegmentDispatchProps {
 
 type SegmentProps = SegmentOwnProps & SegmentStateProps & SegmentDispatchProps
 
-const SegmentComponent: React.FC<SegmentProps> = ({
+const SegmentComponent = ({
   segmentKey,
   setTrackCallback,
   inDesktop,
@@ -65,7 +65,7 @@ const SegmentComponent: React.FC<SegmentProps> = ({
   desktopTrackingId,
   children: _children, // eslint-disable-line
   ...otherProps
-}) => {
+}: SegmentProps): null => {
   // componentDidMount equivalent
   useEffect(() => {
     if (!segmentKey || !canUseDOM()) {
@@ -173,10 +173,9 @@ const SegmentComponent: React.FC<SegmentProps> = ({
   return null
 }
 
-// React.memo with custom comparison that always returns true
-// replicates shouldComponentUpdate always returning false
-// (never re-render due to prop changes)
-export const Segment = memo(SegmentComponent, () => true)
+// Component returns null and only runs initialization effect once on mount.
+// No memoization needed since there's nothing to render.
+export const Segment = SegmentComponent
 
 const mapStateToProps = (state: any): SegmentStateProps => ({
   inDesktop: inDesktop(state),

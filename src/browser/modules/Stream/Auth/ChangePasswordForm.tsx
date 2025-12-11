@@ -55,13 +55,13 @@ interface FormState {
   revealNewPassword: boolean
 }
 
-const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
+const ChangePasswordForm = ({
   showExistingPasswordInput,
   isLoading,
   onChange,
   onChangePasswordClick,
   tryConnect
-}) => {
+}: ChangePasswordFormProps) => {
   const [formState, setFormState] = useState<FormState>({
     password: '',
     newPassword: '',

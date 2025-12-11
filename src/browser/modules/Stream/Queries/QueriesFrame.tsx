@@ -94,13 +94,13 @@ function prettyPrintDuration(duration: Duration) {
   return resultsString
 }
 
-export const QueriesFrame: React.FC<QueriesFrameProps> = ({
+export const QueriesFrame = ({
   frame,
   bus,
   connectionState,
   isFullscreen,
   isCollapsed
-}) => {
+}: QueriesFrameProps) => {
   const [queries, setQueries] = useState<any[]>([])
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)

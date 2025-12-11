@@ -79,7 +79,7 @@ const tableHeaderValues: Record<string, string> = {
   delete: 'Delete'
 }
 
-export const UserList: React.FC<UserListProps> = props => {
+export const UserList = (props: UserListProps) => {
   const {
     users: initialUsers,
     roles: initialRoles,

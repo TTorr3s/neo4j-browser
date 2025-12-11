@@ -71,7 +71,7 @@ interface UserAddProps {
   bus: Bus
 }
 
-export const UserAdd: React.FC<UserAddProps> = props => {
+export const UserAdd = (props: UserAddProps) => {
   const {
     availableRoles: propAvailableRoles,
     roles: propRoles,

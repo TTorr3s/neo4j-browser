@@ -57,7 +57,7 @@ interface UserInformationProps {
   bus: Bus
 }
 
-export const UserInformation: React.FC<UserInformationProps> = props => {
+export const UserInformation = (props: UserInformationProps) => {
   const {
     user,
     availableRoles: propAvailableRoles,
