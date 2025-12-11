@@ -15,8 +15,8 @@
  *
  */
 import React from 'react'
-import { Form } from 'semantic-ui-react'
 
+import { FormField } from '../styled'
 import { IFilterFieldProps } from './index'
 
 export default function Filter({ column, onChange }: IFilterFieldProps) {
@@ -25,8 +25,8 @@ export default function Filter({ column, onChange }: IFilterFieldProps) {
   const { Filter: ColumnFilter } = column
 
   return (
-    <Form.Field>
+    <FormField>
       <ColumnFilter column={column} onChange={onChange} />
-    </Form.Field>
+    </FormField>
   )
 }

@@ -15,28 +15,37 @@
  *
  */
 import { every } from 'lodash-es'
-import React from 'react'
-import { Checkbox, Icon } from 'semantic-ui-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import React, { ChangeEvent } from 'react'
+
+import { StyledCheckbox } from '../styled'
 
 export default function RowActions({
   rows,
   onExpandClick,
   onSelectClick
 }: any) {
+  const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onSelectClick(event.target.checked)
+  }
+
   return (
     <span className="relatable__table-row-actions">
       {onExpandClick && (
         <span className="relatable__row-expander" onClick={onExpandClick}>
-          <Icon
-            name={every(rows, 'isExpanded') ? 'caret down' : 'caret right'}
-          />
+          {every(rows, 'isExpanded') ? (
+            <ChevronDown size={16} />
+          ) : (
+            <ChevronRight size={16} />
+          )}
         </span>
       )}
       {onSelectClick && (
-        <Checkbox
+        <StyledCheckbox
+          type="checkbox"
           className="relatable__row-selector"
           checked={every(rows, 'isSelected')}
-          onChange={(_, { checked }) => onSelectClick(checked)}
+          onChange={handleCheckboxChange}
         />
       )}
     </span>

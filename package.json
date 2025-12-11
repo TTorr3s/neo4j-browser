@@ -185,6 +185,7 @@
     "jsonic": "2.18.0",
     "jszip": "3.10.1",
     "lodash-es": "^4.17.21",
+    "lucide-react": "^0.559.0",
     "memoize-one": "^6.0.0",
     "monaco-editor": "^0.55.0",
     "neo4j-driver": "6.0.1",

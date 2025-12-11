@@ -15,17 +15,8 @@
  *
  */
 import { filter, find, get, head, map } from 'lodash-es'
-import React, { useCallback, useState } from 'react'
-import {
-  Button,
-  Divider,
-  Form,
-  Icon,
-  Label,
-  List,
-  Menu
-} from 'semantic-ui-react'
-import { FormSelect } from 'semantic-ui-react'
+import { Check, X } from 'lucide-react'
+import React, { FormEvent, useCallback, useState } from 'react'
 
 import { IWithSortingInstance, withSorting } from '../../add-ons'
 import { RELATABLE_ICONS, SORT_ACTIONS } from '../../relatable.types'
@@ -37,7 +28,17 @@ import arrayHasItems from '../../utils/array-has-items'
 import { columnHasAction } from '../../utils/column-actions'
 import { getRelatableAction } from '../../utils/relatable-actions'
 import { getToolbarStateClass } from '../../utils/relatable-state-classes'
+import FormSelect from '../FormSelect'
 import RelatableIcon from '../relatable-icon'
+import {
+  Divider,
+  Form,
+  FormField,
+  FormGroup,
+  Label,
+  MenuItem,
+  ToolbarButton
+} from '../styled'
 import { ToolbarPopup } from './toolbar-popup'
 
 export default function SortableToolbar() {
@@ -65,7 +66,7 @@ export default function SortableToolbar() {
       selectedToolbarAction={selectedToolbarAction}
       onClose={clearToolbar}
     >
-      <Menu.Item name="sort" onClick={() => setToolbar(withSorting.name)}>
+      <MenuItem onClick={() => setToolbar(withSorting.name)}>
         <RelatableIcon name={RELATABLE_ICONS.SORT} />
         Sorting
         {isSorted && (
@@ -73,7 +74,7 @@ export default function SortableToolbar() {
             {sortBy.length}
           </Label>
         )}
-      </Menu.Item>
+      </MenuItem>
     </ToolbarPopup>
   )
 }
@@ -89,15 +90,16 @@ function SortingPopup({
     <div className="relatable__toolbar-popup relatable__toolbar-sorting-popup">
       {arrayHasItems(sortBy) && (
         <>
-          <List>
+          <div>
             {map(sortBy, ({ id, desc }) => {
               const column = find(columns, column => column.id === id)
 
               return (
                 <Label key={id} className="relatable__toolbar-value">
                   {column.render('Header')}: {desc ? 'DESC' : 'ASC'}
-                  <Icon
-                    name="close"
+                  <X
+                    size={14}
+                    style={{ cursor: 'pointer', marginLeft: '4px' }}
                     onClick={() =>
                       onCustomSortChange(column, SORT_ACTIONS.SORT_CLEAR)
                     }
@@ -105,7 +107,7 @@ function SortingPopup({
                 </Label>
               )
             })}
-          </List>
+          </div>
           <Divider />
         </>
       )}
@@ -157,41 +159,43 @@ function SortingForm({
       text: 'Ascending'
     }
   ]
-  const onSubmit = useCallback(() => {
-    onClose()
-    onCustomSortChange(selectedColumn, selectedSort)
-  }, [onCustomSortChange, selectedColumn, selectedSort])
+  const onSubmit = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault()
+      onClose()
+      onCustomSortChange(selectedColumn, selectedSort)
+    },
+    [onCustomSortChange, selectedColumn, selectedSort]
+  )
 
   return (
     <Form onSubmit={onSubmit} className="relatable__toolbar-sorting-form">
-      <Form.Group>
-        <Form.Field>
+      <FormGroup>
+        <FormField>
           <FormSelect
             options={columnOptions}
             value={selectedColumnId}
-            search
             onChange={(_, { value }) => setSelectedColumnId(value)}
           />
-        </Form.Field>
-        <Form.Field>
+        </FormField>
+        <FormField>
           <FormSelect
             options={sortOptions}
             value={selectedSort}
-            search
             searchInput={{ autoFocus: true }}
-            onChange={(_, { value }: any) => setSelectedSort(value)}
+            onChange={(_, { value }) => setSelectedSort(value as string)}
           />
-        </Form.Field>
-        <Button
-          basic
-          icon
-          color="black"
+        </FormField>
+        <ToolbarButton
+          $basic
+          $icon
+          $color="black"
           className="relatable__toolbar-popup-button"
           title="Add"
         >
-          <Icon name="check" />
-        </Button>
-      </Form.Group>
+          <Check size={16} />
+        </ToolbarButton>
+      </FormGroup>
     </Form>
   )
 }

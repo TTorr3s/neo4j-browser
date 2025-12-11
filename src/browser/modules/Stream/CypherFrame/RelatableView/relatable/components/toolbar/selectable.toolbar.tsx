@@ -15,8 +15,8 @@
  *
  */
 import { entries, filter, head, map } from 'lodash-es'
+import { List, X } from 'lucide-react'
 import React, { useCallback } from 'react'
-import { Button, Form, Icon, Label, Menu } from 'semantic-ui-react'
 
 import {
   IWithFiltersInstance,
@@ -29,6 +29,7 @@ import {
 } from '../../states'
 import arrayHasItems from '../../utils/array-has-items'
 import { getToolbarStateClass } from '../../utils/relatable-state-classes'
+import { Form, FormGroup, Label, MenuItem, ToolbarButton } from '../styled'
 import { ToolbarPopup } from './toolbar-popup'
 
 export default function SelectableToolbar() {
@@ -57,12 +58,11 @@ export default function SelectableToolbar() {
       selectedToolbarAction={selectedToolbarAction}
       onClose={clearToolbar}
     >
-      <Menu.Item
-        name="selection"
-        disabled={!isSelected}
-        onClick={() => setToolbar(withSelection.name)}
+      <MenuItem
+        $disabled={!isSelected}
+        onClick={() => isSelected && setToolbar(withSelection.name)}
       >
-        <Icon name="list ul" className="relatable__toolbar-icon" />
+        <List size={16} className="relatable__toolbar-icon" />
         Selected
         {isSelected && (
           <Label
@@ -71,7 +71,7 @@ export default function SelectableToolbar() {
             {selectedRows.length}
           </Label>
         )}
-      </Menu.Item>
+      </MenuItem>
     </ToolbarPopup>
   )
 }
@@ -91,20 +91,20 @@ function SelectionPopup({ rows, selectedRowIds }: any) {
 
   return (
     <div className="relatable__toolbar-popup relatable__toolbar-selection-popup">
-      <Form className="relatable__toolbar-selection-form">
+      <Form as="div" className="relatable__toolbar-selection-form">
         <h4>You have selected {selectedRowIds.length} rows</h4>
-        <Form.Group>
-          <Button
-            basic
-            icon
-            color="black"
+        <FormGroup>
+          <ToolbarButton
+            $basic
+            $icon
+            $color="black"
             title="Clear selection"
             type="button"
             onClick={onSelectionClear}
           >
-            <Icon name="remove" /> Clear
-          </Button>
-        </Form.Group>
+            <X size={16} /> <span>Clear</span>
+          </ToolbarButton>
+        </FormGroup>
       </Form>
     </div>
   )

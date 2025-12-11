@@ -14,9 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import React from 'react'
-import { FormInput } from 'semantic-ui-react'
+import React, { ChangeEvent } from 'react'
 
+import { FilterInput } from '../../styled'
 import { IFilterFieldProps } from '../index'
 
 export default function TextFilter({
@@ -24,9 +24,12 @@ export default function TextFilter({
   onChange
 }: IFilterFieldProps) {
   return (
-    <FormInput
-      input={{ autoFocus: true }}
-      onChange={({ target }) => onChange(target.value || undefined)}
+    <FilterInput
+      type="text"
+      autoFocus
+      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+        onChange(e.target.value || undefined)
+      }
       placeholder={`Filter ${Header}...`}
     />
   )

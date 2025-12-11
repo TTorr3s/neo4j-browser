@@ -15,7 +15,6 @@
  *
  */
 import React from 'react'
-import { Menu, MenuProps } from 'semantic-ui-react'
 
 import {
   withFilters,
@@ -25,37 +24,27 @@ import {
 } from '../../add-ons'
 import { useRelatableStateContext } from '../../states'
 import { isActionAvailable } from '../../utils/relatable-actions'
+import { Menu } from '../styled'
 import FilterableToolbar from './filterable.toolbar'
 import GroupableToolbar from './groupable.toolbar'
 import SelectableToolbar from './selectable.toolbar'
 import SortableToolbar from './sortable.toolbar'
 
-export default function Toolbar(
-  props: React.PropsWithChildren<MenuProps> = {}
-): JSX.Element {
-  const { className = '', children, ...rest } = props
+export interface ToolbarProps {
+  className?: string
+  children?: React.ReactNode
+}
+
+export default function Toolbar(props: ToolbarProps = {}): JSX.Element {
+  const { className = '', children } = props
   const { availableGlobalActions } = useRelatableStateContext()
 
   if (children) {
-    return (
-      <Menu
-        icon
-        secondary
-        {...rest}
-        className={`relatable__toolbar ${className}`}
-      >
-        {children}
-      </Menu>
-    )
+    return <Menu className={`relatable__toolbar ${className}`}>{children}</Menu>
   }
 
   return (
-    <Menu
-      icon
-      secondary
-      {...rest}
-      className={`relatable__toolbar ${className}`}
-    >
+    <Menu className={`relatable__toolbar ${className}`}>
       {isActionAvailable(availableGlobalActions, withGrouping.name) && (
         <GroupableToolbar />
       )}

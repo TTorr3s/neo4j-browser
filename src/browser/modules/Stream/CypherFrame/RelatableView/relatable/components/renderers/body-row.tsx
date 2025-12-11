@@ -16,13 +16,14 @@
  */
 import { map } from 'lodash-es'
 import React, { useCallback } from 'react'
-import { Label, Table as SemanticTable } from 'semantic-ui-react'
+import { Table as SemanticTable } from 'semantic-ui-react'
 
 import { IWithExpandedInstance } from '../../add-ons'
 import { IRelatableStateInstance } from '../../relatable.types'
 import { useRelatableStateContext } from '../../states'
 import arrayHasItems from '../../utils/array-has-items'
 import { getRowClasses } from '../../utils/relatable-state-classes'
+import { Label } from '../styled'
 import { BodyCell, IRowProps } from './index'
 import RowActions from './row-actions'
 

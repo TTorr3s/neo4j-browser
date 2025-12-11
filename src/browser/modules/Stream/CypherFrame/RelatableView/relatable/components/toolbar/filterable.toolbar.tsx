@@ -24,9 +24,8 @@ import {
   head,
   map
 } from 'lodash-es'
-import React, { useCallback, useState } from 'react'
-import { Button, Divider, Form, Icon, Label, Menu } from 'semantic-ui-react'
-import { FormSelect } from 'semantic-ui-react'
+import { Check, X } from 'lucide-react'
+import React, { FormEvent, useCallback, useState } from 'react'
 
 import { IWithFiltersInstance, withFilters } from '../../add-ons'
 import { FILTER_ACTIONS, RELATABLE_ICONS } from '../../relatable.types'
@@ -38,8 +37,18 @@ import arrayHasItems from '../../utils/array-has-items'
 import { columnHasAction } from '../../utils/column-actions'
 import { getRelatableAction } from '../../utils/relatable-actions'
 import { getToolbarStateClass } from '../../utils/relatable-state-classes'
+import FormSelect from '../FormSelect'
 import RelatableIcon from '../relatable-icon'
 import { Filter } from '../renderers'
+import {
+  Divider,
+  Form,
+  FormField,
+  FormGroup,
+  Label,
+  MenuItem,
+  ToolbarButton
+} from '../styled'
 import { ToolbarPopup } from './toolbar-popup'
 
 export default function FilterableToolbar() {
@@ -69,7 +78,7 @@ export default function FilterableToolbar() {
       selectedToolbarAction={selectedToolbarAction}
       onClose={clearToolbar}
     >
-      <Menu.Item name="filter" onClick={() => setToolbar(withFilters.name)}>
+      <MenuItem onClick={() => setToolbar(withFilters.name)}>
         <RelatableIcon name={RELATABLE_ICONS.FILTER} />
         Filters
         {isFiltered && (
@@ -79,7 +88,7 @@ export default function FilterableToolbar() {
             {appliedFilterValues.length}
           </Label>
         )}
-      </Menu.Item>
+      </MenuItem>
     </ToolbarPopup>
   )
 }
@@ -107,8 +116,9 @@ function FiltersPopup({
                   className="relatable__toolbar-value"
                 >
                   <FilterItem column={column} value={value} />
-                  <Icon
-                    name="close"
+                  <X
+                    size={14}
+                    style={{ cursor: 'pointer', marginLeft: '4px' }}
                     onClick={() =>
                       onCustomFilterChange(
                         column,
@@ -160,37 +170,40 @@ function FiltersForm({
     value: column.id,
     text: column.Header
   }))
-  const onSubmit = useCallback(() => {
-    onClose()
-    onCustomFilterChange(selectedColumn, FILTER_ACTIONS.FILTER_ADD, [
-      filterValue
-    ])
-  }, [onCustomFilterChange, selectedColumn, filterValue])
+  const onSubmit = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault()
+      onClose()
+      onCustomFilterChange(selectedColumn, FILTER_ACTIONS.FILTER_ADD, [
+        filterValue
+      ])
+    },
+    [onCustomFilterChange, selectedColumn, filterValue]
+  )
 
   return (
     <Form onSubmit={onSubmit} className="relatable__toolbar-filters-form">
       <h3>Add filter</h3>
-      <Form.Group>
-        <Form.Field>
+      <FormGroup>
+        <FormField>
           <FormSelect
             options={columnOptions}
             value={selectedColumnId}
-            search
             onChange={(_, { value }) => setSelectedColumnId(value)}
           />
-        </Form.Field>
+        </FormField>
         <Filter column={selectedColumn} onChange={onFilterValueChange} />
-        <Button
-          basic
-          icon
-          color="black"
+        <ToolbarButton
+          $basic
+          $icon
+          $color="black"
           className="relatable__toolbar-popup-button"
           title="Add"
           disabled={!filterValue}
         >
-          <Icon name="check" />
-        </Button>
-      </Form.Group>
+          <Check size={16} />
+        </ToolbarButton>
+      </FormGroup>
     </Form>
   )
 }

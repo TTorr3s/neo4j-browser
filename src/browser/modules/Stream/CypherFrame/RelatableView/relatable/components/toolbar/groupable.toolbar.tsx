@@ -15,9 +15,8 @@
  *
  */
 import { filter, find, get, head, map } from 'lodash-es'
-import React, { useCallback, useState } from 'react'
-import { Button, Divider, Form, Icon, Label, Menu } from 'semantic-ui-react'
-import { FormSelect } from 'semantic-ui-react'
+import { Check, X } from 'lucide-react'
+import React, { FormEvent, useCallback, useState } from 'react'
 
 import { IWithGroupingInstance, withGrouping } from '../../add-ons'
 import { RELATABLE_ICONS } from '../../relatable.types'
@@ -29,7 +28,17 @@ import arrayHasItems from '../../utils/array-has-items'
 import { columnHasAction } from '../../utils/column-actions'
 import { getRelatableAction } from '../../utils/relatable-actions'
 import { getToolbarStateClass } from '../../utils/relatable-state-classes'
+import FormSelect from '../FormSelect'
 import RelatableIcon from '../relatable-icon'
+import {
+  Divider,
+  Form,
+  FormField,
+  FormGroup,
+  Label,
+  MenuItem,
+  ToolbarButton
+} from '../styled'
 import { ToolbarPopup } from './toolbar-popup'
 
 export default function GroupableToolbar() {
@@ -57,7 +66,7 @@ export default function GroupableToolbar() {
       selectedToolbarAction={selectedToolbarAction}
       onClose={clearToolbar}
     >
-      <Menu.Item name="group" onClick={() => setToolbar(withGrouping.name)}>
+      <MenuItem onClick={() => setToolbar(withGrouping.name)}>
         <RelatableIcon name={RELATABLE_ICONS.GROUP_BY} />
         Groups
         {isGrouped && (
@@ -65,7 +74,7 @@ export default function GroupableToolbar() {
             {groupBy.length}
           </Label>
         )}
-      </Menu.Item>
+      </MenuItem>
     </ToolbarPopup>
   )
 }
@@ -87,8 +96,9 @@ function GroupingPopup({
             return (
               <Label key={id} className="relatable__toolbar-value">
                 {column.render('Header')}
-                <Icon
-                  name="close"
+                <X
+                  size={14}
+                  style={{ cursor: 'pointer', marginLeft: '4px' }}
                   onClick={() => onCustomGroupingChange(column, false)}
                 />
               </Label>
@@ -130,33 +140,36 @@ function GroupingForm({
     value: column.id,
     text: column.Header
   }))
-  const onSubmit = useCallback(() => {
-    onClose()
-    onCustomGroupingChange(selectedColumn, true)
-  }, [onCustomGroupingChange, selectedColumn])
+  const onSubmit = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault()
+      onClose()
+      onCustomGroupingChange(selectedColumn, true)
+    },
+    [onCustomGroupingChange, selectedColumn]
+  )
 
   return (
     <Form onSubmit={onSubmit} className="relatable__toolbar-grouping-form">
-      <Form.Group>
-        <Form.Field>
+      <FormGroup>
+        <FormField>
           <FormSelect
             options={columnOptions}
             value={selectedColumnId}
-            search
             searchInput={{ autoFocus: true }}
             onChange={(_, { value }) => setSelectedColumnId(value)}
           />
-        </Form.Field>
-        <Button
-          basic
-          icon
-          color="black"
+        </FormField>
+        <ToolbarButton
+          $basic
+          $icon
+          $color="black"
           className="relatable__toolbar-popup-button"
           title="Add"
         >
-          <Icon name="check" />
-        </Button>
-      </Form.Group>
+          <Check size={16} />
+        </ToolbarButton>
+      </FormGroup>
     </Form>
   )
 }
