@@ -15,8 +15,9 @@
  *
  */
 import React, { PropsWithChildren } from 'react'
-import { Popup } from 'semantic-ui-react'
 import styled from 'styled-components'
+
+import { Popup } from 'browser-components/Popup'
 
 const StyleWrapper = styled.div`
   .relatable__toolbar-popup {
@@ -32,23 +33,32 @@ const StyleWrapper = styled.div`
   }
 `
 
+export interface ToolbarPopupProps {
+  content?: React.ReactNode
+  name?: string
+  selectedToolbarAction?: { name: string } | null
+  onClose?: () => void
+}
+
 export function ToolbarPopup({
   children = null,
   content,
   name,
   selectedToolbarAction,
-  ...rest
-}: PropsWithChildren<any>) {
-  const isOpen = selectedToolbarAction && selectedToolbarAction.name === name
+  onClose
+}: PropsWithChildren<ToolbarPopupProps>) {
+  const isOpen = Boolean(
+    selectedToolbarAction && selectedToolbarAction.name === name
+  )
 
   return (
     <Popup
-      {...rest}
       on="click"
       open={isOpen}
+      onClose={onClose}
       style={{ maxWidth: 'none' }}
       position="bottom left"
-      trigger={children}
+      trigger={<>{children}</>}
     >
       <StyleWrapper>{content}</StyleWrapper>
     </Popup>

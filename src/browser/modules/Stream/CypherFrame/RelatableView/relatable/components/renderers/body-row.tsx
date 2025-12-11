@@ -16,14 +16,13 @@
  */
 import { map } from 'lodash-es'
 import React, { useCallback } from 'react'
-import { Table as SemanticTable } from 'semantic-ui-react'
 
 import { IWithExpandedInstance } from '../../add-ons'
 import { IRelatableStateInstance } from '../../relatable.types'
 import { useRelatableStateContext } from '../../states'
 import arrayHasItems from '../../utils/array-has-items'
 import { getRowClasses } from '../../utils/relatable-state-classes'
-import { Label } from '../styled'
+import { Label, StyledTableRow, StyledTableCell } from '../styled'
 import { BodyCell, IRowProps } from './index'
 import RowActions from './row-actions'
 
@@ -46,8 +45,8 @@ export default function BodyRow(props: IRowProps) {
 
   return (
     <>
-      <SemanticTable.Row {...rowProps} className={getRowClasses(row)}>
-        <SemanticTable.Cell className="relatable__table-cell relatable__table-body-cell relatable__table-row-actions-cell">
+      <StyledTableRow {...rowProps} className={getRowClasses(row)}>
+        <StyledTableCell className="relatable__table-cell relatable__table-body-cell relatable__table-row-actions-cell">
           <Label className="relatable__table-row-number">
             {rowNumber.toLocaleString()}
           </Label>
@@ -60,7 +59,7 @@ export default function BodyRow(props: IRowProps) {
             }
             onSelectClick={onCustomSelectionChange && onSelectClick}
           />
-        </SemanticTable.Cell>
+        </StyledTableCell>
         {!loading &&
           map(row.cells, cell => (
             <BodyCell
@@ -70,14 +69,14 @@ export default function BodyRow(props: IRowProps) {
             />
           ))}
         {loading && (
-          <SemanticTable.Cell
+          <StyledTableCell
             className="relatable__table-cell relatable__table-body-cell"
-            colSpan="100%"
+            colSpan={100}
           >
             <div className="relatable__table-body-cell-loader" />
-          </SemanticTable.Cell>
+          </StyledTableCell>
         )}
-      </SemanticTable.Row>
+      </StyledTableRow>
       {!loading && isExpanded && <ExpandedRow {...props} />}
     </>
   )
@@ -94,14 +93,14 @@ function ExpandedRow(props: IRowProps) {
   const rowProps = row.getRowProps()
 
   return (
-    <SemanticTable.Row
+    <StyledTableRow
       {...rowProps}
       key={`${rowProps.key}-expanded`}
       className="relatable__table-body-row relatable__table-body-expanded-row"
     >
-      <SemanticTable.Cell className="relatable__table-body-cell" colSpan="100%">
+      <StyledTableCell className="relatable__table-body-cell" colSpan={100}>
         <CustomExpandedRowComponent {...props} />
-      </SemanticTable.Cell>
-    </SemanticTable.Row>
+      </StyledTableCell>
+    </StyledTableRow>
   )
 }

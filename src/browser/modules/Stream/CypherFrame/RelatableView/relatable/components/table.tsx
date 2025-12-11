@@ -16,7 +16,6 @@
  */
 import { map } from 'lodash-es'
 import React, { useCallback } from 'react'
-import { Table as SemanticTable } from 'semantic-ui-react'
 
 import { useRelatableStateContext } from '../states'
 import arrayHasItems from '../utils/array-has-items'
@@ -27,6 +26,14 @@ import isLastIndex from '../utils/is-last-index'
 import ColumnActions from './column-actions'
 import { BodyRow } from './renderers'
 import RowActions from './renderers/row-actions'
+import {
+  StyledTable,
+  StyledTableHeader,
+  StyledTableBody,
+  StyledTableRow,
+  StyledTableHeaderCell,
+  StyledTableCell
+} from './styled'
 
 export interface ITableProps {
   // used for rendering loading animation and empty rows
@@ -77,21 +84,31 @@ export default function Table({
   )
 
   return (
-    <SemanticTable
+    <StyledTable
       {...getTableProps()}
-      {...semanticTableProps}
+      $celled={semanticTableProps.celled}
+      $compact={semanticTableProps.compact}
+      $striped={semanticTableProps.striped}
+      $basic={semanticTableProps.basic}
+      $fixed={semanticTableProps.fixed}
+      $singleLine={semanticTableProps.singleLine}
+      $inverted={semanticTableProps.inverted}
+      $collapsing={semanticTableProps.collapsing}
+      $padded={semanticTableProps.padded}
+      $structured={semanticTableProps.structured}
+      $definition={semanticTableProps.definition}
       className={`relatable__table ${className}`}
     >
       {!headless && (
-        <SemanticTable.Header>
+        <StyledTableHeader>
           {map(headerGroups, (headerGroup, index: number) => (
-            <SemanticTable.Row
+            <StyledTableRow
               {...headerGroup.getHeaderGroupProps()}
               className="relatable__table-row relatable__table-header-row"
             >
-              <SemanticTable.HeaderCell
+              <StyledTableHeaderCell
                 className="relatable__table-cell relatable__table-header-cell relatable__table-header-actions-cell"
-                collapsing
+                $collapsing
               >
                 {isLastIndex(headerGroups, index) && (
                   <RowActions
@@ -99,7 +116,7 @@ export default function Table({
                     onSelectClick={onCustomSelectionChange && onSelectAllClick}
                   />
                 )}
-              </SemanticTable.HeaderCell>
+              </StyledTableHeaderCell>
               {map(headerGroup.headers, (column: any) => {
                 const headerProps = column.getHeaderProps()
                 const hasActions =
@@ -111,7 +128,7 @@ export default function Table({
                 return hasActions ? (
                   <ColumnActions column={column} {...headerProps} />
                 ) : (
-                  <SemanticTable.HeaderCell
+                  <StyledTableHeaderCell
                     {...headerProps}
                     colSpan={
                       column.colSpan !== undefined
@@ -121,14 +138,14 @@ export default function Table({
                     className="relatable__table-cell relatable__table-header-cell"
                   >
                     {column.render('Header')}
-                  </SemanticTable.HeaderCell>
+                  </StyledTableHeaderCell>
                 )
               })}
-            </SemanticTable.Row>
+            </StyledTableRow>
           ))}
-        </SemanticTable.Header>
+        </StyledTableHeader>
       )}
-      <SemanticTable.Body>
+      <StyledTableBody>
         {map(rows, (row, index: number) => {
           prepareRow(row)
 
@@ -144,20 +161,20 @@ export default function Table({
         {/* render empty rows when passed expectedRowCount and no data */}
         {!arrayHasItems(rows) && loading && expectedRowCount
           ? map(Array(expectedRowCount), (_, index) => (
-              <SemanticTable.Row
+              <StyledTableRow
                 key={`empty-row-${index}`}
                 className="relatable__table-row relatable__table-body-row"
               >
-                <SemanticTable.Cell
+                <StyledTableCell
                   className="relatable__table-cell relatable__table-body-cell"
-                  colSpan="100%"
+                  colSpan={100}
                 >
                   <div className="relatable__table-body-cell-loader" />
-                </SemanticTable.Cell>
-              </SemanticTable.Row>
+                </StyledTableCell>
+              </StyledTableRow>
             ))
           : null}
-      </SemanticTable.Body>
-    </SemanticTable>
+      </StyledTableBody>
+    </StyledTable>
   )
 }

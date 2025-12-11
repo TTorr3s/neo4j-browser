@@ -92,7 +92,7 @@ module.exports = {
               enforce: true
             },
             'neo4j-ndl': {
-              test: /[\\/]node_modules[\\/](semantic-ui-react|@neo4j-ndl|refractor|@heroicons)[\\/]/,
+              test: /[\\/]node_modules[\\/](@neo4j-ndl|refractor|@heroicons)[\\/]/,
               name: 'ui-libs',
               chunks: 'all',
               enforce: true

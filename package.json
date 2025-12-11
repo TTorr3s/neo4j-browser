@@ -203,7 +203,6 @@
     "redux-observable": "^2.0.0",
     "regenerator-runtime": "^0.14.1",
     "rxjs": "^7.8.1",
-    "semantic-ui-react": "^2.1.4",
     "semver": "7.7.3",
     "styled-components": "^5.3.3",
     "suber": "^5.0.1",

@@ -390,3 +390,217 @@ export const MenuItem = styled.a<MenuItemProps>`
     opacity: 0.9;
   }
 `
+
+// =============================================================================
+// Table Components - Replace semantic-ui-react Table
+// =============================================================================
+
+export interface StyledTableProps {
+  $celled?: boolean
+  $compact?: boolean | 'very'
+  $striped?: boolean
+  $basic?: boolean | 'very'
+  $fixed?: boolean
+  $singleLine?: boolean
+  $inverted?: boolean
+  $collapsing?: boolean
+  $padded?: boolean | 'very'
+  $structured?: boolean
+  $definition?: boolean
+}
+
+/**
+ * Styled Table component to replace semantic-ui-react Table.
+ * Supports celled, compact, striped, and other props.
+ */
+export const StyledTable = styled.table<StyledTableProps>`
+  width: 100%;
+  background: #fff;
+  margin: 1em 0;
+  border: 1px solid rgba(34, 36, 38, 0.15);
+  box-shadow: none;
+  border-radius: 0.28571429rem;
+  text-align: left;
+  color: rgba(0, 0, 0, 0.87);
+  border-collapse: separate;
+  border-spacing: 0;
+
+  /* Celled variant - borders on all cells */
+  ${props =>
+    props.$celled &&
+    css`
+      & th,
+      & td {
+        border-left: 1px solid rgba(34, 36, 38, 0.1);
+      }
+      & th:first-child,
+      & td:first-child {
+        border-left: none;
+      }
+    `}
+
+  /* Compact variant - reduced padding */
+  ${props =>
+    props.$compact === true &&
+    css`
+      & th {
+        padding: 0.5em 0.7em;
+      }
+      & td {
+        padding: 0.5em 0.7em;
+      }
+    `}
+
+  ${props =>
+    props.$compact === 'very' &&
+    css`
+      & th {
+        padding: 0.4em 0.6em;
+      }
+      & td {
+        padding: 0.4em 0.6em;
+      }
+    `}
+
+  /* Striped variant - alternating row colors */
+  ${props =>
+    props.$striped &&
+    css`
+      & > tbody > tr:nth-child(2n) {
+        background: rgba(0, 0, 50, 0.02);
+      }
+    `}
+
+  /* Fixed layout */
+  ${props =>
+    props.$fixed &&
+    css`
+      table-layout: fixed;
+    `}
+
+  /* Single line - no text wrapping */
+  ${props =>
+    props.$singleLine &&
+    css`
+      & td {
+        white-space: nowrap;
+      }
+    `}
+
+  /* Inverted - dark background */
+  ${props =>
+    props.$inverted &&
+    css`
+      background: #333;
+      color: rgba(255, 255, 255, 0.9);
+      border-color: rgba(255, 255, 255, 0.1);
+    `}
+
+  /* Collapsing - shrink to fit content */
+  ${props =>
+    props.$collapsing &&
+    css`
+      width: auto;
+    `}
+
+  /* Basic variant - minimal styling */
+  ${props =>
+    props.$basic === true &&
+    css`
+      background: transparent;
+      border: 1px solid rgba(34, 36, 38, 0.15);
+      box-shadow: none;
+    `}
+
+  ${props =>
+    props.$basic === 'very' &&
+    css`
+      border: none;
+    `}
+
+  /* Padded variant - extra padding */
+  ${props =>
+    props.$padded === true &&
+    css`
+      & th,
+      & td {
+        padding: 1em 1em;
+      }
+    `}
+
+  ${props =>
+    props.$padded === 'very' &&
+    css`
+      & th,
+      & td {
+        padding: 1.5em 1.5em;
+      }
+    `}
+`
+
+export const StyledTableHeader = styled.thead`
+  & > tr > th {
+    cursor: auto;
+    background: #f9fafb;
+    text-align: inherit;
+    color: rgba(0, 0, 0, 0.87);
+    padding: 0.92857143em 0.78571429em;
+    vertical-align: inherit;
+    font-style: none;
+    font-weight: 700;
+    text-transform: none;
+    border-bottom: 1px solid rgba(34, 36, 38, 0.1);
+    border-left: none;
+  }
+
+  & > tr:first-child > th:first-child {
+    border-radius: 0.28571429rem 0 0 0;
+  }
+
+  & > tr:first-child > th:last-child {
+    border-radius: 0 0.28571429rem 0 0;
+  }
+
+  & > tr:first-child > th:only-child {
+    border-radius: 0.28571429rem 0.28571429rem 0 0;
+  }
+`
+
+export const StyledTableBody = styled.tbody`
+  & > tr > td {
+    padding: 0.78571429em 0.78571429em;
+    text-align: inherit;
+    vertical-align: middle;
+    border-top: 1px solid rgba(34, 36, 38, 0.1);
+  }
+
+  & > tr:first-child > td {
+    border-top: none;
+  }
+`
+
+export const StyledTableRow = styled.tr`
+  /* Row styling is handled by parent table */
+`
+
+export interface StyledTableCellProps {
+  $collapsing?: boolean
+}
+
+export const StyledTableHeaderCell = styled.th<StyledTableCellProps>`
+  ${props =>
+    props.$collapsing &&
+    css`
+      width: 1px;
+      white-space: nowrap;
+    `}
+`
+
+export const StyledTableCell = styled.td<StyledTableCellProps>`
+  ${props =>
+    props.$collapsing &&
+    css`
+      width: 1px;
+      white-space: nowrap;
+    `}
+`

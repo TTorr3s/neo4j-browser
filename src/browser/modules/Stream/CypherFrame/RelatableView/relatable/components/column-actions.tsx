@@ -15,11 +15,11 @@
  *
  */
 import React, { useCallback } from 'react'
-import { Table as SemanticTable } from 'semantic-ui-react'
 
 import { RELATABLE_ICONS, SORT_ACTIONS } from '../relatable.types'
 import { useRelatableStateContext } from '../states'
 import RelatableIcon from './relatable-icon'
+import { StyledTableHeaderCell } from './styled'
 
 export interface IColumnActionsProps {
   column: any
@@ -51,7 +51,7 @@ export default function ColumnActions({
   }, [onCustomSortChange])
 
   return (
-    <SemanticTable.HeaderCell
+    <StyledTableHeaderCell
       {...headerProps}
       colSpan={
         column.colSpan !== undefined ? column.colSpan : headerProps.colSpan
@@ -63,7 +63,7 @@ export default function ColumnActions({
         {column.render('Header')}
         {getColumnStateIcon(column)}
       </div>
-    </SemanticTable.HeaderCell>
+    </StyledTableHeaderCell>
   )
 }
 

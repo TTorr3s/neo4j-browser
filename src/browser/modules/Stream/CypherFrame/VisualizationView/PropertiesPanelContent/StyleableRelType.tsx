@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import React from 'react'
-import { Popup } from 'semantic-ui-react'
 
+import { Popup } from 'browser-components/Popup'
 import { StyledRelationshipChip } from 'neo4j-arc/common'
 import { GraphStyleModel } from 'neo4j-arc/graph-visualization'
 
