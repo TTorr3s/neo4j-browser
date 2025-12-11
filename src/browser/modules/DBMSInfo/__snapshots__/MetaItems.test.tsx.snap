@@ -1,0 +1,166 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LabelItems renders empty 1`] = `
+<div>
+  <div
+    class="sc-efQSVx crwSrw"
+  >
+    <h5
+      class="sc-iAKWXU hxijG"
+    >
+      Node labels
+    </h5>
+    <div
+      class="sc-cTAqQK fnEdUv"
+    >
+      <p>
+        There are no labels in database
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`LabelItems renders labels 1`] = `
+<div>
+  <div
+    class="sc-efQSVx crwSrw"
+  >
+    <h5
+      class="sc-iAKWXU hxijG"
+    >
+      Node labels
+    </h5>
+    <div
+      class="sc-cTAqQK fnEdUv"
+    >
+      <div
+        class="sc-dkPtRN sc-hKwDye bggpWS izOLzx"
+        data-testid="sidebarMetaItem"
+      >
+        *(5)
+      </div>
+      <div
+        class="sc-dkPtRN sc-hKwDye bggpWS izOLzx"
+        data-testid="sidebarMetaItem"
+      >
+        MyLabel
+      </div>
+      <div
+        class="sc-dkPtRN sc-hKwDye bggpWS izOLzx"
+        data-testid="sidebarMetaItem"
+      >
+        MyLabel2
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`PropertyItems renders empty 1`] = `
+<div>
+  <div
+    class="sc-efQSVx crwSrw"
+  >
+    <h5
+      class="sc-iAKWXU hxijG"
+    >
+      Property keys
+    </h5>
+    <div
+      class="sc-cTAqQK fnEdUv"
+    >
+      <p>
+        There are no properties in database
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`PropertyItems renders properties 1`] = `
+<div>
+  <div
+    class="sc-efQSVx crwSrw"
+  >
+    <h5
+      class="sc-iAKWXU hxijG"
+    >
+      Property keys
+    </h5>
+    <div
+      class="sc-cTAqQK fnEdUv"
+    >
+      <div
+        class="sc-dkPtRN sc-jRQBWg bggpWS ZXRHx"
+        data-testid="sidebarMetaItem"
+      >
+        prop1
+      </div>
+      <div
+        class="sc-dkPtRN sc-jRQBWg bggpWS ZXRHx"
+        data-testid="sidebarMetaItem"
+      >
+        prop2
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RelationshipItems renders empty 1`] = `
+<div>
+  <div
+    class="sc-efQSVx crwSrw"
+  >
+    <h5
+      class="sc-iAKWXU hxijG"
+    >
+      Relationship types
+    </h5>
+    <div
+      class="sc-cTAqQK fnEdUv"
+    >
+      <p>
+        No relationships in database
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RelationshipItems renders relationshipTypes 1`] = `
+<div>
+  <div
+    class="sc-efQSVx crwSrw"
+  >
+    <h5
+      class="sc-iAKWXU hxijG"
+    >
+      Relationship types
+    </h5>
+    <div
+      class="sc-cTAqQK fnEdUv"
+    >
+      <div
+        class="sc-dkPtRN sc-eCImPb bggpWS fcmjxo"
+        data-testid="sidebarMetaItem"
+      >
+        *(5)
+      </div>
+      <div
+        class="sc-dkPtRN sc-eCImPb bggpWS fcmjxo"
+        data-testid="sidebarMetaItem"
+      >
+        MY_TYPE
+      </div>
+      <div
+        class="sc-dkPtRN sc-eCImPb bggpWS fcmjxo"
+        data-testid="sidebarMetaItem"
+      >
+        MY_TYPE2
+      </div>
+    </div>
+  </div>
+</div>
+`;

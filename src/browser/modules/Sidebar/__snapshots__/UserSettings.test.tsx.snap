@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Settings renders with strange characters in display name 1`] = `
+<div>
+  <div
+    class="sc-hBUSln hbztEd"
+    id="db-settings"
+  >
+    <h4
+      class="sc-fFeiMQ jaJdPB"
+    >
+      Browser Settings
+    </h4>
+    <div
+      class="sc-dlVxhl cEOsqR"
+    >
+      <div
+        class="sc-dJjYzT ejVrtQ"
+      >
+        <div
+          class="sc-hGPBjI blXaFs"
+        >
+          <h5
+            class="sc-ieecCq gmcEfr"
+          >
+            Test åäö settings
+          </h5>
+          <div
+            class="sc-iwjdpV dYVkgn"
+          >
+            <label
+              class="sc-cxpSdN kvMRgX"
+              title=""
+            >
+              åäö üüü
+              <input
+                class="sc-iJKOTD ktWBSX testSetting"
+                data-testid="setting-testSetting"
+                title=""
+                value="true"
+              />
+            </label>
+          </div>
+          <h5
+            class="sc-ieecCq gmcEfr"
+          >
+            Product Analytics
+          </h5>
+        </div>
+        <div
+          class="sc-hGPBjI blXaFs"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+`;

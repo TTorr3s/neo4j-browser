@@ -1,0 +1,160 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`WarningsView displays nothing if no notifications 1`] = `<div />`;
+
+exports[`WarningsView does display a warning 1`] = `
+<div>
+  <div
+    class="sc-ieecCq bYxypv"
+  />
+</div>
+`;
+
+exports[`WarningsView does display a warning for GQL status codes 1`] = `
+<div>
+  <div
+    class="sc-ieecCq bYxypv"
+  >
+    <div
+      class="sc-dJjYzT iwyczS"
+    >
+      <div
+        class="sc-hGPBjI eOmbEJ"
+      >
+        <div
+          class="sc-bBHxTw sc-iwjdpV iMISDl blzzfm"
+        >
+          WARNING
+        </div>
+        <h4
+          class="sc-ezbkAF"
+        >
+          03N90: Cartesian product
+        </h4>
+      </div>
+      <div
+        class="sc-dlVxhl"
+      >
+        <div
+          class="sc-hGPBjI eOmbEJ"
+        >
+          The disconnected pattern 'p = ()--(), q = ()--()' builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.
+        </div>
+        <div
+          class="sc-dlVxhl"
+        >
+          <pre
+            class="sc-ikJyIC fdlxq"
+          >
+            MATCH p=()--(), q=()--() RETURN p, q
+            <br
+              class="sc-kLwhqv"
+            />
+                   
+            ^
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`WarningsView does display multiple warnings 1`] = `
+<div>
+  <div
+    class="sc-ieecCq bYxypv"
+  />
+</div>
+`;
+
+exports[`WarningsView does display multiple warnings for GQL status codes 1`] = `
+<div>
+  <div
+    class="sc-ieecCq bYxypv"
+  >
+    <div
+      class="sc-dJjYzT iwyczS"
+    >
+      <div
+        class="sc-hGPBjI eOmbEJ"
+      >
+        <div
+          class="sc-bBHxTw sc-iwjdpV iMISDl blzzfm"
+        >
+          WARNING
+        </div>
+        <h4
+          class="sc-ezbkAF"
+        >
+          03N90: Cartesian product
+        </h4>
+      </div>
+      <div
+        class="sc-dlVxhl"
+      >
+        <div
+          class="sc-hGPBjI eOmbEJ"
+        >
+          The disconnected pattern 'p = ()--(), q = ()--()' builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.
+        </div>
+        <div
+          class="sc-dlVxhl"
+        >
+          <pre
+            class="sc-ikJyIC fdlxq"
+          >
+            MATCH p=()--(), q=()--() RETURN p, q
+            <br
+              class="sc-kLwhqv"
+            />
+                   
+            ^
+          </pre>
+        </div>
+      </div>
+    </div>
+    <div
+      class="sc-dJjYzT iwyczS"
+    >
+      <div
+        class="sc-hGPBjI eOmbEJ"
+      >
+        <div
+          class="sc-bBHxTw sc-iwjdpV iMISDl blzzfm"
+        >
+          WARNING
+        </div>
+        <h4
+          class="sc-ezbkAF"
+        >
+          01N50: Label does not exist
+        </h4>
+      </div>
+      <div
+        class="sc-dlVxhl"
+      >
+        <div
+          class="sc-hGPBjI eOmbEJ"
+        >
+          The label \`A\` does not exist. Verify that the spelling is correct.
+        </div>
+        <div
+          class="sc-dlVxhl"
+        >
+          <pre
+            class="sc-ikJyIC fdlxq"
+          >
+            MATCH p=()--(), q=()--() RETURN p, q
+            <br
+              class="sc-kLwhqv"
+            />
+               
+            ^
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
