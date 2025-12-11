@@ -34,12 +34,12 @@ describe('resultTransform', () => {
     test("should throw exception when row doesn't match columns", () => {
       const cols = ['col1', '"col2"']
       const s = CSVSerializer(cols)
-      expect(() => s.append(['x'])).toThrowError('Column number mismatch')
+      expect(() => s.append(['x'])).toThrow('Column number mismatch')
     })
     test('should throw exception when row is empty in multi column env', () => {
       const cols = ['col1', '"col2"']
       const s = CSVSerializer(cols)
-      expect(() => s.append()).toThrowError('Column number mismatch')
+      expect(() => s.append()).toThrow('Column number mismatch')
     })
     test('should not throw exception when row is empty in one column env', () => {
       const cols = ['col1']

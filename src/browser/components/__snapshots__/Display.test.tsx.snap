@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`<Display> can lazy load if condition changes from false to true and has the lazy prop 1`] = `<div />`;
 

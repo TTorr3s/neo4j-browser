@@ -19,15 +19,82 @@
  */
 const helpers = require('./webpack-helpers')
 const path = require('path')
-const createStyledComponentsTransformer =
-  require('typescript-plugin-styled-components').default
-const styledComponentsTransformer = createStyledComponentsTransformer()
 
-const tsLoaderOptions = {
-  transpileOnly: true,
-  getCustomTransformers: () => ({
-    before: [...(helpers.isProduction ? [] : [styledComponentsTransformer])]
-  })
+// Configuración SWC para desarrollo
+const swcOptionsDev = {
+  jsc: {
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+      decorators: true,
+      dynamicImport: true
+    },
+    transform: {
+      react: {
+        runtime: 'automatic',
+        development: true,
+        refresh: true
+      }
+    },
+    target: 'es2019',
+    keepClassNames: true,
+    experimental: {
+      plugins: [
+        [
+          '@swc/plugin-styled-components',
+          {
+            displayName: true,
+            ssr: false,
+            fileName: true
+          }
+        ]
+      ]
+    }
+  },
+  module: { type: 'es6' },
+  sourceMaps: true
+}
+
+// Configuración SWC para producción
+const swcOptionsProd = {
+  jsc: {
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+      decorators: true,
+      dynamicImport: true
+    },
+    transform: {
+      react: {
+        runtime: 'automatic',
+        development: false,
+        refresh: false
+      }
+    },
+    target: 'es2019',
+    keepClassNames: true
+  },
+  module: { type: 'es6' },
+  sourceMaps: false,
+  minify: true
+}
+
+// Configuración SWC para JavaScript
+const swcOptionsJS = {
+  jsc: {
+    parser: {
+      syntax: 'ecmascript',
+      jsx: true,
+      dynamicImport: true
+    },
+    transform: {
+      react: {
+        runtime: 'automatic'
+      }
+    },
+    target: 'es2019'
+  },
+  module: { type: 'es6' }
 }
 
 module.exports = [
@@ -38,15 +105,16 @@ module.exports = [
       fullySpecified: false
     }
   },
+  // TypeScript/TSX con SWC
   {
-    test: /\.(ts|tsx)?$/,
+    test: /\.(ts|tsx)$/,
+    exclude: /node_modules/,
     use: {
-      loader: 'ts-loader',
-      options: tsLoaderOptions
-    },
-    include: [path.resolve('src')],
-    exclude: /node_modules/
+      loader: 'swc-loader',
+      options: helpers.isProduction ? swcOptionsProd : swcOptionsDev
+    }
   },
+  // JavaScript/JSX con SWC (incluyendo node_modules específicos)
   {
     test: /\.(js|jsx)$/,
     include: [
@@ -54,7 +122,10 @@ module.exports = [
       path.resolve('node_modules/@neo4j/browser-lambda-parser'),
       path.resolve('node_modules/@neo4j-devtools/word-color')
     ],
-    use: 'babel-loader',
+    use: {
+      loader: 'swc-loader',
+      options: swcOptionsJS
+    },
     resolve: {
       fullySpecified: false
     }

@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`ConfirmationButton renders changes state on clicks and finally calls the onConfirmed prop 1`] = `
 <div>

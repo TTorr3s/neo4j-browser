@@ -34,20 +34,31 @@ jest.mock('shared/modules/params/paramsDuck', () => {
 })
 
 jest.mock('shared/modules/settings/settingsDuck', () => {
-  const orig = jest.requireActual('shared/modules/dbMeta/dbMetaDuck')
+  const orig = jest.requireActual('shared/modules/settings/settingsDuck')
   return {
     ...orig,
     shouldUseReadTransactions: () => false
   }
 })
 
-jest.mock('shared/modules/dbMeta/dbMetaDuck', () => {
-  const orig = jest.requireActual('shared/modules/dbMeta/dbMetaDuck')
-  return {
-    ...orig,
-    getRawVersion: () => '4.0.0'
-  }
-})
+jest.mock('shared/modules/dbMeta/dbMetaDuck', () => ({
+  getRawVersion: () => '4.0.0',
+  getActiveDbName: jest.fn(() => 'neo4j'),
+  getAvailableSettings: jest.fn(() => []),
+  getClusterRoleForCurrentDb: jest.fn(() => null),
+  getDatabases: jest.fn(() => []),
+  getSemanticVersion: jest.fn(() => ({ major: 4, minor: 0, patch: 0 })),
+  isEnterprise: jest.fn(() => true),
+  getUseDb: jest.fn(() => null),
+  shouldRetainConnectionCredentials: jest.fn(() => true),
+  shouldUseCypherThread: jest.fn(() => true),
+  CLEAR_META: 'meta/CLEAR',
+  UPDATE_META: 'meta/UPDATE_META',
+  PARSE_META: 'meta/PARSE_META',
+  DB_META_DONE: 'meta/DB_META_DONE',
+  LABELS_LOADED: 'meta/LABELS_LOADED',
+  SERVER_VERSION_READ: 'meta/SERVER_VERSION_READ'
+}))
 
 const bus = createBus()
 

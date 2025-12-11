@@ -93,6 +93,7 @@ module.exports = () => {
       filename: 'index.html'
     }),
     new ForkTsCheckerWebpackPlugin({
+      async: !helpers.isProduction,
       typescript: {
         configFile: path.resolve(helpers.projectPath, 'tsconfig.json'),
         diagnosticOptions: {

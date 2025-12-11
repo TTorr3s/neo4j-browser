@@ -144,6 +144,7 @@ src/
 - **Cypress 13.17.0** for E2E testing
 - **Jest 29.7.0** for unit testing
 - **Webpack 5.95.0** for bundling
+- **SWC 1.13+** for transpilation (replaces ts-loader/babel-loader)
 
 ### Connection Flow
 
@@ -236,11 +237,25 @@ editorRef.current?.resize(fillContainer)
 ## Important Notes
 
 - **Monaco Editor**: Never import `monaco-editor` directly; use the configured paths. The editor disables `occurrencesHighlight` to prevent cleanup errors.
-- **ESLint**: The codebase uses both Babel and TypeScript parsers (see .eslintrc.json overrides)
+- **ESLint**: The codebase uses `@babel/eslint-parser` and `@typescript-eslint/parser` (see .eslintrc.json overrides). Note: Babel is only used for ESLint parsing, not for transpilation.
 - **Node Version**: Requires Node >= 20.19.0
 - **Pre-commit**: Husky + lint-staged runs prettier-eslint on changed files
 - **Neo4j Desktop Integration**: Configured via `neo4jDesktop` in package.json (API version ^1.4.0)
 - **All components use functional patterns**: Class components have been migrated to functional components with hooks
+
+### Build System (SWC)
+
+The project uses **SWC** for fast TypeScript/JavaScript transpilation:
+
+- **Webpack**: Uses `swc-loader` instead of `ts-loader`/`babel-loader`
+- **Jest**: Uses `@swc/jest` instead of `ts-jest`/`babel-jest`
+- **styled-components**: Plugin `@swc/plugin-styled-components` provides displayName in dev mode
+- **Type checking**: Still handled by `ForkTsCheckerWebpackPlugin` (SWC doesn't type-check)
+
+Configuration files:
+- `.swcrc` - Base SWC configuration with path aliases
+- `build_scripts/webpack-rules.js` - Webpack loader configuration (dev/prod variants)
+- `jest.config.js` - Jest transform configuration
 
 ## Component Patterns
 

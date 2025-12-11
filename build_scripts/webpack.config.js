@@ -25,6 +25,19 @@ const helpers = require('./webpack-helpers')
 
 module.exports = {
   mode: helpers.isProduction ? 'production' : 'development',
+  cache: {
+    type: 'filesystem',
+    buildDependencies: {
+      config: [
+        __filename,
+        path.resolve(__dirname, 'webpack-rules.js'),
+        path.resolve(__dirname, 'webpack-plugins.js')
+      ]
+    },
+    cacheDirectory: path.resolve(__dirname, '../node_modules/.cache/webpack'),
+    name: helpers.isProduction ? 'production' : 'development',
+    version: '1.0'
+  },
   entry: [path.resolve(helpers.browserPath, 'index.tsx')],
   output: {
     filename: 'app-[contenthash].js',

@@ -5,23 +5,27 @@ const reactMarkdownESModuleDeps =
   'react-markdown|vfile|vfile-message|markdown-table|unist-.*|unified|bail|is-plain-obj|trough|remark-.*|mdast-util-.*|escape-string-regexp|micromark.*|decode-named-character-reference|character-entities|property-information|hast-util-whitespace|space-separated-tokens|comma-separated-tokens|pretty-bytes|ccount'
 
 module.exports = {
-  // TypeScript files will be handled by ts-jest, and JavaScript files will be handled by babel-jest.
-  preset: 'ts-jest',
   testEnvironment: 'jsdom',
   transform: {
-    '^.+\\.tsx?$': [
-      'ts-jest',
+    '^.+\\.(ts|tsx|js|jsx)$': [
+      '@swc/jest',
       {
-        tsconfig: {
-          jsx: 'react',
-          module: 'es2020',
-          target: 'es2020',
-          skipLibCheck: true,
-          isolatedModules: true
-        }
+        jsc: {
+          parser: {
+            syntax: 'typescript',
+            tsx: true,
+            decorators: true,
+            dynamicImport: true
+          },
+          transform: {
+            react: { runtime: 'automatic' }
+          },
+          target: 'es2019',
+          keepClassNames: true
+        },
+        module: { type: 'commonjs' }
       }
-    ],
-    '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './babel.config.js' }]
+    ]
   },
   setupFiles: [
     'raf/polyfill.js',
