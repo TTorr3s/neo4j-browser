@@ -49,6 +49,7 @@ import { WheelZoomInfoOverlay } from './WheelZoomInfoOverlay'
 import { StyledSvgWrapper, StyledZoomButton, StyledZoomHolder } from './styled'
 import type { RenderEngine } from './visualization/RenderEngine'
 import { SVGVisualization } from './visualization/SVGVisualization'
+import { PixiVisualization } from './visualization/pixi'
 
 /**
  * Renderer type for graph visualization
@@ -119,6 +120,7 @@ export function Graph({
 
   // Refs
   const svgRef = useRef<SVGSVGElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const visualizationRef = useRef<RenderEngine | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
@@ -181,35 +183,51 @@ export function Graph({
 
   // Visualization initialization (runs once on mount)
   useEffect(() => {
-    if (!svgRef.current) return
+    const useWebGL = renderer === 'webgl'
 
-    // TODO: WebGL renderer support (Phase 2-4)
-    // When renderer === 'webgl', use PixiVisualization instead
-    if (renderer === 'webgl') {
-      console.warn(
-        'WebGL renderer is experimental and not yet fully implemented. Falling back to SVG.'
-      )
-    }
+    // Check required DOM elements
+    if (useWebGL && !canvasRef.current) return
+    if (!useWebGL && !svgRef.current) return
 
-    const svgElement = svgRef.current
+    const containerElement = useWebGL ? canvasRef.current! : svgRef.current!
 
     const measureSize = () => ({
-      width: svgElement.parentElement?.clientWidth ?? 200,
-      height: svgElement.parentElement?.clientHeight ?? 200
+      width: containerElement.parentElement?.clientWidth ?? 200,
+      height: containerElement.parentElement?.clientHeight ?? 200
     })
 
     const graph = createGraph(nodes, relationships)
-    const visualization = new SVGVisualization(
-      svgElement,
-      measureSize,
-      handleZoomEvent,
-      handleDisplayZoomWheelInfoMessage,
-      graph,
-      graphStyle,
-      isFullscreen,
-      wheelZoomRequiresModKey,
-      initialZoomToFit
-    )
+
+    let visualization: RenderEngine
+
+    if (useWebGL) {
+      // Use PixiJS WebGL renderer
+      visualization = new PixiVisualization(
+        canvasRef.current!,
+        measureSize,
+        handleZoomEvent,
+        handleDisplayZoomWheelInfoMessage,
+        graph,
+        graphStyle,
+        isFullscreen,
+        wheelZoomRequiresModKey,
+        initialZoomToFit
+      )
+    } else {
+      // Use D3/SVG renderer (default)
+      visualization = new SVGVisualization(
+        svgRef.current!,
+        measureSize,
+        handleZoomEvent,
+        handleDisplayZoomWheelInfoMessage,
+        graph,
+        graphStyle,
+        isFullscreen,
+        wheelZoomRequiresModKey,
+        initialZoomToFit
+      )
+    }
+
     visualizationRef.current = visualization
 
     const graphEventHandler = new GraphEventHandlerModel(
@@ -265,7 +283,7 @@ export function Graph({
     }
 
     if (assignVisElement) {
-      assignVisElement(svgElement, visualization)
+      assignVisElement(containerElement, visualization)
     }
 
     // Setup ResizeObserver
@@ -275,7 +293,7 @@ export function Graph({
         !!wheelZoomRequiresModKeyRef.current
       )
     })
-    resizeObserverRef.current.observe(svgElement)
+    resizeObserverRef.current.observe(containerElement)
 
     // Cleanup
     return () => {
@@ -300,7 +318,15 @@ export function Graph({
 
   return (
     <StyledSvgWrapper ref={wrapperRef}>
-      <svg className="neod3viz" ref={svgRef} />
+      {renderer === 'webgl' ? (
+        <canvas
+          className="neod3viz"
+          ref={canvasRef}
+          style={{ width: '100%', height: '100%' }}
+        />
+      ) : (
+        <svg className="neod3viz" ref={svgRef} />
+      )}
       <StyledZoomHolder offset={offset} isFullscreen={isFullscreen}>
         <StyledZoomButton
           aria-label={'zoom-in'}

@@ -21,7 +21,9 @@ import { Sprite, Texture } from 'pixi.js'
 
 const DEFAULT_FONT_FAMILY = 'sans-serif'
 const MAX_CACHE_SIZE = 5000
-const TEXTURE_SCALE = 2 // Higher resolution for crisp text
+// Use device pixel ratio for crisp text on high-DPI displays (Retina, 4K, etc.)
+// Minimum of 2 for standard displays, up to 4 for very high DPI
+const TEXTURE_SCALE = 4
 
 interface CacheEntry {
   texture: Texture

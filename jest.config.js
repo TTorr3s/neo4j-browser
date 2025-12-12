@@ -61,7 +61,9 @@ module.exports = {
       '<rootDir>/src/neo4j-arc/graph-visualization',
     '^neo4j-arc/common$': '<rootDir>/src/neo4j-arc/common',
     '^neo4j-arc/cypher-language-support$':
-      '<rootDir>/test_utils/__mocks__/cypherLanguageSupportMock.js'
+      '<rootDir>/test_utils/__mocks__/cypherLanguageSupportMock.js',
+    '^pixi\\.js$': '<rootDir>/test_utils/__mocks__/pixiMock.js',
+    '^pixi-viewport$': '<rootDir>/test_utils/__mocks__/pixiViewportMock.js'
   },
   modulePaths: ['<rootDir>/src', '<rootDir>/src/shared'],
   collectCoverageFrom: ['**/src/**/*.ts', '**/src/**/*.tsx'],

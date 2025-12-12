@@ -24,15 +24,18 @@ import { withBus } from 'react-suber'
 import { Action, Dispatch } from 'redux'
 import { Bus } from 'suber'
 
-import { GraphModel, GraphVisualizer } from 'neo4j-arc/graph-visualization'
-
-import { resultHasTruncatedFields } from 'browser/modules/Stream/CypherFrame/helpers'
 import {
   BasicNode,
   BasicNodesAndRels,
   BasicRelationship,
   deepEquals
 } from 'neo4j-arc/common'
+import { GraphModel, GraphVisualizer } from 'neo4j-arc/graph-visualization'
+
+import { DetailsPane } from './PropertiesPanelContent/DetailsPane'
+import OverviewPane from './PropertiesPanelContent/OverviewPane'
+import { StyledVisContainer } from './VisualizationView.styled'
+import { resultHasTruncatedFields } from 'browser/modules/Stream/CypherFrame/helpers'
 import bolt from 'services/bolt/bolt'
 import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
 import { GlobalState } from 'shared/globalState'
@@ -47,9 +50,6 @@ import {
   shouldShowWheelZoomInfo,
   update as updateSettings
 } from 'shared/modules/settings/settingsDuck'
-import { DetailsPane } from './PropertiesPanelContent/DetailsPane'
-import OverviewPane from './PropertiesPanelContent/OverviewPane'
-import { StyledVisContainer } from './VisualizationView.styled'
 
 type VisualizationState = {
   updated: number
@@ -318,6 +318,7 @@ LIMIT ${maxNewNeighbours}`
   return (
     <StyledVisContainer isFullscreen={isFullscreen}>
       <GraphVisualizer
+        renderer="webgl"
         maxNeighbours={maxNeighbours}
         hasTruncatedFields={state.hasTruncatedFields}
         graphStyleData={graphStyleData}

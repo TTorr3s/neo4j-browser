@@ -18,24 +18,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { Viewport } from 'pixi-viewport'
-import { Application, Container } from 'pixi.js'
+import { Application, Container, FederatedPointerEvent } from 'pixi.js'
 
 import {
+  DEFAULT_ALPHA_TARGET,
+  DRAGGING_ALPHA,
+  DRAGGING_ALPHA_TARGET,
   ZOOM_FIT_PADDING_PERCENT,
   ZOOM_MAX_SCALE,
   ZOOM_MIN_SCALE
 } from '../../../../constants'
 import { GraphModel } from '../../../../models/Graph'
 import { GraphStyleModel } from '../../../../models/GraphStyle'
+import { NodeModel } from '../../../../models/Node'
+import { RelationshipModel } from '../../../../models/Relationship'
 import { ZoomLimitsReached, ZoomType } from '../../../../types'
 import { isNullish } from '../../../../utils/utils'
 import { ForceSimulation } from '../ForceSimulation'
 import { GraphGeometryModel } from '../GraphGeometryModel'
 import { RenderEngine, UpdateOptions } from '../RenderEngine'
+import { HitResult, PixiHitDetection } from './PixiHitDetection'
 import { PixiNodeRenderer } from './PixiNodeRenderer'
 import { PixiRelRenderer } from './PixiRelRenderer'
 
 type MeasureSizeFn = () => { width: number; height: number }
+
+// Drag tolerance in pixels (squared to avoid sqrt)
+const DRAG_TOLERANCE_SQ = 25 * 25
 
 /**
  * WebGL-based graph visualization using PixiJS
@@ -48,6 +57,7 @@ export class PixiVisualization implements RenderEngine {
   private relationshipContainer: Container | null = null
   private nodeRenderer: PixiNodeRenderer | null = null
   private relRenderer: PixiRelRenderer | null = null
+  private hitDetection: PixiHitDetection | null = null
 
   private geometry: GraphGeometryModel
   private zoomMinScaleExtent: number = ZOOM_MIN_SCALE
@@ -60,6 +70,33 @@ export class PixiVisualization implements RenderEngine {
 
   private initialized = false
   private isZoomClick = false
+
+  // Interaction state
+  private dragState: {
+    active: boolean
+    node: NodeModel | null
+    startX: number
+    startY: number
+    restartedSimulation: boolean
+  } = {
+    active: false,
+    node: null,
+    startX: 0,
+    startY: 0,
+    restartedSimulation: false
+  }
+
+  private hoverState: {
+    node: NodeModel | null
+    relationship: RelationshipModel | null
+  } = {
+    node: null,
+    relationship: null
+  }
+
+  private lastClickTime = 0
+  private lastClickTarget: NodeModel | null = null
+  private readonly DOUBLE_CLICK_THRESHOLD = 300 // ms
 
   forceSimulation: ForceSimulation
 
@@ -83,6 +120,9 @@ export class PixiVisualization implements RenderEngine {
 
     const size = this.measureSize()
 
+    // Use higher resolution for crisp rendering on high-DPI displays
+    const resolution = Math.min(window.devicePixelRatio || 1, 3)
+
     this.app = new Application()
     await this.app.init({
       canvas: this.canvas,
@@ -90,8 +130,11 @@ export class PixiVisualization implements RenderEngine {
       height: size.height,
       antialias: true,
       backgroundColor: 0xffffff,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true
+      resolution: resolution,
+      autoDensity: true,
+      // Improve rendering quality
+      roundPixels: false, // Allow sub-pixel positioning for smooth animations
+      preference: 'webgl' // Prefer WebGL over WebGPU for better compatibility
     })
 
     // Create viewport for pan/zoom
@@ -120,9 +163,10 @@ export class PixiVisualization implements RenderEngine {
     this.viewport.addChild(this.relationshipContainer)
     this.viewport.addChild(this.nodeContainer)
 
-    // Initialize renderers
+    // Initialize renderers and hit detection
     this.nodeRenderer = new PixiNodeRenderer(this.style)
     this.relRenderer = new PixiRelRenderer(this.style)
+    this.hitDetection = new PixiHitDetection()
 
     // Set up zoom event handling
     this.viewport.on('zoomed', () => {
@@ -134,16 +178,8 @@ export class PixiVisualization implements RenderEngine {
       this.onZoomEvent(limitsReached)
     })
 
-    // Set up click handling for canvas
-    this.viewport.on('clicked', event => {
-      // Check if click was on empty space
-      if (event.world) {
-        const hit = this.hitTest(event.world.x, event.world.y)
-        if (!hit) {
-          this.trigger('canvasClicked')
-        }
-      }
-    })
+    // Set up interaction events
+    this.setupInteractionEvents()
 
     // Handle wheel zoom modifier key requirement
     if (this.wheelZoomRequiresModKey) {
@@ -163,15 +199,276 @@ export class PixiVisualization implements RenderEngine {
   }
 
   /**
-   * Hit test at world coordinates
-   * TODO: Implement spatial hash for efficient hit detection
+   * Set up pointer interaction events on the viewport
    */
-  private hitTest(
-    _worldX: number,
-    _worldY: number
-  ): { type: 'node' | 'relationship'; id: string } | null {
-    // Placeholder - will be implemented in Phase 4
-    return null
+  private setupInteractionEvents(): void {
+    if (!this.viewport) return
+
+    // Make viewport interactive
+    this.viewport.eventMode = 'static'
+
+    // Pointer down - start potential drag or click
+    this.viewport.on('pointerdown', this.onPointerDown.bind(this))
+
+    // Pointer move - handle drag or hover
+    this.viewport.on('pointermove', this.onPointerMove.bind(this))
+
+    // Pointer up - end drag or register click
+    this.viewport.on('pointerup', this.onPointerUp.bind(this))
+
+    // Pointer leave - clean up hover state
+    this.viewport.on('pointerleave', this.onPointerLeave.bind(this))
+  }
+
+  /**
+   * Handle pointer down event
+   */
+  private onPointerDown(event: FederatedPointerEvent): void {
+    if (!this.viewport) return
+
+    const worldPos = this.viewport.toWorld(event.global)
+    const hit = this.performHitTest(worldPos.x, worldPos.y)
+
+    if (hit?.type === 'node') {
+      // Start tracking potential drag
+      this.dragState = {
+        active: true,
+        node: hit.item,
+        startX: worldPos.x,
+        startY: worldPos.y,
+        restartedSimulation: false
+      }
+
+      // Fix node position during potential drag
+      hit.item.hoverFixed = false
+      hit.item.fx = hit.item.x
+      hit.item.fy = hit.item.y
+
+      // Pause viewport drag while potentially dragging a node
+      this.viewport.plugins.pause('drag')
+    } else if (hit?.type === 'relationship') {
+      // Relationship click
+      this.trigger('relationshipClicked', hit.item)
+    } else {
+      // Canvas click (will be confirmed on pointer up if no drag)
+      this.dragState = {
+        active: false,
+        node: null,
+        startX: worldPos.x,
+        startY: worldPos.y,
+        restartedSimulation: false
+      }
+    }
+  }
+
+  /**
+   * Handle pointer move event
+   */
+  private onPointerMove(event: FederatedPointerEvent): void {
+    if (!this.viewport) return
+
+    const worldPos = this.viewport.toWorld(event.global)
+
+    // Handle node dragging
+    if (this.dragState.active && this.dragState.node) {
+      const dx = worldPos.x - this.dragState.startX
+      const dy = worldPos.y - this.dragState.startY
+      const distSq = dx * dx + dy * dy
+
+      // Check if we've exceeded drag tolerance
+      if (distSq > DRAG_TOLERANCE_SQ && !this.dragState.restartedSimulation) {
+        // Start actual drag - restart simulation
+        this.forceSimulation.simulation
+          .alphaTarget(DRAGGING_ALPHA_TARGET)
+          .alpha(DRAGGING_ALPHA)
+          .restart()
+        this.dragState.restartedSimulation = true
+      }
+
+      // Update node position
+      this.dragState.node.hoverFixed = false
+      this.dragState.node.fx = worldPos.x
+      this.dragState.node.fy = worldPos.y
+
+      return
+    }
+
+    // Handle hover detection (only when not dragging)
+    this.handleHover(worldPos.x, worldPos.y)
+  }
+
+  /**
+   * Handle pointer up event
+   */
+  private onPointerUp(event: FederatedPointerEvent): void {
+    if (!this.viewport) return
+
+    const worldPos = this.viewport.toWorld(event.global)
+
+    // Resume viewport drag
+    this.viewport.plugins.resume('drag')
+
+    if (this.dragState.active && this.dragState.node) {
+      const node = this.dragState.node
+
+      if (this.dragState.restartedSimulation) {
+        // Was a real drag - stop simulation
+        this.forceSimulation.simulation.alphaTarget(DEFAULT_ALPHA_TARGET)
+        // Keep node fixed at final position (don't reset fx/fy)
+      } else {
+        // Was just a click - not a drag
+        const now = Date.now()
+        const isDoubleClick =
+          this.lastClickTarget === node &&
+          now - this.lastClickTime < this.DOUBLE_CLICK_THRESHOLD
+
+        if (isDoubleClick) {
+          this.trigger('nodeDblClicked', node)
+          this.lastClickTarget = null
+          this.lastClickTime = 0
+        } else {
+          this.trigger('nodeClicked', node)
+          this.lastClickTarget = node
+          this.lastClickTime = now
+        }
+
+        // Reset fx/fy since it wasn't a real drag
+        node.fx = null
+        node.fy = null
+      }
+    } else {
+      // Check if this is a canvas click (no node was under pointer)
+      const hit = this.performHitTest(worldPos.x, worldPos.y)
+      if (!hit) {
+        this.trigger('canvasClicked')
+      }
+    }
+
+    // Reset drag state
+    this.dragState = {
+      active: false,
+      node: null,
+      startX: 0,
+      startY: 0,
+      restartedSimulation: false
+    }
+  }
+
+  /**
+   * Handle pointer leave event
+   */
+  private onPointerLeave(): void {
+    // Clear any hover state
+    if (this.hoverState.node) {
+      this.trigger('nodeMouseOut', this.hoverState.node)
+      // Reset hover-fixed state
+      if (this.hoverState.node.hoverFixed) {
+        this.hoverState.node.hoverFixed = false
+        this.hoverState.node.fx = null
+        this.hoverState.node.fy = null
+      }
+      this.hoverState.node = null
+    }
+
+    if (this.hoverState.relationship) {
+      this.trigger('relMouseOut', this.hoverState.relationship)
+      this.hoverState.relationship = null
+    }
+  }
+
+  /**
+   * Handle hover state changes
+   */
+  private handleHover(worldX: number, worldY: number): void {
+    const hit = this.performHitTest(worldX, worldY)
+
+    // Handle node hover
+    if (hit?.type === 'node') {
+      const node = hit.item
+      if (this.hoverState.node !== node) {
+        // Mouse out of previous node
+        if (this.hoverState.node) {
+          this.handleNodeMouseOut(this.hoverState.node)
+        }
+        // Mouse out of previous relationship
+        if (this.hoverState.relationship) {
+          this.trigger('relMouseOut', this.hoverState.relationship)
+          this.hoverState.relationship = null
+        }
+        // Mouse over new node
+        this.handleNodeMouseOver(node)
+        this.hoverState.node = node
+      }
+    } else if (hit?.type === 'relationship') {
+      const rel = hit.item
+      if (this.hoverState.relationship !== rel) {
+        // Mouse out of previous node
+        if (this.hoverState.node) {
+          this.handleNodeMouseOut(this.hoverState.node)
+          this.hoverState.node = null
+        }
+        // Mouse out of previous relationship
+        if (this.hoverState.relationship) {
+          this.trigger('relMouseOut', this.hoverState.relationship)
+        }
+        // Mouse over new relationship
+        this.trigger('relMouseOver', rel)
+        this.hoverState.relationship = rel
+      }
+    } else {
+      // No hit - clear all hover states
+      if (this.hoverState.node) {
+        this.handleNodeMouseOut(this.hoverState.node)
+        this.hoverState.node = null
+      }
+      if (this.hoverState.relationship) {
+        this.trigger('relMouseOut', this.hoverState.relationship)
+        this.hoverState.relationship = null
+      }
+    }
+  }
+
+  /**
+   * Handle node mouse over (fixes node position temporarily)
+   */
+  private handleNodeMouseOver(node: NodeModel): void {
+    if (!node.fx && !node.fy) {
+      node.hoverFixed = true
+      node.fx = node.x
+      node.fy = node.y
+    }
+    this.trigger('nodeMouseOver', node)
+  }
+
+  /**
+   * Handle node mouse out (unfixes node position if hover-fixed)
+   */
+  private handleNodeMouseOut(node: NodeModel): void {
+    if (node.hoverFixed) {
+      node.hoverFixed = false
+      node.fx = null
+      node.fy = null
+    }
+    this.trigger('nodeMouseOut', node)
+  }
+
+  /**
+   * Perform hit test using spatial hash grid
+   */
+  private performHitTest(worldX: number, worldY: number): HitResult {
+    if (!this.hitDetection) return null
+    return this.hitDetection.hitTest(worldX, worldY)
+  }
+
+  /**
+   * Rebuild hit detection grid after graph changes
+   */
+  private rebuildHitDetectionGrid(): void {
+    if (!this.hitDetection) return
+    this.hitDetection.rebuildGrid(
+      this.graph.nodes(),
+      this.graph.relationships()
+    )
   }
 
   private render(): void {
@@ -227,6 +524,9 @@ export class PixiVisualization implements RenderEngine {
     // Update force simulation
     this.forceSimulation.updateNodes(this.graph)
     this.forceSimulation.updateRelationships(this.graph)
+
+    // Rebuild hit detection grid
+    this.rebuildHitDetectionGrid()
   }
 
   private updateRelationships(): void {
@@ -249,6 +549,9 @@ export class PixiVisualization implements RenderEngine {
 
     // Update force simulation
     this.forceSimulation.updateRelationships(this.graph)
+
+    // Rebuild hit detection grid
+    this.rebuildHitDetectionGrid()
 
     this.render()
   }
@@ -425,6 +728,11 @@ export class PixiVisualization implements RenderEngine {
       this.relRenderer = null
     }
 
+    if (this.hitDetection) {
+      this.hitDetection.clear()
+      this.hitDetection = null
+    }
+
     if (this.viewport) {
       this.viewport.destroy()
       this.viewport = null
@@ -438,5 +746,18 @@ export class PixiVisualization implements RenderEngine {
     this.nodeContainer = null
     this.relationshipContainer = null
     this.initialized = false
+
+    // Reset interaction state
+    this.dragState = {
+      active: false,
+      node: null,
+      startX: 0,
+      startY: 0,
+      restartedSimulation: false
+    }
+    this.hoverState = {
+      node: null,
+      relationship: null
+    }
   }
 }

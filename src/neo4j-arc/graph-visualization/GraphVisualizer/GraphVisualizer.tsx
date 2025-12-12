@@ -19,30 +19,31 @@
  */
 import deepmerge from 'deepmerge'
 import React, {
-  useState,
+  type JSX,
   useCallback,
   useEffect,
-  useRef,
   useMemo,
-  type JSX
+  useRef,
+  useState
 } from 'react'
 
-import { Graph } from './Graph/Graph'
-import { NodeInspectorPanel, defaultPanelWidth } from './NodeInspectorPanel'
-import { StyledFullSizeContainer, panelMinWidth } from './styled'
 import {
   BasicNode,
   BasicNodesAndRels,
   BasicRelationship,
   deepEquals
 } from 'neo4j-arc/common'
-import { DetailsPaneProps } from './DefaultPanelContent/DefaultDetailsPane'
-import { OverviewPaneProps } from './DefaultPanelContent/DefaultOverviewPane'
+
+import { GraphModel } from '../models/Graph'
 import { GraphStyleModel } from '../models/GraphStyle'
 import { GetNodeNeighboursFn, VizItem } from '../types'
 import { GraphStats } from '../utils/mapper'
-import { GraphModel } from '../models/Graph'
+import { DetailsPaneProps } from './DefaultPanelContent/DefaultDetailsPane'
+import { OverviewPaneProps } from './DefaultPanelContent/DefaultOverviewPane'
+import { Graph } from './Graph/Graph'
 import { GraphInteractionCallBack } from './Graph/GraphEventHandlerModel'
+import { NodeInspectorPanel, defaultPanelWidth } from './NodeInspectorPanel'
+import { StyledFullSizeContainer, panelMinWidth } from './styled'
 
 const DEFAULT_MAX_NEIGHBOURS = 100
 const HOVER_DEBOUNCE_MS = 200
@@ -76,6 +77,11 @@ type GraphVisualizerProps = {
   useGeneratedDefaultColors?: boolean
   autocompleteRelationships: boolean
   initialZoomToFit?: boolean
+  /**
+   * Renderer type: 'svg' (default) or 'webgl' (experimental)
+   * WebGL renderer is optimized for large graphs (5,000+ nodes)
+   */
+  renderer?: 'svg' | 'webgl'
 }
 
 export function GraphVisualizer({
@@ -101,7 +107,8 @@ export function GraphVisualizer({
   onGraphInteraction,
   useGeneratedDefaultColors = true,
   autocompleteRelationships,
-  initialZoomToFit
+  initialZoomToFit,
+  renderer = 'svg'
 }: GraphVisualizerProps): JSX.Element {
   // Create graphStyle and defaultStyle only once on mount
   const graphStyleRef = useRef<GraphStyleModel | null>(null)
@@ -285,6 +292,7 @@ export function GraphVisualizer({
         disableWheelZoomInfoMessage={disableWheelZoomInfoMessage}
         initialZoomToFit={initialZoomToFit}
         onGraphInteraction={onGraphInteraction}
+        renderer={renderer}
       />
       <NodeInspectorPanel
         graphStyle={graphStyle}

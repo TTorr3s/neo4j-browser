@@ -177,8 +177,9 @@ export class PixiRelRenderer {
     graphics.container.y = source.y ?? 0
 
     // Rotate to point toward target
-    // naturalAngle is in degrees, convert to radians
-    const angleRad = (rel.naturalAngle * Math.PI) / 180
+    // SVG uses: rotate(naturalAngle + 180), so we add PI radians
+    // naturalAngle is in degrees, convert to radians and add 180 degrees (PI)
+    const angleRad = ((rel.naturalAngle + 180) * Math.PI) / 180
     graphics.container.rotation = angleRad
   }
 
@@ -231,21 +232,63 @@ export class PixiRelRenderer {
   }
 
   /**
-   * Update positions for all relationships
+   * Update positions for all relationships (called on each simulation tick)
+   * This redraws the arrow paths since they depend on node positions
    */
   updateAllPositions(relationships: RelationshipModel[]): void {
     for (const rel of relationships) {
       const bundle = this.relGraphics.get(rel.id)
       if (bundle) {
+        // Update container position and rotation
         this.updateRelPosition(rel, bundle)
 
-        // Also update caption position if it exists
+        // Redraw the arrow path (it changes based on node positions)
+        this.redrawArrowPath(rel, bundle)
+
+        // Update caption position if it exists
         if (bundle.caption && rel.arrow?.midShaftPoint) {
           bundle.caption.x = rel.arrow.midShaftPoint.x
           bundle.caption.y = rel.arrow.midShaftPoint.y
         }
       }
     }
+  }
+
+  /**
+   * Redraw the arrow path for a relationship
+   * Called on each tick because the path geometry changes with node positions
+   */
+  private redrawArrowPath(
+    rel: RelationshipModel,
+    bundle: RelGraphicsBundle
+  ): void {
+    if (!rel.arrow || typeof rel.arrow.outline !== 'function') {
+      return
+    }
+
+    const relStyle = this.style.forRelationship(rel)
+    const fillColor = hexToNumber(relStyle.get('color'))
+
+    // Get updated SVG paths from arrow
+    const shortCaptionLength = rel.shortCaptionLength ?? 0
+    const outlinePath = rel.arrow.outline(shortCaptionLength)
+    const overlayPath = rel.arrow.overlay(OVERLAY_MIN_WIDTH)
+
+    // Clear and redraw outline
+    bundle.outline.clear()
+    this.pathParser.drawPath(outlinePath, bundle.outline, fillColor)
+    if (bundle.selected) {
+      bundle.outline.stroke({
+        color: fillColor,
+        width: SELECTED_STROKE_WIDTH,
+        alpha: SELECTION_ALPHA
+      })
+    }
+
+    // Clear and redraw overlay (hit detection area)
+    bundle.overlay.clear()
+    this.pathParser.drawPath(overlayPath, bundle.overlay, 0x000000)
+    bundle.overlay.alpha = 0
   }
 
   /**
