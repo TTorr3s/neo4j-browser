@@ -18,6 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { calculateDefaultNodeColors } from '@neo4j-devtools/word-color'
+
 import { selectorArrayToString, selectorStringToArray } from '../utils/utils'
 
 export class Selector {
@@ -226,6 +227,8 @@ const DEFAULT_COLORS: DefaultColorType[] = [
 
 export class GraphStyleModel {
   rules: StyleRule[]
+  // Cache for relationship styles by type - avoids recalculating on every tick
+  private relationshipStyleCache: Map<string, StyleElement> = new Map()
 
   constructor(private useGeneratedDefaultColors: boolean = false) {
     this.rules = []
@@ -234,6 +237,10 @@ export class GraphStyleModel {
     } catch (_error) {
       // e = _error
     }
+  }
+
+  private invalidateRelationshipStyleCache = (): void => {
+    this.relationshipStyleCache.clear()
   }
 
   parseSelector = function (key: string): Selector {
@@ -371,6 +378,12 @@ export class GraphStyleModel {
       this.rules.push(rule)
     }
     rule.props = { ...rule.props, ...props }
+
+    // Invalidate cache if relationship styles changed
+    if (selector.tag === 'relationship') {
+      this.invalidateRelationshipStyleCache()
+    }
+
     return rule
   }
 
@@ -484,6 +497,7 @@ export class GraphStyleModel {
       const props = localData[key]
       this.rules.push(new StyleRule(this.parseSelector(key), props))
     }
+    this.invalidateRelationshipStyleCache()
   }
 
   defaultSizes = function (): DefaultSizeType[] {
@@ -533,7 +547,14 @@ export class GraphStyleModel {
   }
 
   forRelationship = (rel: any): StyleElement => {
+    const cacheKey = rel?.type ?? '__default__'
+
+    const cached = this.relationshipStyleCache.get(cacheKey)
+    if (cached) return cached
+
     const selector = this.relationshipSelector(rel)
-    return this.calculateStyle(selector)
+    const style = this.calculateStyle(selector)
+    this.relationshipStyleCache.set(cacheKey, style)
+    return style
   }
 }

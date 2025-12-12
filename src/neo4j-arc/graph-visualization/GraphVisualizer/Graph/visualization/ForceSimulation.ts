@@ -30,6 +30,7 @@ import {
 import {
   DEFAULT_ALPHA,
   DEFAULT_ALPHA_MIN,
+  EXTRA_TICKS_PER_RENDER,
   FORCE_CENTER_X,
   FORCE_CENTER_Y,
   FORCE_CHARGE,
@@ -37,7 +38,6 @@ import {
   FORCE_LINK_DISTANCE,
   LINK_DISTANCE,
   MAX_PRECOMPUTED_TICKS,
-  EXTRA_TICKS_PER_RENDER,
   VELOCITY_DECAY
 } from '../../../constants'
 import { GraphModel } from '../../../models/Graph'
@@ -48,9 +48,19 @@ import circularLayout from './utils/circularLayout'
 const oneRelationshipPerPairOfNodes = (graph: GraphModel) =>
   Array.from(graph.groupedRelationships()).map(pair => pair.relationships[0])
 
+/**
+ * Calculates adaptive extra ticks based on simulation alpha (temperature).
+ * When alpha is high (active simulation), returns more ticks for faster convergence.
+ * When alpha is low (nearly stabilized), returns fewer ticks to reduce unnecessary calculations.
+ */
+const calculateAdaptiveTicks = (alpha: number): number => {
+  return Math.max(1, Math.ceil(EXTRA_TICKS_PER_RENDER * alpha))
+}
+
 export class ForceSimulation {
   simulation: Simulation<NodeModel, RelationshipModel>
   simulationTimeout: null | number = null
+  private collideForce: ReturnType<typeof forceCollide<NodeModel>> | null = null
 
   constructor(render: () => void) {
     this.simulation = forceSimulation<NodeModel, RelationshipModel>()
@@ -60,10 +70,15 @@ export class ForceSimulation {
       .force('centerY', forceY(0).strength(FORCE_CENTER_Y))
       .alphaMin(DEFAULT_ALPHA_MIN)
       .on('tick', () => {
-        this.simulation.tick(EXTRA_TICKS_PER_RENDER)
+        const adaptiveTicks = calculateAdaptiveTicks(this.simulation.alpha())
+        this.simulation.tick(adaptiveTicks)
         render()
       })
       .stop()
+
+    // Initialize forceCollide once - it will automatically use the simulation's nodes
+    this.collideForce = forceCollide<NodeModel>().radius(FORCE_COLLIDE_RADIUS)
+    this.simulation.force('collide', this.collideForce)
   }
 
   updateNodes(graph: GraphModel): void {
@@ -76,9 +91,8 @@ export class ForceSimulation {
     }
     circularLayout(nodes, center, radius)
 
-    this.simulation
-      .nodes(nodes)
-      .force('collide', forceCollide<NodeModel>().radius(FORCE_COLLIDE_RADIUS))
+    // forceCollide is initialized once in constructor - just update nodes
+    this.simulation.nodes(nodes)
   }
 
   updateRelationships(graph: GraphModel): void {

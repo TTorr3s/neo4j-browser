@@ -18,6 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { palette as needlePalette } from '@neo4j-ndl/base/lib/tokens/js/tokens'
+
 import { baseArcTheme } from 'neo4j-arc/common'
 
 import {
@@ -281,5 +282,8 @@ export const dark = {
   drawerCommandText: tokyoNightStorm.red,
 
   // Drawer separator for dark theme
-  drawerSeparator: `1px solid ${tokyoNightStorm.selection}`
+  drawerSeparator: `1px solid ${tokyoNightStorm.selection}`,
+
+  // Hover background for dark theme
+  hoverBackground: tokyoNightStorm.bgHighlight
 }
