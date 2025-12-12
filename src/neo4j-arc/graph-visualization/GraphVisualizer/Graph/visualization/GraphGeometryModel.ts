@@ -17,12 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { PairwiseArcsRelationshipRouting } from './utils/PairwiseArcsRelationshipRouting'
-import { measureText } from '../../../utils/textMeasurement'
 import { GraphModel } from '../../../models/Graph'
 import { GraphStyleModel } from '../../../models/GraphStyle'
 import { NodeCaptionLine, NodeModel } from '../../../models/Node'
 import { RelationshipModel } from '../../../models/Relationship'
+import { measureText } from '../../../utils/textMeasurement'
+import { PairwiseArcsRelationshipRouting } from './utils/PairwiseArcsRelationshipRouting'
 
 export class GraphGeometryModel {
   relationshipRouting: PairwiseArcsRelationshipRouting
@@ -65,12 +65,12 @@ export class GraphGeometryModel {
     graph: GraphModel,
     options = { updateNodes: true, updateRelationships: true }
   ): void {
-    if (!!options.updateNodes) {
+    if (options.updateNodes) {
       this.setNodeRadii(graph.nodes())
       this.formatNodeCaptions(graph.nodes())
     }
 
-    if (!!options.updateRelationships) {
+    if (options.updateRelationships) {
       this.formatRelationshipCaptions(graph.relationships())
       this.relationshipRouting.measureRelationshipCaptions(
         graph.relationships()

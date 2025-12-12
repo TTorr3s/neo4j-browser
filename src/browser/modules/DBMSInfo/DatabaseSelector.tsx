@@ -20,12 +20,12 @@
 import React, { type JSX } from 'react'
 import styled from 'styled-components'
 
+import { StyledSelect } from 'browser-components/Form'
 import {
   DrawerSection,
   DrawerSectionBody,
   DrawerSubHeader
 } from 'browser-components/drawer/drawer-styled'
-import { StyledSelect } from 'browser-components/Form'
 import { escapeCypherIdentifier } from 'services/utils'
 import { Database } from 'shared/modules/dbMeta/dbMetaDuck'
 
@@ -97,9 +97,7 @@ export const DatabaseSelector = ({
           data-testid="database-selection-list"
           onChange={selectionChange}
         >
-          {!Boolean(selectedDb) && (
-            <option value={EMPTY_OPTION}>{EMPTY_OPTION}</option>
-          )}
+          {!selectedDb && <option value={EMPTY_OPTION}>{EMPTY_OPTION}</option>}
 
           {databasesAndAliases.map(dbOrAlias => {
             /* When deduplicating the list of databases and aliases on clusters
