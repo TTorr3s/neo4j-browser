@@ -19,4 +19,6 @@
  */
 export { PixiVisualization } from './PixiVisualization'
 export { PixiNodeRenderer, hexToNumber } from './PixiNodeRenderer'
+export { PixiRelRenderer } from './PixiRelRenderer'
 export { PixiTextRenderer } from './PixiTextRenderer'
+export { SVGPathParser } from './SVGPathParser'

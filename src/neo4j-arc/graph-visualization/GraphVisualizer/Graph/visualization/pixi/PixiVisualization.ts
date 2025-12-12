@@ -33,6 +33,7 @@ import { ForceSimulation } from '../ForceSimulation'
 import { GraphGeometryModel } from '../GraphGeometryModel'
 import { RenderEngine, UpdateOptions } from '../RenderEngine'
 import { PixiNodeRenderer } from './PixiNodeRenderer'
+import { PixiRelRenderer } from './PixiRelRenderer'
 
 type MeasureSizeFn = () => { width: number; height: number }
 
@@ -46,6 +47,7 @@ export class PixiVisualization implements RenderEngine {
   private nodeContainer: Container | null = null
   private relationshipContainer: Container | null = null
   private nodeRenderer: PixiNodeRenderer | null = null
+  private relRenderer: PixiRelRenderer | null = null
 
   private geometry: GraphGeometryModel
   private zoomMinScaleExtent: number = ZOOM_MIN_SCALE
@@ -120,6 +122,7 @@ export class PixiVisualization implements RenderEngine {
 
     // Initialize renderers
     this.nodeRenderer = new PixiNodeRenderer(this.style)
+    this.relRenderer = new PixiRelRenderer(this.style)
 
     // Set up zoom event handling
     this.viewport.on('zoomed', () => {
@@ -182,8 +185,9 @@ export class PixiVisualization implements RenderEngine {
     }
 
     // Update relationship positions
-    // TODO: Implement in Phase 3
-    // this.updateRelationshipPositions()
+    if (this.relRenderer) {
+      this.relRenderer.updateAllPositions(this.graph.relationships())
+    }
   }
 
   init(): void {
@@ -226,7 +230,7 @@ export class PixiVisualization implements RenderEngine {
   }
 
   private updateRelationships(): void {
-    if (!this.relationshipContainer) return
+    if (!this.relationshipContainer || !this.relRenderer) return
 
     const relationships = this.graph.relationships()
     this.geometry.onGraphChange(this.graph, {
@@ -234,16 +238,17 @@ export class PixiVisualization implements RenderEngine {
       updateRelationships: true
     })
 
-    // Clear existing relationships
+    // Clear existing relationship graphics
+    this.relRenderer.clear()
     this.relationshipContainer.removeChildren()
 
-    // TODO: Implement relationship rendering in Phase 3
-    this.forceSimulation.updateRelationships(this.graph)
+    // Render each relationship
+    for (const rel of relationships) {
+      this.relRenderer.updateRelationship(rel, this.relationshipContainer)
+    }
 
-    // Placeholder: Log relationship count
-    console.log(
-      `PixiVisualization: ${relationships.length} relationships to render`
-    )
+    // Update force simulation
+    this.forceSimulation.updateRelationships(this.graph)
 
     this.render()
   }
@@ -413,6 +418,11 @@ export class PixiVisualization implements RenderEngine {
     if (this.nodeRenderer) {
       this.nodeRenderer.destroy()
       this.nodeRenderer = null
+    }
+
+    if (this.relRenderer) {
+      this.relRenderer.destroy()
+      this.relRenderer = null
     }
 
     if (this.viewport) {
