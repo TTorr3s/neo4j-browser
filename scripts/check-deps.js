@@ -65,5 +65,8 @@ if (!stale.length) {
   process.exit(0)
 }
 
+// Order by ageYears descending (inmutable)
+const sortedStale = [...stale].sort((a, b) => b.ageYears - a.ageYears)
+
 console.log(`Dependencies older than ${YEARS_THRESHOLD} years:\n`)
-console.table(stale)
+console.table(sortedStale)
