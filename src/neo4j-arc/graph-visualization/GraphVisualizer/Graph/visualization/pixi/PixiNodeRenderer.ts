@@ -188,6 +188,15 @@ export class PixiNodeRenderer {
   }
 
   /**
+   * Set captions visibility for all nodes (LOD optimization)
+   */
+  setCaptionsVisible(visible: boolean): void {
+    for (const bundle of this.nodeGraphics.values()) {
+      bundle.captionContainer.visible = visible
+    }
+  }
+
+  /**
    * Remove a node's graphics
    */
   removeNode(nodeId: string): void {

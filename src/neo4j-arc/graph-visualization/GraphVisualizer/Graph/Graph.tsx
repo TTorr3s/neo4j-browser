@@ -19,6 +19,7 @@
  */
 import { ResizeObserver } from '@juggle/resize-observer'
 import { type JSX, useCallback, useEffect, useRef, useState } from 'react'
+import { useTheme } from 'styled-components'
 
 import {
   BasicNode,
@@ -112,6 +113,12 @@ export function Graph({
   onGraphInteraction,
   renderer = 'svg'
 }: GraphProps): JSX.Element {
+  // Theme colors for WebGL renderer
+  const theme = useTheme() as {
+    frameBackground?: string
+    primaryText?: string
+  }
+
   // State
   const [zoomInLimitReached, setZoomInLimitReached] = useState(false)
   const [zoomOutLimitReached, setZoomOutLimitReached] = useState(false)
@@ -211,7 +218,11 @@ export function Graph({
         graphStyle,
         isFullscreen,
         wheelZoomRequiresModKey,
-        initialZoomToFit
+        initialZoomToFit,
+        {
+          backgroundColor: theme?.frameBackground,
+          relationshipTextColor: theme?.primaryText
+        }
       )
     } else {
       // Use D3/SVG renderer (default)

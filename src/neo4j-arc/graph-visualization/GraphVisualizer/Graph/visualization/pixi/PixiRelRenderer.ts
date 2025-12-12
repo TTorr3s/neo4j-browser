@@ -35,6 +35,9 @@ interface RelGraphicsBundle {
   overlay: Graphics
   caption: Sprite | null
   selected: boolean
+  // Cached paths to avoid redundant redraws
+  lastOutlinePath?: string
+  lastOverlayPath?: string
 }
 
 /**
@@ -46,7 +49,10 @@ export class PixiRelRenderer {
   private pathParser: SVGPathParser
   private textRenderer: PixiTextRenderer
 
-  constructor(private style: GraphStyleModel) {
+  constructor(
+    private style: GraphStyleModel,
+    private themeTextColor?: string
+  ) {
     this.pathParser = new SVGPathParser()
     this.textRenderer = new PixiTextRenderer()
   }
@@ -106,7 +112,9 @@ export class PixiRelRenderer {
     // Parse style values
     const fillColor = hexToNumber(relStyle.get('color'))
     const fontSize = parseFloat(relStyle.get('font-size')) || 8
-    const textColor = relStyle.get('text-color-external') || '#c0caf5'
+    // Use theme text color, then style text color, then fallback
+    const textColor =
+      this.themeTextColor || relStyle.get('text-color-external') || '#c0caf5'
 
     // Clear existing graphics
     bundle.outline.clear()
@@ -256,7 +264,7 @@ export class PixiRelRenderer {
 
   /**
    * Redraw the arrow path for a relationship
-   * Called on each tick because the path geometry changes with node positions
+   * Called on each tick - only redraws if path changed
    */
   private redrawArrowPath(
     rel: RelationshipModel,
@@ -266,18 +274,27 @@ export class PixiRelRenderer {
       return
     }
 
-    const relStyle = this.style.forRelationship(rel)
-    const fillColor = hexToNumber(relStyle.get('color'))
-
     // Get updated SVG paths from arrow
     const shortCaptionLength = rel.shortCaptionLength ?? 0
     const outlinePath = rel.arrow.outline(shortCaptionLength)
     const overlayPath = rel.arrow.overlay(OVERLAY_MIN_WIDTH)
 
+    // Skip redraw if paths haven't changed
+    if (
+      outlinePath === bundle.lastOutlinePath &&
+      overlayPath === bundle.lastOverlayPath &&
+      bundle.selected === rel.selected
+    ) {
+      return
+    }
+
+    const relStyle = this.style.forRelationship(rel)
+    const fillColor = hexToNumber(relStyle.get('color'))
+
     // Clear and redraw outline
     bundle.outline.clear()
     this.pathParser.drawPath(outlinePath, bundle.outline, fillColor)
-    if (bundle.selected) {
+    if (rel.selected) {
       bundle.outline.stroke({
         color: fillColor,
         width: SELECTED_STROKE_WIDTH,
@@ -289,6 +306,11 @@ export class PixiRelRenderer {
     bundle.overlay.clear()
     this.pathParser.drawPath(overlayPath, bundle.overlay, 0x000000)
     bundle.overlay.alpha = 0
+
+    // Cache the paths
+    bundle.lastOutlinePath = outlinePath
+    bundle.lastOverlayPath = overlayPath
+    bundle.selected = rel.selected
   }
 
   /**
@@ -300,6 +322,17 @@ export class PixiRelRenderer {
       bundle.selected = selected
       // Re-render with new selection state would require relationship reference
       // For now, this is handled by full updateRelationship call
+    }
+  }
+
+  /**
+   * Set captions visibility for all relationships (LOD optimization)
+   */
+  setCaptionsVisible(visible: boolean): void {
+    for (const bundle of this.relGraphics.values()) {
+      if (bundle.caption) {
+        bundle.caption.visible = visible
+      }
     }
   }
 

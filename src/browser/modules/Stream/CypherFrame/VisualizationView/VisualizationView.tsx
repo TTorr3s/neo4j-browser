@@ -318,7 +318,7 @@ LIMIT ${maxNewNeighbours}`
   return (
     <StyledVisContainer isFullscreen={isFullscreen}>
       <GraphVisualizer
-        renderer="webgl"
+        // EXPERIMENTAL: renderer="webgl"
         maxNeighbours={maxNeighbours}
         hasTruncatedFields={state.hasTruncatedFields}
         graphStyleData={graphStyleData}

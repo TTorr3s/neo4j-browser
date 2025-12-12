@@ -41,13 +41,13 @@ export const DRAGGING_ALPHA = 0.8
 // the simulation from stopping.
 export const DRAGGING_ALPHA_TARGET = 0.09
 
-export const LINK_DISTANCE = 45
+export const LINK_DISTANCE = 80
 
 export const FORCE_LINK_DISTANCE = (relationship: RelationshipModel): number =>
   relationship.source.radius + relationship.target.radius + LINK_DISTANCE * 2
 export const FORCE_COLLIDE_RADIUS = (node: NodeModel): number =>
-  node.radius + 25
-export const FORCE_CHARGE = -400
+  node.radius + 45
+export const FORCE_CHARGE = -800
 export const FORCE_CENTER_X = 0.03
 export const FORCE_CENTER_Y = 0.03
 

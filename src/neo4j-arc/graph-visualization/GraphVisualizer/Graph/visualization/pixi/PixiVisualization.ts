@@ -38,10 +38,18 @@ import { ForceSimulation } from '../ForceSimulation'
 import { GraphGeometryModel } from '../GraphGeometryModel'
 import { RenderEngine, UpdateOptions } from '../RenderEngine'
 import { HitResult, PixiHitDetection } from './PixiHitDetection'
-import { PixiNodeRenderer } from './PixiNodeRenderer'
+import { PixiNodeRenderer, hexToNumber } from './PixiNodeRenderer'
 import { PixiRelRenderer } from './PixiRelRenderer'
 
 type MeasureSizeFn = () => { width: number; height: number }
+
+/**
+ * Theme colors for the WebGL renderer
+ */
+export interface PixiThemeColors {
+  backgroundColor?: string
+  relationshipTextColor?: string
+}
 
 // Drag tolerance in pixels (squared to avoid sqrt)
 const DRAG_TOLERANCE_SQ = 25 * 25
@@ -98,6 +106,25 @@ export class PixiVisualization implements RenderEngine {
   private lastClickTarget: NodeModel | null = null
   private readonly DOUBLE_CLICK_THRESHOLD = 300 // ms
 
+  // Event listener reference for cleanup
+  private wheelHandler: ((e: WheelEvent) => void) | null = null
+
+  // FPS counter for performance debugging
+  private fpsCounter = {
+    frames: 0,
+    lastTime: 0,
+    fps: 0,
+    enabled: process.env.NODE_ENV === 'development'
+  }
+
+  // Level of Detail settings
+  private static readonly LOD_THRESHOLDS = {
+    HIDE_CAPTIONS: 0.3,
+    SIMPLIFY_NODES: 0.15,
+    HIDE_RELATIONSHIPS: 0.1
+  }
+  private currentLOD: 'full' | 'medium' | 'low' | 'minimal' = 'full'
+
   forceSimulation: ForceSimulation
 
   constructor(
@@ -109,7 +136,8 @@ export class PixiVisualization implements RenderEngine {
     public style: GraphStyleModel,
     public isFullscreen: boolean,
     public wheelZoomRequiresModKey?: boolean,
-    private initialZoomToFit?: boolean
+    private initialZoomToFit?: boolean,
+    private themeColors?: PixiThemeColors
   ) {
     this.geometry = new GraphGeometryModel(style)
     this.forceSimulation = new ForceSimulation(this.render.bind(this))
@@ -123,13 +151,18 @@ export class PixiVisualization implements RenderEngine {
     // Use higher resolution for crisp rendering on high-DPI displays
     const resolution = Math.min(window.devicePixelRatio || 1, 3)
 
+    // Use theme background color or default to white
+    const bgColor = this.themeColors?.backgroundColor
+      ? hexToNumber(this.themeColors.backgroundColor)
+      : 0xffffff
+
     this.app = new Application()
     await this.app.init({
       canvas: this.canvas,
       width: size.width,
       height: size.height,
       antialias: true,
-      backgroundColor: 0xffffff,
+      backgroundColor: bgColor,
       resolution: resolution,
       autoDensity: true,
       // Improve rendering quality
@@ -165,7 +198,10 @@ export class PixiVisualization implements RenderEngine {
 
     // Initialize renderers and hit detection
     this.nodeRenderer = new PixiNodeRenderer(this.style)
-    this.relRenderer = new PixiRelRenderer(this.style)
+    this.relRenderer = new PixiRelRenderer(
+      this.style,
+      this.themeColors?.relationshipTextColor
+    )
     this.hitDetection = new PixiHitDetection()
 
     // Set up zoom event handling
@@ -176,6 +212,9 @@ export class PixiVisualization implements RenderEngine {
         zoomOutLimitReached: scale <= this.zoomMinScaleExtent
       }
       this.onZoomEvent(limitsReached)
+
+      // Update Level of Detail based on zoom scale
+      this.updateLOD()
     })
 
     // Set up interaction events
@@ -184,7 +223,7 @@ export class PixiVisualization implements RenderEngine {
     // Handle wheel zoom modifier key requirement
     if (this.wheelZoomRequiresModKey) {
       this.viewport.plugins.pause('wheel')
-      this.canvas.addEventListener('wheel', e => {
+      this.wheelHandler = (e: WheelEvent) => {
         const modKeySelected = e.metaKey || e.ctrlKey || e.shiftKey
         if (modKeySelected) {
           this.viewport?.plugins.resume('wheel')
@@ -192,6 +231,9 @@ export class PixiVisualization implements RenderEngine {
           this.viewport?.plugins.pause('wheel')
           this.onDisplayZoomWheelInfoMessage()
         }
+      }
+      this.canvas.addEventListener('wheel', this.wheelHandler, {
+        passive: true
       })
     }
 
@@ -485,6 +527,85 @@ export class PixiVisualization implements RenderEngine {
     if (this.relRenderer) {
       this.relRenderer.updateAllPositions(this.graph.relationships())
     }
+
+    // Track FPS for performance monitoring
+    this.updateFPS()
+  }
+
+  /**
+   * Update FPS counter (only logs in development mode)
+   */
+  private updateFPS(): void {
+    if (!this.fpsCounter.enabled) return
+
+    this.fpsCounter.frames++
+    const now = performance.now()
+
+    if (this.fpsCounter.lastTime === 0) {
+      this.fpsCounter.lastTime = now
+      return
+    }
+
+    const elapsed = now - this.fpsCounter.lastTime
+    if (elapsed >= 1000) {
+      this.fpsCounter.fps = Math.round(
+        (this.fpsCounter.frames * 1000) / elapsed
+      )
+      // eslint-disable-next-line no-console
+      console.debug(
+        `[PixiViz] FPS: ${this.fpsCounter.fps} | Nodes: ${this.graph.nodes().length} | Rels: ${this.graph.relationships().length}`
+      )
+      this.fpsCounter.frames = 0
+      this.fpsCounter.lastTime = now
+    }
+  }
+
+  /**
+   * Update LOD based on current zoom scale
+   */
+  private updateLOD(): void {
+    if (!this.viewport) return
+
+    const scale = this.viewport.scale.x
+    const { HIDE_CAPTIONS, SIMPLIFY_NODES, HIDE_RELATIONSHIPS } =
+      PixiVisualization.LOD_THRESHOLDS
+
+    const newLOD: typeof this.currentLOD =
+      scale >= HIDE_CAPTIONS
+        ? 'full'
+        : scale >= SIMPLIFY_NODES
+          ? 'medium'
+          : scale >= HIDE_RELATIONSHIPS
+            ? 'low'
+            : 'minimal'
+
+    if (newLOD !== this.currentLOD) {
+      this.currentLOD = newLOD
+      this.applyLOD()
+    }
+  }
+
+  /**
+   * Apply LOD visibility settings to renderers
+   */
+  private applyLOD(): void {
+    const showCaptions = this.currentLOD === 'full'
+    const showRelationships = this.currentLOD !== 'minimal'
+
+    // Update node captions visibility
+    if (this.nodeRenderer) {
+      this.nodeRenderer.setCaptionsVisible(showCaptions)
+    }
+
+    // Update relationship captions and visibility
+    if (this.relRenderer) {
+      this.relRenderer.setCaptionsVisible(showCaptions)
+    }
+
+    // Show/hide relationship container
+    if (this.relationshipContainer) {
+      this.relationshipContainer.visible = showRelationships
+    }
   }
 
   init(): void {
@@ -718,6 +839,12 @@ export class PixiVisualization implements RenderEngine {
    * Clean up PixiJS resources
    */
   destroy(): void {
+    // Remove event listeners first
+    if (this.wheelHandler) {
+      this.canvas.removeEventListener('wheel', this.wheelHandler)
+      this.wheelHandler = null
+    }
+
     if (this.nodeRenderer) {
       this.nodeRenderer.destroy()
       this.nodeRenderer = null

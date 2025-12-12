@@ -41,7 +41,10 @@ export class PixiTextRenderer {
 
   constructor() {
     this.offscreenCanvas = document.createElement('canvas')
-    this.offscreenCtx = this.offscreenCanvas.getContext('2d')!
+    // willReadFrequently optimizes for multiple getImageData calls
+    this.offscreenCtx = this.offscreenCanvas.getContext('2d', {
+      willReadFrequently: true
+    })!
   }
 
   /**
