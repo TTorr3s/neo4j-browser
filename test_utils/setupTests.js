@@ -18,10 +18,60 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import '@testing-library/jest-dom'
-import fetchMock from 'jest-fetch-mock'
+// Workaround to get whatwg-url to not fail in tests.
+// https://github.com/jsdom/whatwg-url/issues/209
+import { TextDecoder, TextEncoder } from 'util'
 
-// Enable fetch mocking globally
-fetchMock.enableMocks()
+// Native fetch mock implementation
+const createFetchMock = () => {
+  let mockResponses = []
+
+  const mockFetch = jest.fn((url, options) => {
+    if (mockResponses.length === 0) {
+      return Promise.reject(new Error('No mock response configured'))
+    }
+
+    const response = mockResponses.shift()
+    const { body, init = {} } = response
+
+    return Promise.resolve({
+      ok: (init.status || 200) >= 200 && (init.status || 200) < 300,
+      status: init.status || 200,
+      statusText: init.statusText || 'OK',
+      headers: new Headers(init.headers || {}),
+      json: () =>
+        Promise.resolve(typeof body === 'string' ? JSON.parse(body) : body),
+      text: () =>
+        Promise.resolve(typeof body === 'string' ? body : JSON.stringify(body)),
+      clone: function () {
+        return this
+      }
+    })
+  })
+
+  mockFetch.mockResponseOnce = (body, init = {}) => {
+    mockResponses.push({ body, init })
+    return mockFetch
+  }
+
+  mockFetch.mockResponses = (...responses) => {
+    responses.forEach(([body, init = {}]) => {
+      mockResponses.push({ body, init })
+    })
+    return mockFetch
+  }
+
+  mockFetch.resetMocks = () => {
+    mockResponses = []
+    mockFetch.mockClear()
+  }
+
+  return mockFetch
+}
+
+// Create and expose global fetch mock
+global.fetchMock = createFetchMock()
+global.fetch = global.fetchMock
 
 // Add extra expect functions to be used in tests
 
@@ -58,9 +108,6 @@ window.SVGElement.prototype.getBBox = () => ({
   y: 0
 })
 
-// Workaround to get whatwg-url to not fail in tests.
-// https://github.com/jsdom/whatwg-url/issues/209
-import { TextEncoder, TextDecoder } from 'util'
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
