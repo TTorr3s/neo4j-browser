@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import React, { PropsWithChildren } from 'react'
+import React, { PropsWithChildren, type JSX } from 'react'
 import { Column } from 'react-table'
 
 import {

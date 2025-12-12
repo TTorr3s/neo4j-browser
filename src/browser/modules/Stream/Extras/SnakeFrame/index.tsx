@@ -137,7 +137,7 @@ export function SnakeFrame() {
   )
 }
 
-interface FrameProps {
+export interface FrameProps {
   isCollapsed: boolean
   isFullscreen: boolean
 }

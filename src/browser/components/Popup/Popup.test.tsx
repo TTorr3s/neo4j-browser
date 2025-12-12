@@ -24,7 +24,7 @@ import { ThemeProvider } from 'styled-components'
 import { Popup } from './Popup'
 import { base as theme } from 'browser-styles/themes'
 
-const renderWithTheme = (component: React.ReactElement) => {
+const renderWithTheme = (component: React.ReactElement<any>) => {
   return render(<ThemeProvider theme={theme}>{component}</ThemeProvider>)
 }
 

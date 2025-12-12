@@ -22,7 +22,8 @@ import React, {
   useEffect,
   useLayoutEffect,
   useRef,
-  useState
+  useState,
+  type JSX
 } from 'react'
 import { createPortal } from 'react-dom'
 import styled, { css } from 'styled-components'
@@ -39,7 +40,7 @@ export type PopupPosition =
 
 export interface PopupProps {
   /** The element that triggers the popup */
-  trigger: React.ReactElement
+  trigger: React.ReactElement<any>
   /** The content to display inside the popup */
   children?: React.ReactNode
   /** Alternative to children for simple content */

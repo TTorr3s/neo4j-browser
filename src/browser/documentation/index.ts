@@ -85,6 +85,8 @@ import helpUnwind from './help/unwind'
 import helpWhere from './help/where'
 import helpWith from './help/with'
 
+import type { JSX } from 'react'
+
 type AllDocumentation = {
   help: HelpDocs
   cypher: CypherDocs

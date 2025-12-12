@@ -16,7 +16,7 @@ interface RenderProps {
 
 interface InputEnterSteppingProps {
   submitAction?: () => void
-  render: (props: RenderProps) => ReactElement
+  render: (props: RenderProps) => ReactElement<any>
   /** Number of steps - informational prop for parent components */
   steps?: number
 }
@@ -24,7 +24,7 @@ interface InputEnterSteppingProps {
 function InputEnterStepping({
   submitAction,
   render
-}: InputEnterSteppingProps): ReactElement {
+}: InputEnterSteppingProps): ReactElement<any> {
   const [initial, setInitial] = useState(true)
   const stepsRef = useRef<Step[]>([])
 

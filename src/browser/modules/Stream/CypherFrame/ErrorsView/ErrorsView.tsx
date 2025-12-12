@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useCallback } from 'react'
+import React, { useCallback, type JSX } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Action, Dispatch } from 'redux'

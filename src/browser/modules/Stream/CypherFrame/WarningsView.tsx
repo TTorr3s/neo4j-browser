@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /* eslint-disable react/prop-types */
-import React, { memo } from 'react'
+import React, { memo, type JSX } from 'react'
 import { useSelector } from 'react-redux'
 import { gte } from 'semver'
 

@@ -62,7 +62,7 @@ export function useNameUpdate(name: string, update: () => void): NameUpdateFns {
  */
 export function useCustomBlur(
   onBlur: () => void
-): React.RefObject<HTMLDivElement> {
+): React.RefObject<HTMLDivElement | null> {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

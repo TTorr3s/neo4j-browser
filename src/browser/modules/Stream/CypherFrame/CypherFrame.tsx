@@ -20,7 +20,14 @@
 import { saveAs } from 'services/exporting/fileSaver'
 import { map } from 'lodash'
 import { QueryResult, Record as Neo4jRecord } from 'neo4j-driver'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX
+} from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import {

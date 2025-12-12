@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /* eslint-disable react/prop-types */
-import React, { useState, useCallback, ReactNode } from 'react'
+import { useState, useCallback, ReactNode, type JSX } from 'react'
 
 import { BorderedWrapper, ContentArea, TitleBar } from './styled'
 

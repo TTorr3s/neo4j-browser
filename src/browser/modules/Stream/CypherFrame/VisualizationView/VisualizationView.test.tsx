@@ -19,7 +19,7 @@
  */
 import { render } from '@testing-library/react'
 import neo4j from 'neo4j-driver'
-import React from 'react'
+import React, { type JSX } from 'react'
 import { Provider } from 'react-redux'
 import configureMockStore from 'redux-mock-store'
 import { Bus } from 'suber'

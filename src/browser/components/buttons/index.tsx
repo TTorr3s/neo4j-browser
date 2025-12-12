@@ -17,11 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React from 'react'
+import React, { type JSX } from 'react'
 import styled, { StyledComponent } from 'styled-components'
 
 import { hexToRgba } from '../../styles/utils'
-import styles from './style.css'
 import { dim } from 'browser-styles/constants'
 
 export const CloseButton = (props: any): JSX.Element => {

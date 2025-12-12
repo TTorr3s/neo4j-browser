@@ -19,7 +19,7 @@
  */
 /* eslint-disable react/prop-types */
 import asciitable from 'ascii-data-table'
-import React, { memo, useCallback, useEffect, useState } from 'react'
+import React, { memo, useCallback, useEffect, useState, type JSX } from 'react'
 import { connect } from 'react-redux'
 
 import { WarningMessage } from 'neo4j-arc/common'

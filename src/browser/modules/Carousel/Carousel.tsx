@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React from 'react'
+import { type JSX } from 'react'
 import { useState } from 'react'
 import { useRef } from 'react'
 import { useEffect } from 'react'
@@ -55,7 +55,7 @@ export default function Carousel({
     return 0
   })
   const [wasClicked, setWasClicked] = useState(false)
-  const myRef = useRef<any>()
+  const myRef = useRef<any>(null)
 
   useEffect(() => {
     let showSlideIndex = 0

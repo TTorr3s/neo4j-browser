@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Dispatch, useState } from 'react'
+import { Dispatch, useState, type JSX } from 'react'
 import { connect } from 'react-redux'
 import { Action } from 'redux'
 import styled from 'styled-components'

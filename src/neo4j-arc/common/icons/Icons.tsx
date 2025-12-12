@@ -7,7 +7,7 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/solid'
 import { DocumentDuplicateIcon } from '@heroicons/react/24/outline'
-import React from 'react'
+import { type JSX } from 'react'
 
 const SMALL_SIZE = 15
 const LARGE_SIZE = 20

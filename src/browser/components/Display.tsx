@@ -22,7 +22,8 @@ import React, {
   useEffect,
   memo,
   CSSProperties,
-  ReactNode
+  ReactNode,
+  type JSX
 } from 'react'
 
 interface DisplayProps {

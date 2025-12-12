@@ -18,7 +18,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import deepmerge from 'deepmerge'
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  type JSX
+} from 'react'
 
 import { Graph } from './Graph/Graph'
 import { NodeInspectorPanel, defaultPanelWidth } from './NodeInspectorPanel'

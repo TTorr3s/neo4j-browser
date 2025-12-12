@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { uniq } from 'lodash-es'
-import React, { useState } from 'react'
+import React, { useState, type JSX } from 'react'
 import { useDrop } from 'react-dnd'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -197,7 +197,9 @@ export default function SavedScripts({
   )
   return (
     <SavedScriptsBody ref={blurRef}>
-      <span ref={dropOutsideFolder}>
+      <span
+        ref={dropOutsideFolder as unknown as React.LegacyRef<HTMLSpanElement>}
+      >
         <SavedScriptsHeader>
           <span>{title}</span>
           {hasSelectedIds ? (

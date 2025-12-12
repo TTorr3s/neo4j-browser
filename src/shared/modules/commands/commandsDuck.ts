@@ -80,8 +80,7 @@ export default function reducer(state = initialState, action: any) {
 
 // Action creators
 
-export interface ExecuteSingleCommandAction {
-  type: typeof SINGLE_COMMAND_QUEUED
+interface BaseCommandAction {
   cmd: string
   id?: number | string
   requestId?: string
@@ -89,7 +88,11 @@ export interface ExecuteSingleCommandAction {
   isRerun?: boolean
 }
 
-export interface ExecuteCommandAction extends ExecuteSingleCommandAction {
+export interface ExecuteSingleCommandAction extends BaseCommandAction {
+  type: typeof SINGLE_COMMAND_QUEUED
+}
+
+export interface ExecuteCommandAction extends BaseCommandAction {
   type: typeof COMMAND_QUEUED
   parentId?: string
   source?: string

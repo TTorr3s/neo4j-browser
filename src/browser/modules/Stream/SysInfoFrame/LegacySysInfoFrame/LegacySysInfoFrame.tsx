@@ -67,7 +67,7 @@ export const LegacySysInfoFrame = ({
   isFullscreen,
   isCollapsed,
   isOnCluster
-}: LegacySysInfoProps): React.ReactElement => {
+}: LegacySysInfoProps): React.ReactElement<any> => {
   const [lastFetch, setLastFetch] = useState<number | null>(null)
   const [cc, setCc] = useState<any[]>([])
   const [ha, setHa] = useState<any[]>([])

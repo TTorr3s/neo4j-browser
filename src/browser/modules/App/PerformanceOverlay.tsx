@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef, type JSX } from 'react'
 import { connect } from 'react-redux'
 import styled from 'styled-components'
 

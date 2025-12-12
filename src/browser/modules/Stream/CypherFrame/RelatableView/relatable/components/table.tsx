@@ -15,7 +15,7 @@
  *
  */
 import { map } from 'lodash-es'
-import React, { useCallback } from 'react'
+import React, { useCallback, type JSX } from 'react'
 
 import { useRelatableStateContext } from '../states'
 import arrayHasItems from '../utils/array-has-items'

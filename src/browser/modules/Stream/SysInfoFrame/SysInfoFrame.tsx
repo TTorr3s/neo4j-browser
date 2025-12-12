@@ -106,7 +106,7 @@ export const SysInfoFrame = ({
   isOnCluster: onCluster,
   namespacesEnabled,
   metricsPrefix
-}: SysInfoFrameProps): React.ReactElement => {
+}: SysInfoFrameProps): React.ReactElement<any> => {
   const [lastFetch, setLastFetch] = useState<number | null>(null)
   const [storeSizes, setStoreSizes] = useState<DatabaseMetric[]>([])
   const [idAllocation, setIdAllocation] = useState<DatabaseMetric[]>([])

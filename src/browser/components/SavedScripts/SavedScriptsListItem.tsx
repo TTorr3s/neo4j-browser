@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useState } from 'react'
+import React, { useState, type JSX } from 'react'
 import { useDrag } from 'react-dnd'
 
 import { NavIcon } from '../icons/LegacyIcons'
@@ -95,7 +95,7 @@ function SavedScriptsListItem({
       <SavedScriptsListItemMain
         data-testid="savedScriptListItem"
         isSelected={isSelected}
-        ref={dragAndDropRef}
+        ref={dragAndDropRef as unknown as React.LegacyRef<HTMLDivElement>}
         onClick={onClick}
       >
         {isEditing ? (

@@ -92,7 +92,7 @@ const initialState: VisualizationState = {
 
 function VisualizationComponent(
   props: VisualizationProps
-): React.ReactElement | null {
+): React.ReactElement<any> | null {
   const {
     result,
     graphStyleData,

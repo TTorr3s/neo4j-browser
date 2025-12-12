@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { memo } from 'react'
+import React, { memo, type JSX } from 'react'
 
 import { deepEquals } from 'neo4j-arc/common'
 import { ExclamationTriangleIcon } from 'browser-components/icons/LegacyIcons'

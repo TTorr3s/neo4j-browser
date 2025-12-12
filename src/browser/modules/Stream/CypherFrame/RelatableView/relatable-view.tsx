@@ -16,7 +16,7 @@
  */
 import { get, head, map, slice } from 'lodash-es'
 import { QueryResult, Record, isInt } from 'neo4j-driver'
-import React, { useMemo } from 'react'
+import React, { useMemo, type JSX } from 'react'
 import { connect } from 'react-redux'
 
 import {

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { Component, ErrorInfo, ReactNode, type JSX } from 'react'
 import styled from 'styled-components'
 
 import { StyledErrorBoundaryButton } from 'browser-components/buttons/index'

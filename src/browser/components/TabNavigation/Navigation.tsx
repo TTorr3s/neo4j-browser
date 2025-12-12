@@ -17,12 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, {
+import {
   useState,
   useEffect,
   useCallback,
   useRef,
-  TransitionEvent
+  TransitionEvent,
+  type JSX
 } from 'react'
 
 import {

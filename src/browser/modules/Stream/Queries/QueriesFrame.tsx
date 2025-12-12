@@ -17,7 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type JSX
+} from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Bus } from 'suber'

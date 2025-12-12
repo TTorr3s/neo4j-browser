@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { uniqBy } from 'lodash-es'
-import React from 'react'
+import React, { type JSX } from 'react'
 
 import { toKeyString } from 'neo4j-arc/common'
 

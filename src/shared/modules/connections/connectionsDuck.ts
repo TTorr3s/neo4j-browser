@@ -300,7 +300,7 @@ interface RemoveAction {
   type: typeof REMOVE
 }
 
-interface MergeAction {
+export interface MergeAction {
   type: typeof MERGE
   connection: Connection
 }

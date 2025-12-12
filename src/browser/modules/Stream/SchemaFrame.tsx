@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { replace, toUpper } from 'lodash-es'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState, type JSX } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import semver, { SemVer } from 'semver'

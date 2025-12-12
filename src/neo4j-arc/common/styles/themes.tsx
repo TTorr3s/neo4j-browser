@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { ThemeProvider } from 'styled-components'
-import React from 'react'
+import { type JSX } from 'react'
 
 export const baseArcTheme = {
   name: 'base',

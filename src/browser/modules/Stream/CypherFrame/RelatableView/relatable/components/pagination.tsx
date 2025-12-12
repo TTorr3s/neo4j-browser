@@ -15,7 +15,7 @@
  *
  */
 import { map } from 'lodash-es'
-import React from 'react'
+import React, { type JSX } from 'react'
 import styled from 'styled-components'
 
 import { IWithPaginationInstance } from '../add-ons'

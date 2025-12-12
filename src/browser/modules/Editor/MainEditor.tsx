@@ -22,7 +22,7 @@ import {
   CypherEditorHandle
 } from 'neo4j-arc/cypher-language-support'
 import { QueryResult } from 'neo4j-driver'
-import React, { Dispatch, useEffect, useRef, useState } from 'react'
+import { Dispatch, useEffect, useRef, useState, type JSX } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Action } from 'redux'

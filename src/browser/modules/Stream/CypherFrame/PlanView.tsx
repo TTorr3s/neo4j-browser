@@ -18,7 +18,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import memoize from 'memoize-one'
-import React, { useRef, useState, useEffect, useCallback } from 'react'
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  type JSX
+} from 'react'
 
 import {
   DoubleDownIcon,

@@ -15,7 +15,7 @@
  *
  */
 import { flatMap } from 'lodash-es'
-import React, { useMemo } from 'react'
+import React, { useMemo, type JSX } from 'react'
 
 import { useRelatableStateContext } from '../../states'
 import getFinalDepthSubRows from '../../utils/get-final-depth-subrows'
