@@ -19,18 +19,47 @@
  */
 import { GraphModel, NodePair } from '../../../../models/Graph'
 import { GraphStyleModel } from '../../../../models/GraphStyle'
-import { RelationshipModel } from '../../../../models/Relationship'
+import {
+  RelationshipCaptionLayout,
+  RelationshipModel
+} from '../../../../models/Relationship'
 import { ArcArrow } from '../../../../utils/ArcArrow'
 import { LoopArrow } from '../../../../utils/LoopArrow'
 import { StraightArrow } from '../../../../utils/StraightArrow'
 import { measureText } from '../../../../utils/textMeasurement'
 
+// Types for arrow geometry caching
+interface ArrowCacheKey {
+  sourceX: number
+  sourceY: number
+  targetX: number
+  targetY: number
+  sourceRadius: number
+  targetRadius: number
+  deflection: number
+  shaftWidth: number
+  captionLayout: RelationshipCaptionLayout
+  isLoop: boolean
+}
+
+interface CachedArrow {
+  key: ArrowCacheKey
+  arrow: ArcArrow | LoopArrow | StraightArrow
+}
+
+// Tolerance for floating point comparison in geometry caching
+const GEOMETRY_TOLERANCE = 0.01
+
 export class PairwiseArcsRelationshipRouting {
   style: GraphStyleModel
-  canvas: HTMLCanvasElement
+  private canvas: HTMLCanvasElement
+  private canvas2DContext: CanvasRenderingContext2D | null = null
+  private arrowCache: Map<string, CachedArrow> = new Map()
+
   constructor(style: GraphStyleModel) {
     this.style = style
     this.canvas = document.createElement('canvas')
+    this.canvas2DContext = this.canvas.getContext('2d')
   }
 
   measureRelationshipCaption(
@@ -41,13 +70,16 @@ export class PairwiseArcsRelationshipRouting {
     const padding = parseFloat(
       this.style.forRelationship(relationship).get('padding')
     )
-    const canvas2DContext = this.canvas.getContext('2d')
+    // Reuse cached canvas context
+    if (!this.canvas2DContext) {
+      this.canvas2DContext = this.canvas.getContext('2d')
+    }
     return (
       measureText(
         caption,
         fontFamily,
         relationship.captionHeight,
-        <CanvasRenderingContext2D>canvas2DContext
+        this.canvas2DContext!
       ) +
       padding * 2
     )
@@ -83,17 +115,44 @@ export class PairwiseArcsRelationshipRouting {
     caption: string,
     targetWidth: number
   ): [string, number] {
-    let shortCaption = caption || 'caption'
-    while (true) {
-      if (shortCaption.length <= 2) {
-        return ['', 0]
-      }
-      shortCaption = `${shortCaption.substring(0, shortCaption.length - 2)}\u2026`
-      const width = this.measureRelationshipCaption(relationship, shortCaption)
-      if (width < targetWidth) {
-        return [shortCaption, width]
+    if (!caption || caption.length <= 2) {
+      return ['', 0]
+    }
+
+    // Quick check: does the full caption fit?
+    const fullWidth = this.measureRelationshipCaption(relationship, caption)
+    if (fullWidth <= targetWidth) {
+      return [caption, fullWidth]
+    }
+
+    // Binary search for optimal truncation point
+    // This reduces O(n) iterations to O(log n) text measurements
+    let low = 1
+    let high = caption.length
+    let bestCaption = ''
+    let bestWidth = 0
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2)
+      const truncated = `${caption.substring(0, mid)}\u2026`
+      const width = this.measureRelationshipCaption(relationship, truncated)
+
+      if (width <= targetWidth) {
+        // This fits, try a longer version
+        bestCaption = truncated
+        bestWidth = width
+        low = mid + 1
+      } else {
+        // Too wide, try a shorter version
+        high = mid - 1
       }
     }
+
+    if (bestCaption === '') {
+      return ['', 0]
+    }
+
+    return [bestCaption, bestWidth]
   }
 
   computeGeometryForNonLoopArrows(nodePairs: NodePair[]): void {
@@ -170,17 +229,41 @@ export class PairwiseArcsRelationshipRouting {
     }
   }
 
+  // Check if cached arrow geometry has changed beyond tolerance
+  private arrowNeedsRecreation(
+    relationshipId: string,
+    newKey: ArrowCacheKey
+  ): boolean {
+    const cached = this.arrowCache.get(relationshipId)
+    if (!cached) return true
+
+    const { key } = cached
+
+    // Check if any geometry parameter changed beyond tolerance
+    return (
+      Math.abs(key.sourceX - newKey.sourceX) > GEOMETRY_TOLERANCE ||
+      Math.abs(key.sourceY - newKey.sourceY) > GEOMETRY_TOLERANCE ||
+      Math.abs(key.targetX - newKey.targetX) > GEOMETRY_TOLERANCE ||
+      Math.abs(key.targetY - newKey.targetY) > GEOMETRY_TOLERANCE ||
+      Math.abs(key.sourceRadius - newKey.sourceRadius) > GEOMETRY_TOLERANCE ||
+      Math.abs(key.targetRadius - newKey.targetRadius) > GEOMETRY_TOLERANCE ||
+      Math.abs(key.deflection - newKey.deflection) > GEOMETRY_TOLERANCE ||
+      Math.abs(key.shaftWidth - newKey.shaftWidth) > GEOMETRY_TOLERANCE ||
+      key.captionLayout !== newKey.captionLayout ||
+      key.isLoop !== newKey.isLoop
+    )
+  }
+
   layoutRelationships(graph: GraphModel): void {
     const nodePairs = graph.groupedRelationships()
 
     this.computeGeometryForNonLoopArrows(nodePairs)
     this.distributeAnglesForLoopArrows(nodePairs, graph.relationships())
 
-    for (const nodePair of nodePairs) {
-      for (const relationship of nodePair.relationships) {
-        delete relationship.arrow
-      }
+    // Track active relationship IDs for cache cleanup
+    const activeRelationshipIds = new Set<string>()
 
+    for (const nodePair of nodePairs) {
       const middleRelationshipIndex = (nodePair.relationships.length - 1) / 2
       const defaultDeflectionStep = 30
       const maximumTotalDeflection = 150
@@ -194,6 +277,8 @@ export class PairwiseArcsRelationshipRouting {
 
       for (let i = 0; i < nodePair.relationships.length; i++) {
         const relationship = nodePair.relationships[i]
+        activeRelationshipIds.add(relationship.id)
+
         const shaftWidth =
           parseFloat(
             this.style.forRelationship(relationship).get('shaft-width')
@@ -201,19 +286,47 @@ export class PairwiseArcsRelationshipRouting {
         const headWidth = shaftWidth + 6
         const headHeight = headWidth
 
-        if (nodePair.isLoop()) {
-          relationship.arrow = new LoopArrow(
-            relationship.source.radius,
-            40,
-            defaultDeflectionStep,
-            shaftWidth,
-            headWidth,
-            headHeight,
-            relationship.captionHeight
-          )
-        } else {
-          if (i === middleRelationshipIndex) {
-            relationship.arrow = new StraightArrow(
+        const isLoop = nodePair.isLoop()
+
+        // Calculate deflection for this relationship
+        let deflection = 0
+        if (!isLoop && i !== middleRelationshipIndex) {
+          deflection = deflectionStep * (i - middleRelationshipIndex)
+          if (nodePair.nodeA !== relationship.source) {
+            deflection *= -1
+          }
+        }
+
+        // Build cache key from geometry parameters
+        const cacheKey: ArrowCacheKey = {
+          sourceX: relationship.source.x,
+          sourceY: relationship.source.y,
+          targetX: relationship.target.x,
+          targetY: relationship.target.y,
+          sourceRadius: relationship.source.radius,
+          targetRadius: relationship.target.radius,
+          deflection,
+          shaftWidth,
+          captionLayout: relationship.captionLayout,
+          isLoop
+        }
+
+        // Only recreate arrow if geometry actually changed
+        if (this.arrowNeedsRecreation(relationship.id, cacheKey)) {
+          let arrow: ArcArrow | LoopArrow | StraightArrow
+
+          if (isLoop) {
+            arrow = new LoopArrow(
+              relationship.source.radius,
+              40,
+              defaultDeflectionStep,
+              shaftWidth,
+              headWidth,
+              headHeight,
+              relationship.captionHeight
+            )
+          } else if (i === middleRelationshipIndex) {
+            arrow = new StraightArrow(
               relationship.source.radius,
               relationship.target.radius,
               relationship.centreDistance,
@@ -223,13 +336,7 @@ export class PairwiseArcsRelationshipRouting {
               relationship.captionLayout
             )
           } else {
-            let deflection = deflectionStep * (i - middleRelationshipIndex)
-
-            if (nodePair.nodeA !== relationship.source) {
-              deflection *= -1
-            }
-
-            relationship.arrow = new ArcArrow(
+            arrow = new ArcArrow(
               relationship.source.radius,
               relationship.target.radius,
               relationship.centreDistance,
@@ -240,6 +347,13 @@ export class PairwiseArcsRelationshipRouting {
               relationship.captionLayout
             )
           }
+
+          // Store in cache and assign to relationship
+          this.arrowCache.set(relationship.id, { key: cacheKey, arrow })
+          relationship.arrow = arrow
+        } else {
+          // Reuse cached arrow instance
+          relationship.arrow = this.arrowCache.get(relationship.id)!.arrow
         }
 
         ;[relationship.shortCaption, relationship.shortCaptionLength] =
@@ -252,5 +366,17 @@ export class PairwiseArcsRelationshipRouting {
               )
       }
     }
+
+    // Clean up cache entries for removed relationships
+    for (const relId of this.arrowCache.keys()) {
+      if (!activeRelationshipIds.has(relId)) {
+        this.arrowCache.delete(relId)
+      }
+    }
+  }
+
+  // Clear the arrow cache - should be called when graph structure changes significantly
+  clearArrowCache(): void {
+    this.arrowCache.clear()
   }
 }

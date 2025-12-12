@@ -32,12 +32,13 @@ import {
   ZOOM_MIN_SCALE
 } from '../../../constants'
 import { GraphModel } from '../../../models/Graph'
-import { GraphGeometryModel } from './GraphGeometryModel'
 import { GraphStyleModel } from '../../../models/GraphStyle'
 import { NodeModel } from '../../../models/Node'
 import { RelationshipModel } from '../../../models/Relationship'
+import { ZoomLimitsReached, ZoomType } from '../../../types'
 import { isNullish } from '../../../utils/utils'
 import { ForceSimulation } from './ForceSimulation'
+import { GraphGeometryModel } from './GraphGeometryModel'
 import {
   nodeEventHandlers,
   relationshipEventHandlers
@@ -47,7 +48,6 @@ import {
   relationship as relationshipRenderer
 } from './renderers/init'
 import { nodeMenuRenderer } from './renderers/menu'
-import { ZoomLimitsReached, ZoomType } from '../../../types'
 
 type MeasureSizeFn = () => { width: number; height: number }
 
@@ -63,6 +63,20 @@ export class Visualization {
     string,
     undefined | Array<(...args: any[]) => void>
   > = {}
+
+  // Cached D3 selections to avoid DOM queries on every render tick
+  private cachedNodeGroups: Selection<
+    SVGGElement,
+    NodeModel,
+    BaseType,
+    unknown
+  > | null = null
+  private cachedRelationshipGroups: Selection<
+    SVGGElement,
+    RelationshipModel,
+    BaseType,
+    unknown
+  > | null = null
 
   forceSimulation: ForceSimulation
 
@@ -126,11 +140,20 @@ export class Visualization {
         }
         onZoomEvent(limitsReached)
 
-        return this.container
-          .transition()
-          .duration(isZoomClick ? 400 : 20)
-          .call(sel => (isZoomClick ? sel.ease(easeCubic) : sel))
-          .attr('transform', String(e.transform))
+        if (isZoomClick) {
+          // Discrete zoom click: use animated transition with easing
+          // Interrupt any existing transition first to prevent accumulation
+          this.container.interrupt()
+          this.container
+            .transition()
+            .duration(400)
+            .ease(easeCubic)
+            .attr('transform', String(e.transform))
+        } else {
+          // Continuous pan/scroll: apply transform directly for immediate feedback
+          // No transition needed - this eliminates lag during rapid pan/zoom
+          this.container.attr('transform', String(e.transform))
+        }
       })
       // This is the default implementation of wheelDelta function in d3-zoom v3.0.0
       // For some reasons typescript complains when trying to get it by calling zoomBehaviour.wheelDelta() instead
@@ -163,22 +186,24 @@ export class Visualization {
   private render() {
     this.geometry.onTick(this.graph)
 
-    const nodeGroups = this.container
-      .selectAll<SVGGElement, NodeModel>('g.node')
-      .attr('transform', d => `translate(${d.x},${d.y})`)
+    // Use cached selections to avoid DOM queries on every tick
+    // Fall back to selectAll if cache is not yet populated
+    const nodeGroups =
+      this.cachedNodeGroups ??
+      this.container.selectAll<SVGGElement, NodeModel>('g.node')
 
+    nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`)
     nodeRenderer.forEach(renderer => nodeGroups.call(renderer.onTick, this))
 
-    const relationshipGroups = this.container
-      .selectAll<SVGGElement, RelationshipModel>('g.relationship')
-      .attr(
-        'transform',
-        d =>
-          `translate(${d.source.x} ${d.source.y}) rotate(${
-            d.naturalAngle + 180
-          })`
-      )
+    const relationshipGroups =
+      this.cachedRelationshipGroups ??
+      this.container.selectAll<SVGGElement, RelationshipModel>('g.relationship')
 
+    relationshipGroups.attr(
+      'transform',
+      d =>
+        `translate(${d.source.x} ${d.source.y}) rotate(${d.naturalAngle + 180})`
+    )
     relationshipRenderer.forEach(renderer =>
       relationshipGroups.call(renderer.onTick, this)
     )
@@ -191,7 +216,8 @@ export class Visualization {
       updateRelationships: false
     })
 
-    const nodeGroups = this.container
+    // Update and cache the node selection for use in render()
+    this.cachedNodeGroups = this.container
       .select('g.layer.nodes')
       .selectAll<SVGGElement, NodeModel>('g.node')
       .data(nodes, d => d.id)
@@ -202,11 +228,11 @@ export class Visualization {
       .classed('selected', node => node.selected)
 
     nodeRenderer.forEach(renderer =>
-      nodeGroups.call(renderer.onGraphChange, this)
+      this.cachedNodeGroups!.call(renderer.onGraphChange, this)
     )
 
     nodeMenuRenderer.forEach(renderer =>
-      nodeGroups.call(renderer.onGraphChange, this)
+      this.cachedNodeGroups!.call(renderer.onGraphChange, this)
     )
 
     this.forceSimulation.updateNodes(this.graph)
@@ -220,7 +246,8 @@ export class Visualization {
       updateRelationships: true
     })
 
-    const relationshipGroups = this.container
+    // Update and cache the relationship selection for use in render()
+    this.cachedRelationshipGroups = this.container
       .select('g.layer.relationships')
       .selectAll<SVGGElement, RelationshipModel>('g.relationship')
       .data(relationships, d => d.id)
@@ -230,7 +257,7 @@ export class Visualization {
       .classed('selected', relationship => relationship.selected)
 
     relationshipRenderer.forEach(renderer =>
-      relationshipGroups.call(renderer.onGraphChange, this)
+      this.cachedRelationshipGroups!.call(renderer.onGraphChange, this)
     )
 
     this.forceSimulation.updateRelationships(this.graph)
@@ -245,6 +272,9 @@ export class Visualization {
   zoomByType = (zoomType: ZoomType): void => {
     this.draw = true
     this.isZoomClick = true
+
+    // Interrupt any ongoing transition before starting new zoom
+    this.container.interrupt()
 
     if (zoomType === ZoomType.IN) {
       this.zoomBehavior.scaleBy(this.root, 1.3)
@@ -328,6 +358,10 @@ export class Visualization {
   }
 
   init(): void {
+    // Invalidate cached selections before rebuilding the graph structure
+    this.cachedNodeGroups = null
+    this.cachedRelationshipGroups = null
+
     this.container
       .selectAll('g.layer')
       .data(['relationships', 'nodes'])
