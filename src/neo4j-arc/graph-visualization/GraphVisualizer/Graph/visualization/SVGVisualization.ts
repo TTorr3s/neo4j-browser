@@ -39,6 +39,7 @@ import { ZoomLimitsReached, ZoomType } from '../../../types'
 import { isNullish } from '../../../utils/utils'
 import { ForceSimulation } from './ForceSimulation'
 import { GraphGeometryModel } from './GraphGeometryModel'
+import { RenderEngine, UpdateOptions } from './RenderEngine'
 import {
   nodeEventHandlers,
   relationshipEventHandlers
@@ -51,7 +52,11 @@ import { nodeMenuRenderer } from './renderers/menu'
 
 type MeasureSizeFn = () => { width: number; height: number }
 
-export class Visualization {
+/**
+ * SVG-based graph visualization using D3.js
+ * This is the original renderer, kept for compatibility and as fallback
+ */
+export class SVGVisualization implements RenderEngine {
   private readonly root: Selection<SVGElement, unknown, BaseType, unknown>
   private baseGroup: Selection<SVGGElement, unknown, BaseType, unknown>
   private rect: Selection<SVGRectElement, unknown, BaseType, unknown>
@@ -389,11 +394,7 @@ export class Visualization {
     )
   }
 
-  update(options: {
-    updateNodes: boolean
-    updateRelationships: boolean
-    restartSimulation?: boolean
-  }): void {
+  update(options: UpdateOptions): void {
     if (options.updateNodes) {
       this.updateNodes()
     }

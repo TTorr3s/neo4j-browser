@@ -5,7 +5,7 @@ exports[`WarningsView displays nothing if no notifications 1`] = `<div />`;
 exports[`WarningsView does display a warning 1`] = `
 <div>
   <div
-    class="sc-ieecCq bYxypv"
+    class="sc-gFqAkR gOzEic"
   />
 </div>
 `;
@@ -13,42 +13,42 @@ exports[`WarningsView does display a warning 1`] = `
 exports[`WarningsView does display a warning for GQL status codes 1`] = `
 <div>
   <div
-    class="sc-ieecCq bYxypv"
+    class="sc-gFqAkR gOzEic"
   >
     <div
-      class="sc-dJjYzT iwyczS"
+      class="sc-ikkxIA fIAnyP"
     >
       <div
-        class="sc-hGPBjI eOmbEJ"
+        class="sc-dAbbOL eeoIeq"
       >
         <div
-          class="sc-bBHxTw sc-iwjdpV iMISDl blzzfm"
+          class="sc-fHjqPf sc-hmdomO iBjCQK eugTIX"
         >
           WARNING
         </div>
         <h4
-          class="sc-ezbkAF"
+          class="sc-bmzYkS"
         >
           03N90: Cartesian product
         </h4>
       </div>
       <div
-        class="sc-dlVxhl"
+        class="sc-feUZmu"
       >
         <div
-          class="sc-hGPBjI eOmbEJ"
+          class="sc-dAbbOL eeoIeq"
         >
           The disconnected pattern 'p = ()--(), q = ()--()' builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.
         </div>
         <div
-          class="sc-dlVxhl"
+          class="sc-feUZmu"
         >
           <pre
-            class="sc-ikJyIC fdlxq"
+            class="sc-kOHTFB cZhciy"
           >
             MATCH p=()--(), q=()--() RETURN p, q
             <br
-              class="sc-kLwhqv"
+              class="sc-dtBdUo"
             />
                    
             ^
@@ -63,7 +63,7 @@ exports[`WarningsView does display a warning for GQL status codes 1`] = `
 exports[`WarningsView does display multiple warnings 1`] = `
 <div>
   <div
-    class="sc-ieecCq bYxypv"
+    class="sc-gFqAkR gOzEic"
   />
 </div>
 `;
@@ -71,42 +71,42 @@ exports[`WarningsView does display multiple warnings 1`] = `
 exports[`WarningsView does display multiple warnings for GQL status codes 1`] = `
 <div>
   <div
-    class="sc-ieecCq bYxypv"
+    class="sc-gFqAkR gOzEic"
   >
     <div
-      class="sc-dJjYzT iwyczS"
+      class="sc-ikkxIA fIAnyP"
     >
       <div
-        class="sc-hGPBjI eOmbEJ"
+        class="sc-dAbbOL eeoIeq"
       >
         <div
-          class="sc-bBHxTw sc-iwjdpV iMISDl blzzfm"
+          class="sc-fHjqPf sc-hmdomO iBjCQK eugTIX"
         >
           WARNING
         </div>
         <h4
-          class="sc-ezbkAF"
+          class="sc-bmzYkS"
         >
           03N90: Cartesian product
         </h4>
       </div>
       <div
-        class="sc-dlVxhl"
+        class="sc-feUZmu"
       >
         <div
-          class="sc-hGPBjI eOmbEJ"
+          class="sc-dAbbOL eeoIeq"
         >
           The disconnected pattern 'p = ()--(), q = ()--()' builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.
         </div>
         <div
-          class="sc-dlVxhl"
+          class="sc-feUZmu"
         >
           <pre
-            class="sc-ikJyIC fdlxq"
+            class="sc-kOHTFB cZhciy"
           >
             MATCH p=()--(), q=()--() RETURN p, q
             <br
-              class="sc-kLwhqv"
+              class="sc-dtBdUo"
             />
                    
             ^
@@ -115,39 +115,39 @@ exports[`WarningsView does display multiple warnings for GQL status codes 1`] = 
       </div>
     </div>
     <div
-      class="sc-dJjYzT iwyczS"
+      class="sc-ikkxIA fIAnyP"
     >
       <div
-        class="sc-hGPBjI eOmbEJ"
+        class="sc-dAbbOL eeoIeq"
       >
         <div
-          class="sc-bBHxTw sc-iwjdpV iMISDl blzzfm"
+          class="sc-fHjqPf sc-hmdomO iBjCQK eugTIX"
         >
           WARNING
         </div>
         <h4
-          class="sc-ezbkAF"
+          class="sc-bmzYkS"
         >
           01N50: Label does not exist
         </h4>
       </div>
       <div
-        class="sc-dlVxhl"
+        class="sc-feUZmu"
       >
         <div
-          class="sc-hGPBjI eOmbEJ"
+          class="sc-dAbbOL eeoIeq"
         >
           The label \`A\` does not exist. Verify that the spelling is correct.
         </div>
         <div
-          class="sc-dlVxhl"
+          class="sc-feUZmu"
         >
           <pre
-            class="sc-ikJyIC fdlxq"
+            class="sc-kOHTFB cZhciy"
           >
             MATCH p=()--(), q=()--() RETURN p, q
             <br
-              class="sc-kLwhqv"
+              class="sc-dtBdUo"
             />
                
             ^

@@ -182,6 +182,8 @@
     "monaco-editor": "^0.55.0",
     "neo4j-driver": "6.0.1",
     "neo4j-driver-core": "6.0.1",
+    "pixi-viewport": "^6.0.3",
+    "pixi.js": "^8.6.6",
     "re-resizable": "^6.9.9",
     "react": "^19.2.3",
     "react-dnd": "^16.0.1",

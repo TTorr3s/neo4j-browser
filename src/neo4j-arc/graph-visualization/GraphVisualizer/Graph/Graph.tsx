@@ -17,7 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
+import { ResizeObserver } from '@juggle/resize-observer'
+import { type JSX, useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   BasicNode,
@@ -26,12 +27,7 @@ import {
   ZoomOutIcon,
   ZoomToFitIcon
 } from '../../../common'
-
 import { GraphModel } from '../../models/Graph'
-import {
-  GraphEventHandlerModel,
-  GraphInteractionCallBack
-} from './GraphEventHandlerModel'
 import { GraphStyleModel } from '../../models/GraphStyle'
 import {
   GetNodeNeighboursFn,
@@ -45,10 +41,21 @@ import {
   getGraphStats,
   mapRelationships
 } from '../../utils/mapper'
-import { Visualization } from './visualization/Visualization'
+import {
+  GraphEventHandlerModel,
+  GraphInteractionCallBack
+} from './GraphEventHandlerModel'
 import { WheelZoomInfoOverlay } from './WheelZoomInfoOverlay'
 import { StyledSvgWrapper, StyledZoomButton, StyledZoomHolder } from './styled'
-import { ResizeObserver } from '@juggle/resize-observer'
+import type { RenderEngine } from './visualization/RenderEngine'
+import { SVGVisualization } from './visualization/SVGVisualization'
+
+/**
+ * Renderer type for graph visualization
+ * - 'svg': D3-based SVG renderer (default, best compatibility)
+ * - 'webgl': PixiJS WebGL renderer (experimental, better for large graphs)
+ */
+export type GraphRendererType = 'svg' | 'webgl'
 
 export type GraphProps = {
   isFullscreen: boolean
@@ -75,6 +82,11 @@ export type GraphProps = {
   disableWheelZoomInfoMessage: () => void
   initialZoomToFit?: boolean
   onGraphInteraction?: GraphInteractionCallBack
+  /**
+   * Renderer type: 'svg' (default) or 'webgl' (experimental)
+   * WebGL renderer is optimized for large graphs (5,000+ nodes)
+   */
+  renderer?: GraphRendererType
 }
 
 export function Graph({
@@ -96,7 +108,8 @@ export function Graph({
   wheelZoomInfoMessageEnabled,
   disableWheelZoomInfoMessage,
   initialZoomToFit,
-  onGraphInteraction
+  onGraphInteraction,
+  renderer = 'svg'
 }: GraphProps): JSX.Element {
   // State
   const [zoomInLimitReached, setZoomInLimitReached] = useState(false)
@@ -107,7 +120,7 @@ export function Graph({
   // Refs
   const svgRef = useRef<SVGSVGElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const visualizationRef = useRef<Visualization | null>(null)
+  const visualizationRef = useRef<RenderEngine | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
 
   // Store current props in refs for use in callbacks that shouldn't trigger re-initialization
@@ -166,9 +179,17 @@ export function Graph({
     visualizationRef.current?.zoomByType(ZoomType.FIT)
   }, [])
 
-  // D3 Visualization initialization (runs once on mount)
+  // Visualization initialization (runs once on mount)
   useEffect(() => {
     if (!svgRef.current) return
+
+    // TODO: WebGL renderer support (Phase 2-4)
+    // When renderer === 'webgl', use PixiVisualization instead
+    if (renderer === 'webgl') {
+      console.warn(
+        'WebGL renderer is experimental and not yet fully implemented. Falling back to SVG.'
+      )
+    }
 
     const svgElement = svgRef.current
 
@@ -178,7 +199,7 @@ export function Graph({
     })
 
     const graph = createGraph(nodes, relationships)
-    const visualization = new Visualization(
+    const visualization = new SVGVisualization(
       svgElement,
       measureSize,
       handleZoomEvent,

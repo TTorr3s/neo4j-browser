@@ -3,10 +3,10 @@
 exports[`RelatableViews RelatableView displays bodyMessage if no rows 1`] = `
 <div>
   <div
-    class="sc-lbhJGD kXIaPr"
+    class="sc-cfxfcM dYFBNW"
   >
     <div
-      class="sc-fIosxK kCdUHu"
+      class="sc-fMMURN bGytvG"
     >
       (no changes, no records)
     </div>
@@ -17,31 +17,31 @@ exports[`RelatableViews RelatableView displays bodyMessage if no rows 1`] = `
 exports[`RelatableViews RelatableView does not crash if key is empty string 1`] = `
 <div>
   <div
-    class="sc-htJRVC bXNcHQ"
+    class="sc-gdyeKB iSdndE"
   >
     <div
-      class="sc-eFegNN iCTkAJ relatable"
+      class="sc-eZYNyq jCpBhD relatable"
     >
       <table
-        class="sc-hAcGzb bOXsNp relatable__table "
+        class="sc-kbousE cbxZca relatable__table "
         role="table"
       >
         <thead
-          class="sc-kYHfwS jmTCzC"
+          class="sc-sLsrZ khEWKV"
         >
           <tr
-            class="sc-dVNjXY fUwlGV relatable__table-row relatable__table-header-row"
+            class="sc-fifgRP gkhDDJ relatable__table-row relatable__table-header-row"
             role="row"
           >
             <th
-              class="sc-jHkVzv kuicBN relatable__table-cell relatable__table-header-cell relatable__table-header-actions-cell"
+              class="sc-bDumWk oBdtv relatable__table-cell relatable__table-header-cell relatable__table-header-actions-cell"
             >
               <span
                 class="relatable__table-row-actions"
               />
             </th>
             <th
-              class="sc-jHkVzv gUPPNr relatable__table-cell relatable__table-header-cell"
+              class="sc-bDumWk iusakN relatable__table-cell relatable__table-header-cell"
               colspan="1"
               role="columnheader"
             >
@@ -50,17 +50,17 @@ exports[`RelatableViews RelatableView does not crash if key is empty string 1`] 
           </tr>
         </thead>
         <tbody
-          class="sc-xiLah kRBTyW"
+          class="sc-dBmzty cAQsXh"
         >
           <tr
-            class="sc-dVNjXY fUwlGV relatable__table-row relatable__table-body-row "
+            class="sc-fifgRP gkhDDJ relatable__table-row relatable__table-body-row "
             role="row"
           >
             <td
-              class="sc-bQtKYq jnzFJo relatable__table-cell relatable__table-body-cell relatable__table-row-actions-cell"
+              class="sc-dkmUuB bIVaUv relatable__table-cell relatable__table-body-cell relatable__table-row-actions-cell"
             >
               <span
-                class="sc-eGRUor glJLkq relatable__table-row-number"
+                class="sc-fTFjTM hEZFja relatable__table-row-number"
               >
                 1
               </span>
@@ -69,15 +69,15 @@ exports[`RelatableViews RelatableView does not crash if key is empty string 1`] 
               />
             </td>
             <td
-              class="sc-bQtKYq jnzFJo relatable__table-cell relatable__table-body-cell"
+              class="sc-dkmUuB bIVaUv relatable__table-cell relatable__table-body-cell"
               role="cell"
             >
               <span
-                class="sc-fXeWAj eEnrLN"
+                class="sc-dSIIpw cWvqxZ"
                 title="Click to copy"
               >
                 <span
-                  class="sc-hjGZqJ kGkXXn"
+                  class="sc-bDpDS vVhPJ"
                 >
                   "String value"
                 </span>
@@ -85,7 +85,7 @@ exports[`RelatableViews RelatableView does not crash if key is empty string 1`] 
                   class="copy-icon"
                 >
                   <span
-                    class="sc-bdvvtL juuBiR"
+                    class="sc-aXZVg emfEUm"
                     title="Copy to clipboard"
                   >
                     <svg
@@ -120,31 +120,31 @@ exports[`RelatableViews RelatableView does not crash if key is empty string 1`] 
 exports[`RelatableViews RelatableView does not display bodyMessage if rows, and escapes HTML 1`] = `
 <div>
   <div
-    class="sc-htJRVC bXNcHQ"
+    class="sc-gdyeKB iSdndE"
   >
     <div
-      class="sc-eFegNN iCTkAJ relatable"
+      class="sc-eZYNyq jCpBhD relatable"
     >
       <table
-        class="sc-hAcGzb bOXsNp relatable__table "
+        class="sc-kbousE cbxZca relatable__table "
         role="table"
       >
         <thead
-          class="sc-kYHfwS jmTCzC"
+          class="sc-sLsrZ khEWKV"
         >
           <tr
-            class="sc-dVNjXY fUwlGV relatable__table-row relatable__table-header-row"
+            class="sc-fifgRP gkhDDJ relatable__table-row relatable__table-header-row"
             role="row"
           >
             <th
-              class="sc-jHkVzv kuicBN relatable__table-cell relatable__table-header-cell relatable__table-header-actions-cell"
+              class="sc-bDumWk oBdtv relatable__table-cell relatable__table-header-cell relatable__table-header-actions-cell"
             >
               <span
                 class="relatable__table-row-actions"
               />
             </th>
             <th
-              class="sc-jHkVzv gUPPNr relatable__table-cell relatable__table-header-cell"
+              class="sc-bDumWk iusakN relatable__table-cell relatable__table-header-cell"
               colspan="1"
               role="columnheader"
             >
@@ -153,17 +153,17 @@ exports[`RelatableViews RelatableView does not display bodyMessage if rows, and 
           </tr>
         </thead>
         <tbody
-          class="sc-xiLah kRBTyW"
+          class="sc-dBmzty cAQsXh"
         >
           <tr
-            class="sc-dVNjXY fUwlGV relatable__table-row relatable__table-body-row "
+            class="sc-fifgRP gkhDDJ relatable__table-row relatable__table-body-row "
             role="row"
           >
             <td
-              class="sc-bQtKYq jnzFJo relatable__table-cell relatable__table-body-cell relatable__table-row-actions-cell"
+              class="sc-dkmUuB bIVaUv relatable__table-cell relatable__table-body-cell relatable__table-row-actions-cell"
             >
               <span
-                class="sc-eGRUor glJLkq relatable__table-row-number"
+                class="sc-fTFjTM hEZFja relatable__table-row-number"
               >
                 1
               </span>
@@ -172,15 +172,15 @@ exports[`RelatableViews RelatableView does not display bodyMessage if rows, and 
               />
             </td>
             <td
-              class="sc-bQtKYq jnzFJo relatable__table-cell relatable__table-body-cell"
+              class="sc-dkmUuB bIVaUv relatable__table-cell relatable__table-body-cell"
               role="cell"
             >
               <span
-                class="sc-fXeWAj eEnrLN"
+                class="sc-dSIIpw cWvqxZ"
                 title="Click to copy"
               >
                 <span
-                  class="sc-hjGZqJ kGkXXn"
+                  class="sc-bDpDS vVhPJ"
                 >
                   "String with HTML &lt;strong&gt;in&lt;/strong&gt; it"
                 </span>
@@ -188,7 +188,7 @@ exports[`RelatableViews RelatableView does not display bodyMessage if rows, and 
                   class="copy-icon"
                 >
                   <span
-                    class="sc-bdvvtL juuBiR"
+                    class="sc-aXZVg emfEUm"
                     title="Copy to clipboard"
                   >
                     <svg
@@ -223,7 +223,7 @@ exports[`RelatableViews RelatableView does not display bodyMessage if rows, and 
 exports[`RelatableViews TableStatusbar displays no statusBarMessage 1`] = `
 <div>
   <div
-    class="sc-lbhJGD kXIaPr"
+    class="sc-cfxfcM dYFBNW"
   />
 </div>
 `;
@@ -231,10 +231,10 @@ exports[`RelatableViews TableStatusbar displays no statusBarMessage 1`] = `
 exports[`RelatableViews TableStatusbar displays statusBarMessage 1`] = `
 <div>
   <div
-    class="sc-lbhJGD kXIaPr"
+    class="sc-cfxfcM dYFBNW"
   >
     <div
-      class="sc-fIosxK kCdUHu"
+      class="sc-fMMURN bGytvG"
     >
       <span>
         Started streaming 1 records after 5 ms and completed after 10  ms.

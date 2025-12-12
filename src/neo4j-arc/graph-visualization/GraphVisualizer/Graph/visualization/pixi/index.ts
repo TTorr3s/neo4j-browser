@@ -17,32 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { BaseType, Selection } from 'd3-selection'
-
-import { SVGVisualization } from './SVGVisualization'
-
-const noOp = () => undefined
-type RendererEventHandler<Datum> = (
-  selection: Selection<SVGGElement, Datum, BaseType, unknown>,
-  viz: SVGVisualization
-) => void
-
-export default class Renderer<Datum> {
-  onGraphChange: RendererEventHandler<Datum>
-  onTick: RendererEventHandler<Datum>
-  name: string
-
-  constructor({
-    onGraphChange = noOp,
-    onTick = noOp,
-    name
-  }: {
-    onGraphChange?: RendererEventHandler<Datum>
-    onTick?: RendererEventHandler<Datum>
-    name: string
-  }) {
-    this.onGraphChange = onGraphChange
-    this.onTick = onTick
-    this.name = name
-  }
-}
+export { PixiVisualization } from './PixiVisualization'
+export { PixiNodeRenderer, hexToNumber } from './PixiNodeRenderer'
+export { PixiTextRenderer } from './PixiTextRenderer'

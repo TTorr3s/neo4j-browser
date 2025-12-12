@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 import { GraphModel } from '../../models/Graph'
 import { NodeModel } from '../../models/Node'
 import { RelationshipModel } from '../../models/Relationship'
@@ -28,7 +27,7 @@ import {
   mapNodes,
   mapRelationships
 } from '../../utils/mapper'
-import { Visualization } from './visualization/Visualization'
+import type { RenderEngine } from './visualization/RenderEngine'
 
 export type GraphInteraction =
   | 'NODE_EXPAND'
@@ -43,7 +42,7 @@ export type GraphInteractionCallBack = (
 export class GraphEventHandlerModel {
   getNodeNeighbours: GetNodeNeighboursFn
   graph: GraphModel
-  visualization: Visualization
+  visualization: RenderEngine
   onGraphModelChange: (stats: GraphStats) => void
   onItemMouseOver: (item: VizItem) => void
   onItemSelected: (item: VizItem) => void
@@ -52,7 +51,7 @@ export class GraphEventHandlerModel {
 
   constructor(
     graph: GraphModel,
-    visualization: Visualization,
+    visualization: RenderEngine,
     getNodeNeighbours: GetNodeNeighboursFn,
     onItemMouseOver: (item: VizItem) => void,
     onItemSelected: (item: VizItem) => void,

@@ -22,7 +22,7 @@ import { arc as d3Arc } from 'd3-shape'
 
 import { NodeModel } from '../../../../models/Node'
 import Renderer from '../Renderer'
-import { Visualization } from '../Visualization'
+import { SVGVisualization } from '../SVGVisualization'
 import icons from './d3Icons'
 
 const noOp = () => undefined
@@ -50,7 +50,7 @@ const attachContextEvent = (
     Selection<BaseType | SVGPathElement, NodeModel, BaseType, NodeModel>,
     Selection<BaseType | SVGGElement, NodeModel, BaseType, NodeModel>
   ],
-  viz: Visualization,
+  viz: SVGVisualization,
   content: string,
   label: string
 ) => {
@@ -80,7 +80,7 @@ const attachContextEvent = (
 
 const createMenuItem = function (
   selection: Selection<SVGGElement, NodeModel, BaseType, unknown>,
-  viz: Visualization,
+  viz: SVGVisualization,
   eventType: string,
   itemIndex: number,
   className: string,
