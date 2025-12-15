@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { filter, values } from 'lodash-es'
 import { useCallback, useMemo, useState } from 'react'
 import {
   SortingRule,
@@ -31,21 +30,24 @@ import {
   TableAddOnReturn
 } from '../relatable.types'
 
-export interface IWithSortingOptions<Data extends object = any>
-  extends UseSortByOptions<Data> {
+export interface IWithSortingOptions<
+  Data extends object = any
+> extends UseSortByOptions<Data> {
   onSortChange?: SortSetter<Data>
 
   // react-table state override https://react-table.js.org/api/useSortBy
   sortBy?: SortingRule<Data>[]
 }
 
-export interface IWithSortingState<Data extends object = any>
-  extends UseSortByState<Data> {
+export interface IWithSortingState<
+  Data extends object = any
+> extends UseSortByState<Data> {
   onCustomSortChange: SortSetter<Data>
 }
 
 export interface IWithSortingInstance<Data extends object = any>
-  extends UseSortByInstanceProps<Data>,
+  extends
+    UseSortByInstanceProps<Data>,
     IRelatableStateInstance<Data, IWithSortingState<Data>> {
   onCustomSortChange: SortSetter<Data>
 }
@@ -65,7 +67,7 @@ export default function withSorting<Data extends object = any>(
         return
       }
 
-      const withoutColumn = filter(ourSortBy, ({ id }) => id !== column.id)
+      const withoutColumn = ourSortBy.filter(({ id }) => id !== column.id)
 
       if (action === SORT_ACTIONS.SORT_CLEAR) {
         setOurSortBy(withoutColumn)
@@ -91,7 +93,7 @@ export default function withSorting<Data extends object = any>(
           ...tableParams,
           onCustomSortChange
         }),
-        [onCustomSortChange, ...values(tableParams)]
+        [onCustomSortChange, ...Object.values(tableParams)]
       ),
     () => useMemo(() => stateParams, [sortBy]),
     useSortBy

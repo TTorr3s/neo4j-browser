@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { join } from 'lodash-es'
 import styled from 'styled-components'
 
 import {
@@ -121,8 +120,8 @@ export const StyleWrapper = styled.div`
     min-height: 42px;
   }
 
-  ${join(createToolbarStateClasses(), '\n\n')}
-  ${join(createRowStateClasses(), '\n\n')}
+  ${createToolbarStateClasses().join('\n\n')}
+  ${createRowStateClasses().join('\n\n')}
   
   .relatable__table-body-cell-loader {
     height: 18px;

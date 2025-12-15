@@ -17,11 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { replace, toUpper } from 'lodash-es'
-import React, { useCallback, useEffect, useState, type JSX } from 'react'
+import React, { type JSX, useCallback, useEffect, useState } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import semver, { SemVer } from 'semver'
+import { Bus } from 'suber'
 import { v4 } from 'uuid'
 
 import Slide from '../Carousel/Slide'
@@ -40,7 +40,6 @@ import {
   getCleanedVersion,
   getSemanticVersion
 } from 'shared/modules/dbMeta/dbMetaDuck'
-import { Bus } from 'suber'
 
 type IndexesProps = {
   indexes: any
@@ -53,7 +52,7 @@ const Indexes = ({ indexes, neo4jVersion }: IndexesProps) => {
     semver.satisfies(neo4jVersion, '<4.0.0-rc01')
   ) {
     const rows = indexes.map((index: any) => [
-      `${replace(index.description, 'INDEX', '')} ${toUpper(index.state)} ${
+      `${index.description.replace('INDEX', '')} ${index.state.toUpperCase()} ${
         index.type === 'node_unique_property'
           ? '(for uniqueness constraint)'
           : ''
@@ -112,7 +111,7 @@ const Constraints = ({
     header = ['Constraints']
 
     rows = constraints.map((constraint: any) => [
-      replace(constraint.description, 'CONSTRAINT', '')
+      constraint.description.replace('CONSTRAINT', '')
     ])
   } else {
     header = [

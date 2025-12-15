@@ -17,12 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { uniq } from 'lodash-es'
 import { QueryResult } from 'neo4j-driver'
 import { SemVer, clean, coerce, gte, valid } from 'semver'
-import { isConfigValFalsy } from 'services/bolt/boltHelpers'
-import { GlobalState } from 'shared/globalState'
-import { APP_START } from 'shared/modules/app/appDuck'
+
 import { FIRST_MULTI_DB_SUPPORT } from '../features/versionedFeatures'
 import {
   extractServerInfo,
@@ -30,6 +27,9 @@ import {
   extractTrialStatusOld,
   versionHasEditorHistorySetting
 } from './utils'
+import { isConfigValFalsy } from 'services/bolt/boltHelpers'
+import { GlobalState } from 'shared/globalState'
+import { APP_START } from 'shared/modules/app/appDuck'
 
 export const UPDATE_META = 'meta/UPDATE_META'
 export const PARSE_META = 'meta/PARSE_META'
@@ -252,9 +252,9 @@ export function findDatabaseByNameOrAlias(
 }
 
 export function getUniqueDatbases(state: GlobalState): Database[] {
-  const uniqueDatabaseNames = uniq(
-    state[NAME].databases.map((db: Database) => db.name)
-  )
+  const uniqueDatabaseNames = [
+    ...new Set(state[NAME].databases.map((db: Database) => db.name))
+  ]
 
   return uniqueDatabaseNames.map((name: string) => {
     const matchingDatabases = state[NAME].databases.filter(

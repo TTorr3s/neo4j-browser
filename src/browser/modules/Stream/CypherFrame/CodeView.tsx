@@ -18,9 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /* eslint-disable react/prop-types */
-import { map, take } from 'lodash-es'
-import React, { useState, memo } from 'react'
+import React, { memo, useState } from 'react'
 import { useSelector } from 'react-redux'
+
+import { deepEquals } from 'neo4j-arc/common'
 
 import {
   PaddedDiv,
@@ -35,7 +36,6 @@ import {
   RelatableStatusbar,
   RelatableStatusbarComponent
 } from './RelatableView/relatable-view'
-import { deepEquals } from 'neo4j-arc/common'
 import { GlobalState } from 'shared/globalState'
 import { getMaxFieldItems } from 'shared/modules/settings/settingsDuck'
 
@@ -73,8 +73,8 @@ const fieldLimiterFactory =
       return val
     }
 
-    return map(val as unknown[], field => {
-      return Array.isArray(field) ? take(field, maxFieldItems) : field
+    return (val as unknown[]).map(field => {
+      return Array.isArray(field) ? field.slice(0, maxFieldItems) : field
     })
   }
 

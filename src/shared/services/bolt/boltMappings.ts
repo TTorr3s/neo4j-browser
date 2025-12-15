@@ -17,10 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { flatten, map, take } from 'lodash-es'
-import neo4j, { Record as Neo4jRecord, Path as Neo4jPath } from 'neo4j-driver'
+import neo4j, { Path as Neo4jPath, Record as Neo4jRecord } from 'neo4j-driver'
 
-import { upperFirst, BasicNodesAndRels } from 'neo4j-arc/common'
+import { BasicNodesAndRels, upperFirst } from 'neo4j-arc/common'
 
 import {
   escapeReservedProps,
@@ -323,11 +322,11 @@ export function extractRawNodesAndRelationShipsFromRecords(
     }
   }
 
-  const flatTruncatedItems = flatten(
-    map([...items], item =>
-      maxFieldItems && Array.isArray(item) ? take(item, maxFieldItems) : item
+  const flatTruncatedItems = [...items]
+    .map(item =>
+      maxFieldItems && Array.isArray(item) ? item.slice(0, maxFieldItems) : item
     )
-  )
+    .flat()
 
   const findAllEntities = (item: any) => {
     if (item instanceof (types.Relationship as any)) {

@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { flatMap } from 'lodash-es'
-import React, { useMemo, type JSX } from 'react'
+import React, { type JSX, useMemo } from 'react'
 
 import { useRelatableStateContext } from '../../states'
 import getFinalDepthSubRows from '../../utils/get-final-depth-subrows'
@@ -24,7 +23,7 @@ import { IRowProps } from './index'
 
 export default function ExpandedRow({ row }: IRowProps): JSX.Element {
   const { _originalColumns } = useRelatableStateContext()
-  const data = useMemo(() => flatMap(row.subRows, getFinalDepthSubRows), [row])
+  const data = useMemo(() => row.subRows.flatMap(getFinalDepthSubRows), [row])
 
   return (
     <Relatable

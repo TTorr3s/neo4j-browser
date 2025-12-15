@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { entries, filter, head, map } from 'lodash-es'
 import { List, X } from 'lucide-react'
 import React, { useCallback } from 'react'
 
@@ -39,8 +38,7 @@ export default function SelectableToolbar() {
   } = useRelatableStateContext<any, IWithSelectionInstance>()
   const [selectedToolbarAction, setToolbar, clearToolbar] =
     useRelatableToolbarContext()
-  const selectedRows = filter(
-    entries(selectedRowIds),
+  const selectedRows = Object.entries(selectedRowIds).filter(
     ([, selected]) => selected
   )
   const isSelected = arrayHasItems(selectedRows)
@@ -51,7 +49,7 @@ export default function SelectableToolbar() {
       content={
         <SelectionPopup
           rows={selectedFlatRows}
-          selectedRowIds={map(selectedRows, head)}
+          selectedRowIds={selectedRows.map(row => row[0])}
           selectedToolbarAction={selectedToolbarAction}
         />
       }
@@ -83,7 +81,7 @@ function SelectionPopup({ rows, selectedRowIds }: any) {
   >()
   const [, , clearToolbar] = useRelatableToolbarContext()
   const onSelectionClear = useCallback(() => {
-    const selectedRows = filter(rows, 'isSelected')
+    const selectedRows = rows.filter((row: any) => row.isSelected)
 
     clearToolbar()
     onCustomSelectionChange(selectedRows, false)

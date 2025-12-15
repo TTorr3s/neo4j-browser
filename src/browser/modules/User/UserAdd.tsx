@@ -17,13 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { map } from 'lodash-es'
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
+import { Bus } from 'suber'
 import { v4 as uuidv4 } from 'uuid'
-
-import { CloseIcon } from 'browser-components/icons/LegacyIcons'
 
 import RolesSelector from './RolesSelector'
 import { StyleRolesContainer, StyledInput } from './styled'
@@ -35,6 +33,7 @@ import {
   StyledLabel
 } from 'browser-components/Form'
 import { FormButton, StyledLink } from 'browser-components/buttons'
+import { CloseIcon } from 'browser-components/icons/LegacyIcons'
 import FrameAside from 'browser/modules/Frame/FrameAside'
 import FrameBodyTemplate from 'browser/modules/Frame/FrameBodyTemplate'
 import FrameError from 'browser/modules/Frame/FrameError'
@@ -56,7 +55,6 @@ import {
   isEnterprise
 } from 'shared/modules/dbMeta/dbMetaDuck'
 import { driverDatabaseSelection } from 'shared/modules/features/versionedFeatures'
-import { Bus } from 'suber'
 
 interface UserAddProps {
   availableRoles?: string[]
@@ -117,7 +115,7 @@ export const UserAdd = (props: UserAddProps) => {
           return
         }
         setAvailableRoles(
-          map(response.result.records, record => record.get('role'))
+          response.result.records.map((record: any) => record.get('role'))
         )
       }
     )

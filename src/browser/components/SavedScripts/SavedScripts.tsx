@@ -17,13 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { uniq } from 'lodash-es'
-import React, { useState, type JSX } from 'react'
+import React, { type JSX, useState } from 'react'
 import { useDrop } from 'react-dnd'
 import { v4 as uuidv4 } from 'uuid'
 
 import { AddIcon } from '../icons/LegacyIcons'
-
 import {
   ExportButton,
   NewFolderButton,
@@ -152,10 +150,12 @@ export default function SavedScripts({
         setSelectedIds(ids =>
           ids.length === 0
             ? [clickedScriptId]
-            : uniq([
-                ...ids,
-                ...getIdRange(ids[ids.length - 1], clickedScriptId)
-              ])
+            : [
+                ...new Set([
+                  ...ids,
+                  ...getIdRange(ids[ids.length - 1], clickedScriptId)
+                ])
+              ]
         )
       } else if (manualMultiselect) {
         setSelectedIds(toggleFn)

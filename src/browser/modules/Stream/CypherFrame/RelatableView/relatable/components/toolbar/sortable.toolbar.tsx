@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { filter, find, get, head, map } from 'lodash-es'
 import { Check, X } from 'lucide-react'
 import React, { FormEvent, useCallback, useState } from 'react'
 
@@ -79,20 +78,28 @@ export default function SortableToolbar() {
   )
 }
 
+interface SortingPopupProps {
+  columns: any[]
+  sortBy: Array<{ id: string; desc?: boolean }>
+  onClose: () => void
+  selectedToolbarAction: { name: string } | null
+  onCustomSortChange: (column: any, action: SORT_ACTIONS) => void
+}
+
 function SortingPopup({
   columns,
   sortBy,
   onClose,
   selectedToolbarAction,
   onCustomSortChange
-}: any) {
+}: SortingPopupProps) {
   return (
     <div className="relatable__toolbar-popup relatable__toolbar-sorting-popup">
       {arrayHasItems(sortBy) && (
         <>
           <div>
-            {map(sortBy, ({ id, desc }) => {
-              const column = find(columns, column => column.id === id)
+            {sortBy.map(({ id, desc }: { id: string; desc?: boolean }) => {
+              const column = columns.find((column: any) => column.id === id)
 
               return (
                 <Label key={id} className="relatable__toolbar-value">
@@ -132,21 +139,24 @@ function SortingForm({
     availableGlobalActions,
     selectedToolbarAction.name
   )
-  const columnsToUse = filter(
-    columns,
-    column => relatableAction && columnHasAction(column, relatableAction)
+  const columnsToUse = columns.filter(
+    (column: any) => relatableAction && columnHasAction(column, relatableAction)
   )
-  const firstId = get(head(columnsToUse), 'id', undefined)
+  const firstId = columnsToUse[0]?.id
   const [selectedSort, setSelectedSort] = useState<string>(
     SORT_ACTIONS.SORT_DESC
   )
   const [selectedColumnId, setSelectedColumnId] = useState<any>(firstId)
-  const selectedColumn = find(columnsToUse, ({ id }) => id === selectedColumnId)
-  const columnOptions = map(filter(columnsToUse, 'canSort'), column => ({
-    key: column.id,
-    value: column.id,
-    text: column.Header
-  }))
+  const selectedColumn = columnsToUse.find(
+    ({ id }: any) => id === selectedColumnId
+  )
+  const columnOptions = columnsToUse
+    .filter((column: any) => column.canSort)
+    .map((column: any) => ({
+      key: column.id,
+      value: column.id,
+      text: column.Header
+    }))
   const sortOptions = [
     {
       key: SORT_ACTIONS.SORT_DESC,

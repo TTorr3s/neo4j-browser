@@ -14,15 +14,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { flatMap } from 'lodash-es'
-
 import arrayHasItems from './array-has-items'
 
 export default function getFinalDepthSubRows(row: any): any[] {
   const { subRows = [] } = row
 
   if (arrayHasItems(subRows)) {
-    return flatMap(subRows, getFinalDepthSubRows)
+    return subRows.flatMap(getFinalDepthSubRows)
   }
 
   return [row.values]

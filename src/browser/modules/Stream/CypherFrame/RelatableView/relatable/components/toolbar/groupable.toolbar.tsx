@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { filter, find, get, head, map } from 'lodash-es'
 import { Check, X } from 'lucide-react'
 import React, { FormEvent, useCallback, useState } from 'react'
 
@@ -90,8 +89,8 @@ function GroupingPopup({
     <div className="relatable__toolbar-popup relatable__toolbar-grouping-popup">
       {arrayHasItems(groupBy) && (
         <>
-          {map(groupBy, id => {
-            const column = find(columns, column => column.id === id)
+          {groupBy.map((id: string) => {
+            const column = columns.find((column: any) => column.id === id)
 
             return (
               <Label key={id} className="relatable__toolbar-value">
@@ -128,18 +127,21 @@ function GroupingForm({
     availableGlobalActions,
     selectedToolbarAction.name
   )
-  const columnsToUse = filter(
-    columns,
-    column => relatableAction && columnHasAction(column, relatableAction)
+  const columnsToUse = columns.filter(
+    (column: any) => relatableAction && columnHasAction(column, relatableAction)
   )
-  const firstId = get(head(columnsToUse), 'id', undefined)
+  const firstId = columnsToUse[0]?.id
   const [selectedColumnId, setSelectedColumnId] = useState<any>(firstId)
-  const selectedColumn = find(columnsToUse, ({ id }) => id === selectedColumnId)
-  const columnOptions = map(filter(columnsToUse, 'canGroupBy'), column => ({
-    key: column.id,
-    value: column.id,
-    text: column.Header
-  }))
+  const selectedColumn = columnsToUse.find(
+    ({ id }: any) => id === selectedColumnId
+  )
+  const columnOptions = columnsToUse
+    .filter((column: any) => column.canGroupBy)
+    .map((column: any) => ({
+      key: column.id,
+      value: column.id,
+      text: column.Header
+    }))
   const onSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault()

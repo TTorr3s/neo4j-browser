@@ -14,9 +14,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { pick } from 'lodash-es'
-
 import { SEMANTIC_TABLE_PROPS } from '../constants'
+import { pick } from 'shared/utils/array-utils'
 
 export default function getSemanticTableProps(props: any) {
   return pick(props, SEMANTIC_TABLE_PROPS)

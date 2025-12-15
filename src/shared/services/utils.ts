@@ -17,10 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 /* global btoa */
-import { isNumber, trimEnd, trimStart } from 'lodash-es'
-import { URL } from 'whatwg-url' // Firefox & Chrome builtin URL doesn't handle bolt:// protocol properly https://bugs.chromium.org/p/chromium/issues/detail?id=869291
+import { URL } from 'whatwg-url'
+
+// Firefox & Chrome builtin URL doesn't handle bolt:// protocol properly https://bugs.chromium.org/p/chromium/issues/detail?id=869291
 
 import { CLOUD, DESKTOP, WEB } from 'shared/modules/app/appDuck'
 
@@ -264,8 +264,8 @@ export const escapeCypherIdentifier = (str: any) =>
 
 export const unescapeCypherIdentifier = (str: any) =>
   [str]
-    .map(s => trimStart(s, '`'))
-    .map(s => trimEnd(s, '`'))
+    .map(s => s.replace(/^`+/, ''))
+    .map(s => s.replace(/`+$/, ''))
     .map(s => s.replace(/``/g, '`'))[0]
 
 export const parseTimeMillis = (timeWithOrWithoutUnit: any) => {
@@ -310,7 +310,7 @@ export const stringifyMod = (
   skipOpeningIndentation = false,
   discardDoubleQuotes = false
 ): string => {
-  const prettyLevel = isNumber(pretty) ? pretty : +pretty
+  const prettyLevel = typeof pretty === 'number' ? pretty : +pretty
   const nextPrettyLevel = prettyLevel ? prettyLevel + 1 : false
   const newLine = prettyLevel ? '\n' : ''
   const indentation =

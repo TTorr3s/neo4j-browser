@@ -15,17 +15,6 @@
  *
  */
 import { parseLambda } from '@neo4j/browser-lambda-parser'
-import {
-  assign,
-  head,
-  join,
-  map,
-  reduce,
-  slice,
-  split,
-  tail,
-  trim
-} from 'lodash-es'
 
 import bolt from '../../../services/bolt/bolt'
 import { recursivelyTypeGraphItems } from '../../../services/bolt/boltMappings'
@@ -42,7 +31,7 @@ const NEARLEY_ERROR_SPLIT =
 export function parseLambdaStatement(lambda: any) {
   return Promise.resolve()
     .then(() => {
-      const ast = parseLambda(trim(lambda))
+      const ast = parseLambda(lambda.trim())
 
       if (!arrayHasItems(ast)) {
         throw new Error(
@@ -57,7 +46,7 @@ export function parseLambdaStatement(lambda: any) {
           body: { returnValues }
         }
       ] = ast
-      const statement = trim(join(tail(split(lambda, FAT_ARROW)), FAT_ARROW))
+      const statement = lambda.split(FAT_ARROW).slice(1).join(FAT_ARROW).trim()
       const query =
         variant === IMPLICIT
           ? `RETURN ${statement}`
@@ -71,7 +60,7 @@ export function parseLambdaStatement(lambda: any) {
       }
     })
     .catch(e => {
-      throw new Error(head(split(e, NEARLEY_ERROR_SPLIT)))
+      throw new Error(String(e).split(NEARLEY_ERROR_SPLIT)[0])
     })
 }
 
@@ -91,21 +80,20 @@ export async function collectLambdaValues(
 
   const { records }: { records: any[] } = await request
   if (variant === IMPLICIT) {
-    const firstResult: any = head(records)
+    const firstResult: any = records[0]
 
     return firstResult
       ? recursivelyTypeGraphItems({
-          [parameters.value]: firstResult.get(head(firstResult.keys))
+          [parameters.value]: firstResult.get(firstResult.keys?.[0])
         })
       : {}
   }
 
   if (parameters.type === TOKEN) {
-    const extractedRecords = map(records, record =>
-      reduce(
-        record.keys,
-        (agg, next) =>
-          assign(agg, {
+    const extractedRecords = records.map(record =>
+      record.keys.reduce(
+        (agg: Record<string, unknown>, next: string) =>
+          Object.assign(agg, {
             [next]: record.get(next)
           }),
         {}
@@ -113,7 +101,7 @@ export async function collectLambdaValues(
     )
 
     return {
-      [parameters.value]: map(extractedRecords, record =>
+      [parameters.value]: extractedRecords.map(record =>
         recursivelyTypeGraphItems(record)
       )
     }
@@ -123,26 +111,26 @@ export async function collectLambdaValues(
   if (parameters.type !== ARRAY) return {}
 
   const { items } = parameters
-  const extractedRecords = map(
-    slice(records, 0, items.length),
-    (record, index) => {
+  const extractedRecords = records
+    .slice(0, items.length)
+    .map((record, index) => {
       const item = items[index]
       const keys = item.type === TOKEN ? [item] : item.keys // item.type === OBJECT
 
-      return reduce(
-        keys,
-        (agg, next) =>
-          assign(agg, {
+      return keys.reduce(
+        (
+          agg: Record<string, unknown>,
+          next: { alias?: string; value: string }
+        ) =>
+          Object.assign(agg, {
             [next.alias || next.value]: record.get(next.value)
           }),
         {}
       )
-    }
-  )
+    })
 
-  return reduce(
-    extractedRecords,
-    (agg, record) => assign(agg, recursivelyTypeGraphItems(record)),
+  return extractedRecords.reduce(
+    (agg, record) => Object.assign(agg, recursivelyTypeGraphItems(record)),
     {}
   )
 }

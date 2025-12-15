@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { pick, values } from 'lodash-es'
 import { useMemo } from 'react'
 import {
   UsePaginationInstanceProps,
@@ -30,9 +29,11 @@ import {
   PageSizeSetter,
   TableAddOnReturn
 } from '../relatable.types'
+import { pick } from 'shared/utils/array-utils'
 
-export interface IWithPaginationOptions<Data extends object = any>
-  extends UsePaginationOptions<Data> {
+export interface IWithPaginationOptions<
+  Data extends object = any
+> extends UsePaginationOptions<Data> {
   onPageChange?: PageSetter
   onPageSizeChange?: PageSizeSetter
   pageSizeOptions?: number[]
@@ -46,7 +47,8 @@ export type IWithPaginationState<Data extends object = any> =
   UsePaginationState<Data>
 
 export interface IWithPaginationInstance<Data extends object = any>
-  extends UsePaginationInstanceProps<Data>,
+  extends
+    UsePaginationInstanceProps<Data>,
     IRelatableStateInstance<Data, IWithPaginationState<Data>> {
   customPageSizeOptions: number[]
   onCustomPageSizeChange?: PageSizeSetter
@@ -79,9 +81,9 @@ export default function withPagination<Data extends object = any>(
           onCustomPageSizeChange: onPageSizeChange,
           onCustomPageChange: onPageChange
         }),
-        [onPageSizeChange, onPageChange, ...values(tableParams)]
+        [onPageSizeChange, onPageChange, ...Object.values(tableParams)]
       ),
-    () => useMemo(() => stateParams, values(stateParams)),
+    () => useMemo(() => stateParams, Object.values(stateParams)),
     usePagination
   ]
 }

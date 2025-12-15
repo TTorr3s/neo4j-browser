@@ -14,16 +14,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { get, head, map, slice } from 'lodash-es'
 import { QueryResult, Record, isInt } from 'neo4j-driver'
-import React, { useMemo, type JSX } from 'react'
+import React, { type JSX, useMemo } from 'react'
 import { connect } from 'react-redux'
 
 import {
   ClickableUrls,
   ClipboardCopier,
-  copyToClipboard,
-  WarningMessage
+  WarningMessage,
+  copyToClipboard
 } from 'neo4j-arc/common'
 
 import {
@@ -80,7 +79,7 @@ export function RelatableViewComponent({
     () => getColumns(records, Number(maxFieldItems)),
     [records, maxFieldItems]
   )
-  const data = useMemo(() => slice(records, 0, maxRows), [records, maxRows])
+  const data = useMemo(() => records.slice(0, maxRows), [records, maxRows])
 
   if (!arrayHasItems(columns)) {
     return <RelatableBodyMessage result={result} maxRows={maxRows} />
@@ -95,15 +94,15 @@ export function RelatableViewComponent({
 }
 
 function getColumns(records: Record[], maxFieldItems: number) {
-  const keys = get(head(records), 'keys', [])
-  return map(keys, key => ({
+  const keys = records[0]?.keys ?? []
+  return keys.map(key => ({
     Header: key !== '' ? key : '``',
     accessor: (record: Record) => {
       const fieldItem = record.get(key)
 
       if (!Array.isArray(fieldItem)) return fieldItem
 
-      return slice(fieldItem, 0, maxFieldItems)
+      return fieldItem.slice(0, maxFieldItems)
     },
     Cell: CypherCell
   }))

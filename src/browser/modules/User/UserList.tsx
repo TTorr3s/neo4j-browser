@@ -17,10 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { map } from 'lodash-es'
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
+import { Bus } from 'suber'
 import { v4 as uuidv4 } from 'uuid'
 
 import FrameAside from '../Frame/FrameAside'
@@ -44,7 +44,6 @@ import {
 import { ROUTED_CYPHER_WRITE_REQUEST } from 'shared/modules/cypher/cypherDuck'
 import { isEnterprise } from 'shared/modules/dbMeta/dbMetaDuck'
 import { driverDatabaseSelection } from 'shared/modules/features/versionedFeatures'
-import { Bus } from 'suber'
 
 interface UserListProps {
   users?: any[]
@@ -132,7 +131,7 @@ export const UserList = (props: UserListProps) => {
       },
       (response: any) => {
         if (response.success) {
-          setUserList(map(response.result.records, recordToUserObject))
+          setUserList(response.result.records.map(recordToUserObject))
           bus.send(forceFetch().type, forceFetch())
         }
       }
@@ -150,7 +149,7 @@ export const UserList = (props: UserListProps) => {
       (response: any) => {
         if (response.success) {
           setListRoles(
-            map(response.result.records, record => record.get('role'))
+            response.result.records.map((record: any) => record.get('role'))
           )
         }
       }

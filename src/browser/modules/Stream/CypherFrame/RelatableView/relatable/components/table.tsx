@@ -14,8 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { map } from 'lodash-es'
-import React, { useCallback, type JSX } from 'react'
+import React, { type JSX, useCallback } from 'react'
 
 import { useRelatableStateContext } from '../states'
 import arrayHasItems from '../utils/array-has-items'
@@ -28,11 +27,11 @@ import { BodyRow } from './renderers'
 import RowActions from './renderers/row-actions'
 import {
   StyledTable,
-  StyledTableHeader,
   StyledTableBody,
-  StyledTableRow,
+  StyledTableCell,
+  StyledTableHeader,
   StyledTableHeaderCell,
-  StyledTableCell
+  StyledTableRow
 } from './styled'
 
 export interface ITableProps {
@@ -101,7 +100,7 @@ export default function Table({
     >
       {!headless && (
         <StyledTableHeader>
-          {map(headerGroups, (headerGroup, index: number) => {
+          {headerGroups.map((headerGroup, index: number) => {
             const { key: headerGroupKey, ...headerGroupProps } =
               headerGroup.getHeaderGroupProps()
             return (
@@ -123,7 +122,7 @@ export default function Table({
                     />
                   )}
                 </StyledTableHeaderCell>
-                {map(headerGroup.headers, (column: any) => {
+                {headerGroup.headers.map((column: any) => {
                   const { key: headerKey, ...headerProps } =
                     column.getHeaderProps()
                   const hasActions =
@@ -159,7 +158,7 @@ export default function Table({
         </StyledTableHeader>
       )}
       <StyledTableBody>
-        {map(rows, (row, index: number) => {
+        {rows.map((row, index: number) => {
           prepareRow(row)
           const { key: rowKey, ...rowProps } = row.getRowProps()
 
@@ -175,19 +174,21 @@ export default function Table({
         })}
         {/* render empty rows when passed expectedRowCount and no data */}
         {!arrayHasItems(rows) && loading && expectedRowCount
-          ? map(Array(expectedRowCount), (_, index) => (
-              <StyledTableRow
-                key={`empty-row-${index}`}
-                className="relatable__table-row relatable__table-body-row"
-              >
-                <StyledTableCell
-                  className="relatable__table-cell relatable__table-body-cell"
-                  colSpan={100}
+          ? Array(expectedRowCount)
+              .fill(null)
+              .map((_, index) => (
+                <StyledTableRow
+                  key={`empty-row-${index}`}
+                  className="relatable__table-row relatable__table-body-row"
                 >
-                  <div className="relatable__table-body-cell-loader" />
-                </StyledTableCell>
-              </StyledTableRow>
-            ))
+                  <StyledTableCell
+                    className="relatable__table-cell relatable__table-body-cell"
+                    colSpan={100}
+                  >
+                    <div className="relatable__table-body-cell-loader" />
+                  </StyledTableCell>
+                </StyledTableRow>
+              ))
           : null}
       </StyledTableBody>
     </StyledTable>

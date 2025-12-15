@@ -238,7 +238,7 @@ editorRef.current?.resize(fillContainer)
 
 - **Monaco Editor**: Never import `monaco-editor` directly; use the configured paths. The editor disables `occurrencesHighlight` to prevent cleanup errors.
 - **ESLint**: The codebase uses `@babel/eslint-parser` and `@typescript-eslint/parser` (see .eslintrc.json overrides). Note: Babel is only used for ESLint parsing, not for transpilation.
-- **Node Version**: Requires Node >= 20.19.0
+- **Node Version**: Requires Node >= 22.0.0
 - **Pre-commit**: Husky + lint-staged runs prettier-eslint on changed files
 - **Neo4j Desktop Integration**: Configured via `neo4jDesktop` in package.json (API version ^1.4.0)
 - **All components use functional patterns**: Class components have been migrated to functional components with hooks

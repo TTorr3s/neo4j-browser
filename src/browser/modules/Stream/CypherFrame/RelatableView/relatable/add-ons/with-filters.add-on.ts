@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { filter, includes, map, values } from 'lodash-es'
 import { useCallback, useMemo, useState } from 'react'
 import {
   Column,
@@ -34,8 +33,9 @@ import {
   TableAddOnReturn
 } from '../relatable.types'
 
-export interface IWithFiltersOptions<Data extends object = any>
-  extends UseFiltersOptions<Data> {
+export interface IWithFiltersOptions<
+  Data extends object = any
+> extends UseFiltersOptions<Data> {
   defaultFilterCell?: React.FC<IFilterFieldProps>
   onFilterChange?: FilterSetter<Data>
 
@@ -47,7 +47,8 @@ export interface IWithFiltersOptions<Data extends object = any>
 export type IWithFiltersState<Data extends object = any> = UseFiltersState<Data>
 
 export interface IWithFiltersInstance<Data extends object = any>
-  extends UseFiltersInstanceProps<Data>,
+  extends
+    UseFiltersInstanceProps<Data>,
     IRelatableStateInstance<Data, IWithFiltersState<Data>> {
   onCustomFilterChange: FilterSetter<Data>
   defaultColumn: Partial<Column<Data> & UseFiltersColumnOptions<Data>>
@@ -74,7 +75,7 @@ export default function withFilters<Data extends object = any>(
       }
 
       if (action === FILTER_ACTIONS.FILTER_CLEAR) {
-        setOurFilters(filter(ourFilters, ({ id }) => id === column.id))
+        setOurFilters(ourFilters.filter(({ id }) => id === column.id))
 
         return
       }
@@ -82,16 +83,15 @@ export default function withFilters<Data extends object = any>(
       if (action === FILTER_ACTIONS.FILTER_ADD) {
         setOurFilters([
           ...ourFilters,
-          ...map(values, value => ({ id: column.id, value }))
+          ...values.map(value => ({ id: column.id, value }))
         ])
 
         return
       }
 
       setOurFilters(
-        filter(
-          ourFilters,
-          ({ id, value }) => !(id === column.id && includes(values, value))
+        ourFilters.filter(
+          ({ id, value }) => !(id === column.id && values.includes(value))
         )
       )
     },
@@ -123,7 +123,7 @@ export default function withFilters<Data extends object = any>(
           defaultColumn,
           defaultFilterCell,
           onCustomFilterChange,
-          ...values(rest)
+          ...Object.values(rest)
         ]
       ),
     () => useMemo(() => stateParams, [filters]),

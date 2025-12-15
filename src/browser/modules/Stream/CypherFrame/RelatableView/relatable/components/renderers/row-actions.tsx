@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { every } from 'lodash-es'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import React, { ChangeEvent } from 'react'
 
@@ -33,7 +32,7 @@ export default function RowActions({
     <span className="relatable__table-row-actions">
       {onExpandClick && (
         <span className="relatable__row-expander" onClick={onExpandClick}>
-          {every(rows, 'isExpanded') ? (
+          {rows.every((row: any) => row.isExpanded) ? (
             <ChevronDown size={16} />
           ) : (
             <ChevronRight size={16} />
@@ -44,7 +43,7 @@ export default function RowActions({
         <StyledCheckbox
           type="checkbox"
           className="relatable__row-selector"
-          checked={every(rows, 'isSelected')}
+          checked={rows.every((row: any) => row.isSelected)}
           onChange={handleCheckboxChange}
         />
       )}

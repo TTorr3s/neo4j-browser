@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { values } from 'lodash-es'
 import { useCallback, useMemo } from 'react'
 import {
   Column,
@@ -34,8 +33,9 @@ import {
   TableAddOnReturn
 } from '../relatable.types'
 
-export interface IWithGroupingOptions<Data extends object = any>
-  extends UseGroupByOptions<Data> {
+export interface IWithGroupingOptions<
+  Data extends object = any
+> extends UseGroupByOptions<Data> {
   defaultAggregate?: string[] | string | ((values: any[]) => any)
   defaultAggregateCell?: React.FC<ICellProps>
   onGroupChange?: GroupSetter<Data>
@@ -48,7 +48,8 @@ export type IWithGroupingState<Data extends object = any> =
   UseGroupByState<Data>
 
 export interface IWithGroupingInstance<Data extends object = any>
-  extends UseGroupByInstanceProps<Data>,
+  extends
+    UseGroupByInstanceProps<Data>,
     IRelatableStateInstance<Data, IWithGroupingState<Data>> {
   onCustomGroupingChange: GroupSetter<Data>
   defaultColumn: Partial<Column<Data> & UseGroupByColumnOptions<Data>>
@@ -104,7 +105,7 @@ export default function withGrouping<Data extends object = any>(
           onCustomGroupingChange,
           defaultAggregateCell,
           defaultAggregate,
-          ...values(rest)
+          ...Object.values(rest)
         ]
       ),
     () => useMemo(() => stateParams, [groupBy]),

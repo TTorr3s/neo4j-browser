@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { map } from 'lodash-es'
 import React, { type JSX } from 'react'
 import styled from 'styled-components'
 
@@ -76,7 +75,7 @@ export default function Pagination(_props: IPaginationProps = {}): JSX.Element {
   } = useRelatableStateContext<any, IWithPaginationInstance>()
   const pageSetter = onCustomPageChange || gotoPage
   const pageSizeSetter = onCustomPageSizeChange || setPageSize
-  const pageSizeOptions = map(customPageSizeOptions, opt => ({
+  const pageSizeOptions = customPageSizeOptions.map(opt => ({
     key: opt,
     value: opt,
     text: opt

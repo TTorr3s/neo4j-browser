@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { assign, filter, keys, map, pick, reduce, values } from 'lodash-es'
 import { Dispatch, useCallback, useEffect, useMemo, useState } from 'react'
 import { TableOptions, useTable } from 'react-table'
 
@@ -32,6 +31,7 @@ import {
 } from '../../utils/relatable-actions'
 import { TextCell } from '../renderers'
 import { IRelatableProps } from './relatable'
+import { pick } from 'shared/utils/array-utils'
 
 export function useRelatableActions(): [
   ToolbarAction | null,
@@ -72,20 +72,18 @@ export function useRelatableState<
   const addOns = getRelatableAddOns(props)
   const availableGlobalActions = getRelatableGlobalActions(addOns)
   const availableTableActions = getRelatableTableActions(addOns)
-  const tableParamFactories = map(addOns, prep => prep[3])
-  const tableStateFactories = map(addOns, prep => prep[4])
-  const reactTableHooks = map(addOns, prep => prep[5])
+  const tableParamFactories = addOns.map(prep => prep[3])
+  const tableStateFactories = addOns.map(prep => prep[4])
+  const reactTableHooks = addOns.map(prep => prep[5])
 
   // prepare table params and context values
-  const stateParams = reduce(
-    tableStateFactories,
-    (agg, fac) => assign(agg, fac(agg) || {}),
+  const stateParams = tableStateFactories.reduce(
+    (agg, fac) => Object.assign(agg, fac(agg) || {}),
     {}
   )
-  const tableParams: TableOptions<Data> = reduce(
-    tableParamFactories,
+  const tableParams: TableOptions<Data> = tableParamFactories.reduce(
     // @ts-ignore
-    (agg, fac) => assign(agg, fac(agg) || {}),
+    (agg, fac) => Object.assign(agg, fac(agg) || {}),
     {
       columns,
       data,
@@ -93,8 +91,8 @@ export function useRelatableState<
       getCustomCellColSpan: getCellColSpan,
       useControlledState: (state: any) =>
         useMemo(
-          () => assign({}, state, stateParams),
-          [state, values(stateParams)]
+          () => Object.assign({}, state, stateParams),
+          [state, Object.values(stateParams)]
         ),
       defaultColumn: useMemo(
         () => ({
@@ -136,12 +134,11 @@ export function useOnStateChange<
   useEffect(() => {
     if (!onStateChange) return
 
-    const changedKeys = filter(
-      keys(toOutside),
+    const changedKeys = Object.keys(toOutside).filter(
       key => toOutside[key] !== oldState[key]
     )
 
     setOldState(toOutside)
     onStateChange(toOutside, changedKeys)
-  }, [onStateChange, ...values(toOutside)]) // spread to prevent double trigger
+  }, [onStateChange, ...Object.values(toOutside)]) // spread to prevent double trigger
 }

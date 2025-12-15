@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { map } from 'lodash-es'
 import React, { useCallback } from 'react'
 
 import { IWithExpandedInstance } from '../../add-ons'
@@ -22,7 +21,7 @@ import { IRelatableStateInstance } from '../../relatable.types'
 import { useRelatableStateContext } from '../../states'
 import arrayHasItems from '../../utils/array-has-items'
 import { getRowClasses } from '../../utils/relatable-state-classes'
-import { Label, StyledTableRow, StyledTableCell } from '../styled'
+import { Label, StyledTableCell, StyledTableRow } from '../styled'
 import { BodyCell, IRowProps } from './index'
 import RowActions from './row-actions'
 
@@ -61,7 +60,7 @@ export default function BodyRow(props: IRowProps) {
           />
         </StyledTableCell>
         {!loading &&
-          map(row.cells, cell => {
+          row.cells.map((cell: any) => {
             const { key: cellKey, ...cellProps } = cell.getCellProps()
             return (
               <BodyCell

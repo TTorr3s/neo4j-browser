@@ -14,38 +14,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { filter, find, map, some } from 'lodash-es'
-
 import { RelatableAction, TableAddOnReturn } from '../relatable.types'
 
 export function getRelatableGlobalActions(
   addOns: TableAddOnReturn[]
 ): RelatableAction[] {
-  return map(
-    filter(addOns, ([name]) => Boolean(name)),
-    ([name, , predicate]): RelatableAction => [name!, predicate]
-  )
+  return addOns
+    .filter(([name]) => Boolean(name))
+    .map(([name, , predicate]): RelatableAction => [name!, predicate])
 }
 
 export function getRelatableTableActions(
   addOns: TableAddOnReturn[]
 ): RelatableAction[] {
-  return map(
-    filter(addOns, ([, name]) => Boolean(name)),
-    ([, name, predicate]): RelatableAction => [name!, predicate]
-  )
+  return addOns
+    .filter(([, name]) => Boolean(name))
+    .map(([, name, predicate]): RelatableAction => [name!, predicate])
 }
 
 export function getRelatableAction(
   actions: RelatableAction[],
   name: string
 ): RelatableAction | undefined {
-  return find(actions, ([actionName]) => actionName === name)
+  return actions.find(([actionName]) => actionName === name)
 }
 
 export function isActionAvailable(
   availableActions: RelatableAction[],
   name: string
 ): boolean {
-  return some(availableActions, ([actionName]) => actionName === name)
+  return availableActions.some(([actionName]) => actionName === name)
 }

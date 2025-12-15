@@ -14,8 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { some } from 'lodash-es'
-
 import { RelatableAction } from '../relatable.types'
 import arrayHasItems from './array-has-items'
 
@@ -25,7 +23,7 @@ export function columnHasActions(
 ): boolean {
   return (
     arrayHasItems(availableActions) &&
-    some(availableActions, action => columnHasAction(column, action))
+    availableActions.some(action => columnHasAction(column, action))
   )
 }
 

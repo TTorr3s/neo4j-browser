@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { forEach, values } from 'lodash-es'
 import { useCallback, useMemo } from 'react'
 import {
   IdType,
@@ -32,8 +31,9 @@ import {
 } from '../relatable.types'
 import arrayHasItems from '../utils/array-has-items'
 
-export interface IWithExpandedOptions<Data extends object = any>
-  extends UseExpandedOptions<Data> {
+export interface IWithExpandedOptions<
+  Data extends object = any
+> extends UseExpandedOptions<Data> {
   onExpandedChange?: ExpandSetter<Data>
   expandedRowComponent?: React.FC<IRowProps>
 
@@ -41,15 +41,17 @@ export interface IWithExpandedOptions<Data extends object = any>
   expanded?: IdType<Data>[]
 }
 
-export interface IWithExpandedState<Data extends object = any>
-  extends UseExpandedState<Data> {
+export interface IWithExpandedState<
+  Data extends object = any
+> extends UseExpandedState<Data> {
   expandSubRows: false
   CustomExpandedRowComponent: React.FC<IRowProps>
   onCustomExpandedChange: ExpandSetter<Data>
 }
 
 export interface IWithExpandedInstance<Data extends object = any>
-  extends UseExpandedInstanceProps<Data>,
+  extends
+    UseExpandedInstanceProps<Data>,
     IRelatableStateInstance<Data, IWithExpandedState<Data>> {
   expandSubRows: false
   CustomExpandedRowComponent: React.FC<IRowProps>
@@ -74,7 +76,7 @@ export default function withExpanded<Data extends object = any>(
         return
       }
 
-      forEach(rows, row => row.toggleRowExpanded(expand))
+      rows.forEach(row => row.toggleRowExpanded(expand))
     },
     [onExpandedChange]
   )
@@ -91,7 +93,11 @@ export default function withExpanded<Data extends object = any>(
           CustomExpandedRowComponent: expandedRowComponent,
           onCustomExpandedChange
         }),
-        [expandedRowComponent, onCustomExpandedChange, ...values(tableParams)]
+        [
+          expandedRowComponent,
+          onCustomExpandedChange,
+          ...Object.values(tableParams)
+        ]
       ),
     () => useMemo(() => stateParams, [expanded]),
     useExpanded

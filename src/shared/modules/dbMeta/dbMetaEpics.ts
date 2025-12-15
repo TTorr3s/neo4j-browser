@@ -17,21 +17,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { assign, reduce } from 'lodash-es'
+import { Record, ResultSummary, isInt } from 'neo4j-driver'
 import { AnyAction } from 'redux'
 import { Epic, ofType } from 'redux-observable'
-import { of, from, timer, merge } from 'rxjs'
+import { from, merge, of, timer } from 'rxjs'
 import {
+  catchError,
+  filter,
   map,
   mergeMap,
-  filter,
-  tap,
-  catchError,
-  throttle,
   takeUntil,
+  tap,
+  throttle,
   withLatestFrom
 } from 'rxjs/operators'
+import semver, { SemVer, gte } from 'semver'
 
+import { triggerCredentialsTimeout } from '../credentialsPolicy/credentialsPolicyDuck'
+import {
+  getListFunctionQuery,
+  getListProcedureQuery
+} from '../cypher/functionsAndProceduresHelper'
 import {
   USER_CAPABILITIES,
   hasClientConfig,
@@ -39,43 +45,46 @@ import {
   updateUserCapability
 } from '../features/featuresDuck'
 import { getDbClusterRole } from '../features/versionedFeatures'
+import { trackPageLoad } from '../preview/previewDuck'
 import {
+  CLEAR_META,
+  DB_META_COUNT_DONE,
+  DB_META_DONE,
+  DB_META_FORCE_COUNT,
+  FORCE_FETCH,
+  LABELS_LOADED,
+  SERVER_VERSION_READ,
+  SYSTEM_DB,
+  VERSION_FOR_CLUSTER_ROLE_IN_SHOW_DB,
+  getCountAutomaticRefreshEnabled,
+  isEnterprise,
+  isOnCluster,
+  metaCountQuery,
+  metaTypesQuery,
+  oldTrialStatusQuery,
+  serverInfoQuery,
+  supportsMultiDb,
+  trialStatusQuery,
   update,
+  updateCountAutomaticRefresh,
   updateServerInfo,
   updateSettings,
-  CLEAR_META,
-  DB_META_DONE,
-  LABELS_LOADED,
-  FORCE_FETCH,
-  SYSTEM_DB,
-  metaTypesQuery,
-  serverInfoQuery,
-  VERSION_FOR_CLUSTER_ROLE_IN_SHOW_DB,
-  isOnCluster,
-  updateCountAutomaticRefresh,
-  getCountAutomaticRefreshEnabled,
-  DB_META_FORCE_COUNT,
-  DB_META_COUNT_DONE,
-  metaCountQuery,
-  trialStatusQuery,
   updateTrialStatus,
-  oldTrialStatusQuery,
-  updateTrialStatusOld,
-  isEnterprise,
-  SERVER_VERSION_READ,
-  supportsMultiDb
+  updateTrialStatusOld
 } from './dbMetaDuck'
 import {
   ClientSettings,
-  initialClientSettings,
   Database,
   findDatabaseByNameOrAlias,
   getDatabases,
   getSemanticVersion,
+  initialClientSettings,
   shouldRetainEditorHistory
 } from './dbMetaDuck'
 import bolt from 'services/bolt/bolt'
+import { isBoltConnectionErrorCode } from 'services/bolt/boltConnectionErrors'
 import { isConfigValFalsy, isConfigValTruthy } from 'services/bolt/boltHelpers'
+import { GlobalState } from 'shared/globalState'
 import {
   commandSources,
   executeCommand
@@ -99,19 +108,9 @@ import {
 import { clearHistory } from 'shared/modules/history/historyDuck'
 import { backgroundTxMetadata } from 'shared/services/bolt/txMetadata'
 import {
-  getListFunctionQuery,
-  getListProcedureQuery
-} from '../cypher/functionsAndProceduresHelper'
-import { isInt, Record, ResultSummary } from 'neo4j-driver'
-import semver, { gte, SemVer } from 'semver'
-import { triggerCredentialsTimeout } from '../credentialsPolicy/credentialsPolicyDuck'
-import {
-  isSystemOrCompositeDb,
-  getCurrentDatabase
+  getCurrentDatabase,
+  isSystemOrCompositeDb
 } from 'shared/utils/selectors'
-import { isBoltConnectionErrorCode } from 'services/bolt/boltConnectionErrors'
-import { trackPageLoad } from '../preview/previewDuck'
-import { GlobalState } from 'shared/globalState'
 
 // Helper type for store-like object used in async functions
 type StoreProxy = {
@@ -158,12 +157,9 @@ async function databaseList(storeProxy: StoreProxy) {
     if (!res) return
 
     const databases = res.records.map((record: any) => ({
-      ...reduce(
-        record.keys,
-        (agg, key) => assign(agg, { [key]: record.get(key) }),
-        {}
+      ...Object.fromEntries(
+        Array.from(record.keys, (key: string) => [key, record.get(key)])
       ),
-
       status: record.get('currentStatus')
     }))
 

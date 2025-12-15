@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { assign, flatMap, map, omit, reduce, values } from 'lodash-es'
 import { useCallback, useMemo, useState } from 'react'
 import {
   UseRowSelectInstanceProps,
@@ -29,9 +28,11 @@ import {
   TableAddOnReturn
 } from '../relatable.types'
 import arrayHasItems from '../utils/array-has-items'
+import { omit } from 'shared/utils/array-utils'
 
-export interface IWithSelectionOptions<Data extends object = any>
-  extends UseRowSelectOptions<Data> {
+export interface IWithSelectionOptions<
+  Data extends object = any
+> extends UseRowSelectOptions<Data> {
   onSelectionChange?: SelectSetter<Data>
 
   // react-table state override https://react-table.js.org/api/useRowSelect
@@ -42,7 +43,8 @@ export type IWithSelectionState<Data extends object = any> =
   UseRowSelectState<Data>
 
 export interface IWithSelectionInstance<Data extends object = any>
-  extends UseRowSelectInstanceProps<Data>,
+  extends
+    UseRowSelectInstanceProps<Data>,
     IRelatableStateInstance<Data, IWithSelectionState<Data>> {
   onCustomSelectionChange: SelectSetter<Data>
 }
@@ -68,13 +70,13 @@ export default function withSelection<Data extends object = any>(
         return
       }
 
-      const newIds = flatMap(rows, ({ id, subRows }) =>
-        arrayHasItems(subRows) ? map(subRows, subRow => subRow.id) : [id]
+      const newIds = rows.flatMap(({ id, subRows }) =>
+        arrayHasItems(subRows) ? subRows.map(subRow => subRow.id) : [id]
       )
 
       if (select) {
         setOurSelectedRowIds(
-          reduce(newIds, (agg, id) => assign(agg, { [id]: true }), {
+          newIds.reduce((agg, id) => Object.assign(agg, { [id]: true }), {
             ...selectedRowIds
           })
         )
@@ -82,7 +84,9 @@ export default function withSelection<Data extends object = any>(
         return
       }
 
-      setOurSelectedRowIds(omit(selectedRowIds, newIds))
+      setOurSelectedRowIds(
+        omit(selectedRowIds, newIds as (keyof typeof selectedRowIds)[])
+      )
     },
     [onSelectionChange, selectedRowIds]
   )
@@ -97,7 +101,7 @@ export default function withSelection<Data extends object = any>(
           ...tableParams,
           onCustomSelectionChange
         }),
-        [onCustomSelectionChange, ...values(tableParams)]
+        [onCustomSelectionChange, ...Object.values(tableParams)]
       ),
     () => useMemo(() => stateParams, [selectedRowIds]),
     useRowSelect
