@@ -26,7 +26,7 @@ import { TextDecoder, TextEncoder } from 'util'
 const createFetchMock = () => {
   let mockResponses = []
 
-  const mockFetch = jest.fn((url, options) => {
+  const mockFetch = jest.fn(() => {
     if (mockResponses.length === 0) {
       return Promise.reject(new Error('No mock response configured'))
     }

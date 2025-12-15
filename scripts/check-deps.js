@@ -18,55 +18,58 @@ const deps = {
   ...(pkg.devDependencies ?? {})
 }
 
-const sleep = ms =>
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 const now = Date.now()
 const THRESHOLD_MS = YEARS_THRESHOLD * 365 * 24 * 60 * 60 * 1000
 
-const stale = []
-console.log('Checking dependencies starting...')
+async function main() {
+  const stale = []
+  console.log('Checking dependencies starting...')
 
-for (const [name, range] of Object.entries(deps)) {
-  try {
-    const version = range.replace(/^[^\d]*/, '')
-    if (!version) continue
+  for (const [name, range] of Object.entries(deps)) {
+    try {
+      const version = range.replace(/^[^\d]*/, '')
+      if (!version) continue
 
-    const output = execSync(`npm view ${name} time --json`, {
-      stdio: ['ignore', 'pipe', 'ignore']
-    }).toString()
+      const output = execSync(`npm view ${name} time --json`, {
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).toString()
 
-    const times = JSON.parse(output)
-    const published = times[version]
-    if (!published) continue
+      const times = JSON.parse(output)
+      const published = times[version]
+      if (!published) continue
 
-    const ageMs = now - new Date(published).getTime()
+      const ageMs = now - new Date(published).getTime()
 
-    if (ageMs > THRESHOLD_MS) {
-      console.log(`Checking ${name}... WARN`)
-      stale.push({
-        package: name,
-        version,
-        published,
-        ageYears: (ageMs / 3.154e10).toFixed(2)
-      })
-    } else {
-      console.log(`Checking ${name}... OK`)
+      if (ageMs > THRESHOLD_MS) {
+        console.log(`Checking ${name}... WARN`)
+        stale.push({
+          package: name,
+          version,
+          published,
+          ageYears: (ageMs / 3.154e10).toFixed(2)
+        })
+      } else {
+        console.log(`Checking ${name}... OK`)
+      }
+
+      await sleep(SLEEP_MS)
+    } catch {
+      await sleep(SLEEP_MS)
     }
-
-    sleep(SLEEP_MS)
-  } catch {
-    sleep(SLEEP_MS)
   }
+
+  if (!stale.length) {
+    console.log(`No dependencies older than ${YEARS_THRESHOLD} years`)
+    process.exit(0)
+  }
+
+  // Order by ageYears descending (inmutable)
+  const sortedStale = [...stale].sort((a, b) => b.ageYears - a.ageYears)
+
+  console.log(`Dependencies older than ${YEARS_THRESHOLD} years:\n`)
+  console.table(sortedStale)
 }
 
-if (!stale.length) {
-  console.log(`No dependencies older than ${YEARS_THRESHOLD} years`)
-  process.exit(0)
-}
-
-// Order by ageYears descending (inmutable)
-const sortedStale = [...stale].sort((a, b) => b.ageYears - a.ageYears)
-
-console.log(`Dependencies older than ${YEARS_THRESHOLD} years:\n`)
-console.table(sortedStale)
+main()

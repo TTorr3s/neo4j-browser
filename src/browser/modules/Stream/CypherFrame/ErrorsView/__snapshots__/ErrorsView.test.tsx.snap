@@ -5,43 +5,43 @@ exports[`ErrorsView displays nothing if no errors 1`] = `<div />`;
 exports[`ErrorsView displays procedure link if unknown procedure 1`] = `
 <div>
   <div
-    class="sc-hGPBjI kgdIGh"
+    class="sc-dAbbOL cDpbri"
   >
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-feUZmu hsPXbq"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-fUnMCh kdrlNb"
       >
         <div
-          class="sc-cxpSdN sc-iJKOTD cnlYxc kGIKmg"
+          class="sc-bXCLTC sc-eeDRCY gfnkhb cauQgg"
         >
           ERROR
         </div>
         <h4
-          class="sc-ikJyIC ieqznC"
+          class="sc-kOHTFB dSnpfW"
         >
           Neo.ClientError.Procedure.ProcedureNotFound
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-hzhJZQ"
       >
         <pre
-          class="sc-hiCibw jvxLJD"
+          class="sc-kOPcWz siqHk"
           data-testid="cypherFrameErrorMessage"
         >
           not found
         </pre>
       </div>
       <div
-        class="sc-iwjdpV bufpWB"
+        class="sc-hmdomO dTIges"
       >
         <a
-          class="sc-bBHxTw dwqDlO"
+          class="sc-fHjqPf gBrkbJ"
         >
           <i
-            class="sc-bdvvtL hGsZIa fa fa-play-circle-o"
+            class="sc-aXZVg eROwcF fa fa-play-circle-o"
             style="line-height: inherit;"
           />
            List available procedures
@@ -55,70 +55,70 @@ exports[`ErrorsView displays procedure link if unknown procedure 1`] = `
 exports[`ErrorsView does display a nested error for gql status codes 1`] = `
 <div>
   <div
-    class="sc-hGPBjI kgdIGh"
+    class="sc-dAbbOL cDpbri"
   >
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-feUZmu hsPXbq"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-fUnMCh kdrlNb"
       >
         <div
-          class="sc-cxpSdN sc-iJKOTD cnlYxc kGIKmg"
+          class="sc-bXCLTC sc-eeDRCY gfnkhb cauQgg"
         >
           ERROR
         </div>
         <h4
-          class="sc-ikJyIC ieqznC"
+          class="sc-kOHTFB dSnpfW"
         >
           42N51: Syntax error or access rule violation - invalid parameter
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-hzhJZQ"
       >
         <pre
-          class="sc-hiCibw jvxLJD"
+          class="sc-kOPcWz siqHk"
           data-testid="cypherFrameErrorMessage"
         >
           Invalid parameter $\`param\`.
         </pre>
       </div>
       <div
-        class="sc-hGPBjI snaKN"
+        class="sc-dAbbOL iJKcfy"
       >
         <div
-          class="sc-dlVxhl fwhZkz"
+          class="sc-feUZmu hsPXbq"
         >
           <div
-            class="sc-kfPuZi lgMZCo"
+            class="sc-fUnMCh kdrlNb"
           >
             <h4
-              class="sc-ikJyIC ieqznC"
+              class="sc-kOHTFB dSnpfW"
             >
               22G03: Data exception - invalid value type
             </h4>
           </div>
           <div
-            class="sc-hGPBjI snaKN"
+            class="sc-dAbbOL iJKcfy"
           >
             <div
-              class="sc-dlVxhl fwhZkz"
+              class="sc-feUZmu hsPXbq"
             >
               <div
-                class="sc-kfPuZi lgMZCo"
+                class="sc-fUnMCh kdrlNb"
               >
                 <h4
-                  class="sc-ikJyIC ieqznC"
+                  class="sc-kOHTFB dSnpfW"
                 >
                   22N27: Data exception - invalid entity type
                 </h4>
               </div>
               <div
-                class="sc-fKVqWL"
+                class="sc-hzhJZQ"
               >
                 <pre
-                  class="sc-hiCibw jvxLJD"
+                  class="sc-kOPcWz siqHk"
                   data-testid="cypherFrameErrorMessage"
                 >
                   Invalid input '******' for $\`param\`. Expected to be STRING.
@@ -136,30 +136,30 @@ exports[`ErrorsView does display a nested error for gql status codes 1`] = `
 exports[`ErrorsView does display an error 1`] = `
 <div>
   <div
-    class="sc-hGPBjI kgdIGh"
+    class="sc-dAbbOL cDpbri"
   >
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-feUZmu hsPXbq"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-fUnMCh kdrlNb"
       >
         <div
-          class="sc-cxpSdN sc-iJKOTD cnlYxc kGIKmg"
+          class="sc-bXCLTC sc-eeDRCY gfnkhb cauQgg"
         >
           ERROR
         </div>
         <h4
-          class="sc-ikJyIC ieqznC"
+          class="sc-kOHTFB dSnpfW"
         >
           Test.Error
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-hzhJZQ"
       >
         <pre
-          class="sc-hiCibw jvxLJD"
+          class="sc-kOPcWz siqHk"
           data-testid="cypherFrameErrorMessage"
         >
           Test error description
@@ -173,30 +173,30 @@ exports[`ErrorsView does display an error 1`] = `
 exports[`ErrorsView does display an error for gql status codes 1`] = `
 <div>
   <div
-    class="sc-hGPBjI kgdIGh"
+    class="sc-dAbbOL cDpbri"
   >
     <div
-      class="sc-dlVxhl fwhZkz"
+      class="sc-feUZmu hsPXbq"
     >
       <div
-        class="sc-kfPuZi lgMZCo"
+        class="sc-fUnMCh kdrlNb"
       >
         <div
-          class="sc-cxpSdN sc-iJKOTD cnlYxc kGIKmg"
+          class="sc-bXCLTC sc-eeDRCY gfnkhb cauQgg"
         >
           ERROR
         </div>
         <h4
-          class="sc-ikJyIC ieqznC"
+          class="sc-kOHTFB dSnpfW"
         >
           22N14: Data exception - invalid temporal value combination
         </h4>
       </div>
       <div
-        class="sc-fKVqWL"
+        class="sc-hzhJZQ"
       >
         <pre
-          class="sc-hiCibw jvxLJD"
+          class="sc-kOPcWz siqHk"
           data-testid="cypherFrameErrorMessage"
         >
           Cannot select both epochSeconds and 'datetime'.
