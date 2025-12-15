@@ -1188,30 +1188,6 @@ Third-party licenses
 │  │  ├─ URL: https://github.com/sindresorhus/locate-path.git
 │  │  ├─ VendorName: Sindre Sorhus
 │  │  └─ VendorUrl: sindresorhus.com
-│  ├─ lodash-es@4.17.21
-│  │  ├─ URL: https://github.com/lodash/lodash.git
-│  │  ├─ VendorName: John-David Dalton
-│  │  └─ VendorUrl: https://lodash.com/custom-builds
-│  ├─ lodash.camelcase@4.3.0
-│  │  ├─ URL: https://github.com/lodash/lodash.git
-│  │  ├─ VendorName: John-David Dalton
-│  │  └─ VendorUrl: https://lodash.com/
-│  ├─ lodash.find@4.6.0
-│  │  ├─ URL: https://github.com/lodash/lodash.git
-│  │  ├─ VendorName: John-David Dalton
-│  │  └─ VendorUrl: https://lodash.com/
-│  ├─ lodash.includes@4.3.0
-│  │  ├─ URL: https://github.com/lodash/lodash.git
-│  │  ├─ VendorName: John-David Dalton
-│  │  └─ VendorUrl: https://lodash.com/
-│  ├─ lodash.pick@4.4.0
-│  │  ├─ URL: https://github.com/lodash/lodash.git
-│  │  ├─ VendorName: John-David Dalton
-│  │  └─ VendorUrl: https://lodash.com/
-│  ├─ lodash@4.17.21
-│  │  ├─ URL: https://github.com/lodash/lodash.git
-│  │  ├─ VendorName: John-David Dalton
-│  │  └─ VendorUrl: https://lodash.com/
 │  ├─ longest-streak@3.0.1
 │  │  ├─ URL: https://github.com/wooorm/longest-streak.git
 │  │  ├─ VendorName: Titus Wormer

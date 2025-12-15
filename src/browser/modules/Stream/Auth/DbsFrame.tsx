@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { uniqBy } from 'lodash-es'
 import React, { type JSX } from 'react'
 
 import { toKeyString } from 'neo4j-arc/common'
@@ -41,7 +40,7 @@ import { useDbCommand } from 'shared/modules/commands/commandsDuck'
 const DbsFrame = (props: BaseFrameProps) => {
   const { frame } = props
   const { dbs = [] } = frame
-  const dbsToShow = uniqBy(dbs, 'name')
+  const dbsToShow = [...new Map(dbs.map(db => [db.name, db])).values()]
 
   return (
     <>

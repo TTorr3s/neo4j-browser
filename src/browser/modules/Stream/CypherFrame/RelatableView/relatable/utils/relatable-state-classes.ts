@@ -14,9 +14,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import { entries, kebabCase, keys, map, reduce } from 'lodash-es'
-
 import { ROW_STATE_CLASSES, TOOLBAR_STATE_CLASSES } from '../constants'
+
+const kebabCase = (str: string): string =>
+  str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
 
 export function getRowClasses(row: any) {
   return `relatable__table-row relatable__table-body-row ${getRowStateClasses(
@@ -25,7 +26,7 @@ export function getRowClasses(row: any) {
 }
 
 export function createRowStateClasses() {
-  return map(entries(ROW_STATE_CLASSES), ([state, bgColor]) =>
+  return Object.entries(ROW_STATE_CLASSES).map(([state, bgColor]) =>
     bgColor
       ? `.${getRowStateClass(state)} {
         background-color: ${bgColor};
@@ -35,8 +36,7 @@ export function createRowStateClasses() {
 }
 
 export function createToolbarStateClasses() {
-  return map(
-    entries(TOOLBAR_STATE_CLASSES),
+  return Object.entries(TOOLBAR_STATE_CLASSES).map(
     ([state, bgColor]) => `
     /* need to win over semantic specificity */
     .menu .label.${getToolbarStateClass(state)} {
@@ -51,8 +51,7 @@ export function getToolbarStateClass(state: string) {
 }
 
 function getRowStateClasses(row: any) {
-  return reduce(
-    keys(ROW_STATE_CLASSES),
+  return Object.keys(ROW_STATE_CLASSES).reduce(
     (agg, state) => (row[state] ? `${agg} ${getRowStateClass(state)}` : agg),
     ''
   )

@@ -14,16 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-import {
-  entries,
-  filter,
-  find,
-  flatMap,
-  get,
-  groupBy,
-  head,
-  map
-} from 'lodash-es'
 import { Check, X } from 'lucide-react'
 import React, { FormEvent, useCallback, useState } from 'react'
 
@@ -51,6 +41,19 @@ import {
 } from '../styled'
 import { ToolbarPopup } from './toolbar-popup'
 
+const groupBy = <T extends Record<string, any>>(
+  arr: T[],
+  key: keyof T
+): Record<string, T[]> =>
+  arr.reduce(
+    (acc, item) => {
+      const groupKey = String(item[key])
+      ;(acc[groupKey] ??= []).push(item)
+      return acc
+    },
+    {} as Record<string, T[]>
+  )
+
 export default function FilterableToolbar() {
   const {
     allColumns: columns,
@@ -59,7 +62,7 @@ export default function FilterableToolbar() {
   } = useRelatableStateContext<any, IWithFiltersInstance>()
   const [selectedToolbarAction, setToolbar, clearToolbar] =
     useRelatableToolbarContext()
-  const appliedFilterValues = map(filters, ({ value }) => value)
+  const appliedFilterValues = filters.map(({ value }: any) => value)
   const isFiltered = arrayHasItems(appliedFilterValues)
 
   return (
@@ -105,12 +108,11 @@ function FiltersPopup({
     <div className="relatable__toolbar-popup relatable__toolbar-filters-popup">
       {isFiltered && (
         <>
-          {flatMap(
-            entries(groupBy(appliedFilters, 'id')),
+          {Object.entries(groupBy(appliedFilters, 'id')).flatMap(
             ([id, columnFilters]) => {
-              const column = find(columns, column => column.id === id)
+              const column = columns.find((column: any) => column.id === id)
 
-              return map(columnFilters, ({ value }) => (
+              return columnFilters.map(({ value }: any) => (
                 <Label
                   key={`${id}: ${value.value}`}
                   className="relatable__toolbar-value"
@@ -155,21 +157,24 @@ function FiltersForm({
     availableGlobalActions,
     selectedToolbarAction.name
   )
-  const columnsToUse = filter(
-    columns,
-    column => relatableAction && columnHasAction(column, relatableAction)
+  const columnsToUse = columns.filter(
+    (column: any) => relatableAction && columnHasAction(column, relatableAction)
   )
   const firstId = selectedToolbarAction.column
     ? selectedToolbarAction.column.id
-    : get(head(columnsToUse), 'id', undefined)
+    : columnsToUse[0]?.id
   const [filterValue, onFilterValueChange] = useState<any>()
   const [selectedColumnId, setSelectedColumnId] = useState<any>(firstId)
-  const selectedColumn = find(columnsToUse, ({ id }) => id === selectedColumnId)
-  const columnOptions = map(filter(columnsToUse, 'canFilter'), column => ({
-    key: column.id,
-    value: column.id,
-    text: column.Header
-  }))
+  const selectedColumn = columnsToUse.find(
+    ({ id }: any) => id === selectedColumnId
+  )
+  const columnOptions = columnsToUse
+    .filter((c: any) => c.canFilter)
+    .map((column: any) => ({
+      key: column.id,
+      value: column.id,
+      text: column.Header
+    }))
   const onSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault()

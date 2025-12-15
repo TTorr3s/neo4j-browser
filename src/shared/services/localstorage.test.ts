@@ -17,14 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import * as ls from './localstorage'
 import {
   ClientSettings,
   initialClientSettings
 } from '../modules/dbMeta/dbMetaDuck'
-import { HistoryState, HistoryEntry } from './historyStorage'
-
-jest.mock('lodash-es/debounce', () => (fn: any) => fn)
+import { HistoryEntry, HistoryState } from './historyStorage'
+import * as ls from './localstorage'
 
 describe('localstorage', () => {
   test('getItem return items', () => {
@@ -103,6 +101,14 @@ describe('localstorage', () => {
   })
 
   describe('localstorage redux middleware', () => {
+    beforeEach(() => {
+      jest.useFakeTimers()
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
     const createAndInvokeMiddlewareWithRetainConnectionFlag = (
       retain: boolean,
       edition = 'enterprise'
@@ -137,6 +143,7 @@ describe('localstorage', () => {
       const action = { type: 'some action' }
 
       ls.createReduxMiddleware()(store)(next)(action)
+      jest.runAllTimers()
 
       return setItemMock
     }
@@ -226,6 +233,7 @@ describe('localstorage', () => {
       const action = { type: 'some action' }
 
       ls.createReduxMiddleware()(store)(next)(action)
+      jest.runAllTimers()
 
       return setItemMock
     }

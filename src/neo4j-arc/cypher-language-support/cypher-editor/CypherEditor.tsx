@@ -17,10 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { ResizeObserver } from '@juggle/resize-observer'
 import { QueryOrCommand, parse } from '@neo4j-cypher/editor-support'
-import { debounce } from 'lodash-es'
 import 'monaco-editor/esm/vs/editor/editor.all.js'
-
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import { QueryResult } from 'neo4j-driver-core'
 import React, {
@@ -33,7 +32,8 @@ import React, {
   useState
 } from 'react'
 import styled from 'styled-components'
-import { ResizeObserver } from '@juggle/resize-observer'
+
+import { DebouncedFunction, debounce } from '../../common/utils/debounce'
 import { keys } from '../../common/utils/objectUtils'
 
 const shouldCheckForHints = (code: string) =>
@@ -143,7 +143,7 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
     const editorEventDisposablesRef = useRef<monaco.IDisposable[]>([])
     const isMountedRef = useRef(false)
     const resizeObserverRef = useRef<ResizeObserver | null>(null)
-    const debouncedUpdateCodeRef = useRef<ReturnType<typeof debounce> | null>(
+    const debouncedUpdateCodeRef = useRef<DebouncedFunction<() => void> | null>(
       null
     )
 

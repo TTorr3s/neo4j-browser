@@ -17,8 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { debounce } from 'lodash-es'
 import { Middleware } from 'redux'
+
+import { debounce } from 'neo4j-arc/common'
 
 import {
   shouldRetainConnectionCredentials,

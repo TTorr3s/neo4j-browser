@@ -15,25 +15,15 @@
  *
  */
 import JSZip from 'jszip'
-import {
-  assign,
-  compact,
-  endsWith,
-  filter,
-  flatMap,
-  includes,
-  join,
-  keyBy,
-  map,
-  reverse,
-  split,
-  startsWith,
-  tail,
-  values
-} from 'lodash-es'
 import { v4 as uuidv4 } from 'uuid'
 
 import { CYPHER_FILE_EXTENSION } from 'services/exporting/favoriteUtils'
+
+const keyBy = <T extends Record<string, any>>(
+  arr: T[],
+  key: keyof T
+): Record<string, T> =>
+  Object.fromEntries(arr.map(item => [String(item[key]), item]))
 
 /**
  * Extracts folders from favorites
@@ -41,7 +31,7 @@ import { CYPHER_FILE_EXTENSION } from 'services/exporting/favoriteUtils'
  * @return    {string[]}
  */
 export function getFolderNamesFromFavorites(favorites: any) {
-  return compact(map(favorites, 'folderName'))
+  return favorites.map((f: any) => f.folderName).filter(Boolean)
 }
 
 /**
@@ -51,15 +41,14 @@ export function getFolderNamesFromFavorites(favorites: any) {
  * @return    {Object[]}
  */
 export function getMissingFoldersFromNames(folderNames: any, allFolders: any) {
-  const existingNames = map(allFolders, 'name')
+  const existingNames = allFolders.map((f: any) => f.name)
 
-  return map(
-    filter(folderNames, folderName => !includes(existingNames, folderName)),
-    name => ({
+  return folderNames
+    .filter((folderName: string) => !existingNames.includes(folderName))
+    .map((name: string) => ({
       name,
       id: uuidv4()
-    })
-  )
+    }))
 }
 
 /**
@@ -72,19 +61,15 @@ export function createLoadFavoritesPayload(
   favoritesToAdd: any,
   allFolders: any
 ) {
-  const allFavoriteFolders = keyBy(allFolders, 'name')
+  const allFavoriteFolders: Record<string, any> = keyBy(allFolders, 'name')
 
-  return map(favoritesToAdd, ({ id, contents, folderName }) =>
-    assign(
-      {
-        id,
-        content: contents
-      },
-      folderName in allFavoriteFolders
-        ? { folder: allFavoriteFolders[folderName].id }
-        : {}
-    )
-  )
+  return favoritesToAdd.map(({ id, contents, folderName }: any) => ({
+    id,
+    content: contents,
+    ...(folderName in allFavoriteFolders
+      ? { folder: allFavoriteFolders[folderName].id }
+      : {})
+  }))
 }
 
 /**
@@ -93,16 +78,17 @@ export function createLoadFavoritesPayload(
  * @return    {Promise<Object[]>}
  */
 export async function readZipFiles(uploads: any) {
-  const archives: any[] = await Promise.all(map(uploads, JSZip.loadAsync))
-  const allFiles = flatMap(archives, ({ files }) => values(files))
-  const onlyCypherFiles = filter(
-    allFiles,
-    ({ name }) =>
-      !startsWith(name, '__MACOSX') && endsWith(name, CYPHER_FILE_EXTENSION)
+  const archives: any[] = await Promise.all(
+    uploads.map((u: any) => JSZip.loadAsync(u))
+  )
+  const allFiles: any[] = archives.flatMap(({ files }) => Object.values(files))
+  const onlyCypherFiles = allFiles.filter(
+    ({ name }: any) =>
+      !name.startsWith('__MACOSX') && name.endsWith(CYPHER_FILE_EXTENSION)
   )
 
   return Promise.all(
-    map(onlyCypherFiles, file =>
+    onlyCypherFiles.map((file: any) =>
       file.async('string').then(fileContentToFavoriteFactory(file))
     )
   )
@@ -120,11 +106,11 @@ export function fileContentToFavoriteFactory(file: any) {
    * @return    {Object}                  user scripts object
    */
   return (contents: any) => {
-    const pathWithoutLeadingSlash = startsWith(file.name, '/')
+    const pathWithoutLeadingSlash = file.name.startsWith('/')
       ? file.name.slice(1)
       : file.name
-    const pathParts = split(pathWithoutLeadingSlash, '/')
-    const folderName = join(reverse(tail(reverse(pathParts))), '/')
+    const pathParts = pathWithoutLeadingSlash.split('/')
+    const folderName = [...pathParts].reverse().slice(1).reverse().join('/')
 
     return { id: uuidv4(), contents, folderName }
   }

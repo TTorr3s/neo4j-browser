@@ -3,7 +3,7 @@
 exports[`CodeViews CodeStatusbar displays no statusBarMessage 1`] = `
 <div>
   <div
-    class="sc-eBMEME jCpYeo"
+    class="sc-cfxfcM dYFBNW"
   />
 </div>
 `;
@@ -11,7 +11,7 @@ exports[`CodeViews CodeStatusbar displays no statusBarMessage 1`] = `
 exports[`CodeViews CodeStatusbar displays statusBarMessage 1`] = `
 <div>
   <div
-    class="sc-eBMEME jCpYeo"
+    class="sc-cfxfcM dYFBNW"
   >
     <div
       class="sc-fMMURN bGytvG"
@@ -29,86 +29,86 @@ exports[`CodeViews CodeView displays nothing if not successful query 1`] = `<div
 exports[`CodeViews CodeView displays request and response info if successful query 1`] = `
 <div>
   <div
-    class="sc-eldPxv kWGzoE"
+    class="sc-kOHTFB hGThMb"
   >
     <table
-      class="sc-Nxspf bdEaHB"
+      class="sc-kAkpmW cSwZoV"
     >
       <tbody
-        class="sc-cfxfcM dRFFAB"
+        class="sc-gFVvzn btLpGJ"
       >
         <tr
-          class="sc-gmPhUn llGQWn"
+          class="sc-iMWBiJ eecNGM"
         >
           <td
-            class="sc-hRJfrW bBDFzt"
+            class="sc-fvtFIe doAVPg"
           >
             Server version
           </td>
           <td
-            class="sc-iHbSHJ"
+            class="sc-bBeLUv"
           />
         </tr>
         <tr
-          class="sc-gmPhUn llGQWn"
+          class="sc-iMWBiJ eecNGM"
         >
           <td
-            class="sc-hRJfrW bBDFzt"
+            class="sc-fvtFIe doAVPg"
           >
             Server address
           </td>
           <td
-            class="sc-iHbSHJ"
+            class="sc-bBeLUv"
           >
             xx2
           </td>
         </tr>
         <tr
-          class="sc-gmPhUn llGQWn"
+          class="sc-iMWBiJ eecNGM"
         >
           <td
-            class="sc-hRJfrW bBDFzt"
+            class="sc-fvtFIe doAVPg"
           >
             Query
           </td>
           <td
-            class="sc-iHbSHJ"
+            class="sc-bBeLUv"
           >
             MATCH xx0
           </td>
         </tr>
         <tr
-          class="sc-gmPhUn llGQWn"
+          class="sc-iMWBiJ eecNGM"
         >
           <td
-            class="sc-hRJfrW bBDFzt"
+            class="sc-fvtFIe doAVPg"
           >
             Summary
             <div
-              class="sc-gFAWRd ezoNvv fa fa-caret-right"
+              class="sc-brPLxw dVgoBV fa fa-caret-right"
               title="Expand section"
             />
           </td>
           <td
-            class="sc-iHbSHJ"
+            class="sc-bBeLUv"
           >
             {,  "server": {,    "version": "xx1", ...
           </td>
         </tr>
         <tr
-          class="sc-gmPhUn llGQWn"
+          class="sc-iMWBiJ eecNGM"
         >
           <td
-            class="sc-hRJfrW bBDFzt"
+            class="sc-fvtFIe doAVPg"
           >
             Response
             <div
-              class="sc-gFAWRd ezoNvv fa fa-caret-right"
+              class="sc-brPLxw dVgoBV fa fa-caret-right"
               title="Expand section"
             />
           </td>
           <td
-            class="sc-iHbSHJ"
+            class="sc-bBeLUv"
           >
             [,  {,    "res": "xx3" ...
           </td>

@@ -17,20 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {
-  entries,
-  filter,
-  flatten,
-  get,
-  includes,
-  isObjectLike,
-  lowerCase,
-  map,
-  reduce,
-  some
-} from 'lodash-es'
-import { CypherDataType, isCypherPropertyType } from 'neo4j-arc/common'
 import neo4j, { Node, Path, Record, Relationship } from 'neo4j-driver'
+
+import { CypherDataType, isCypherPropertyType } from 'neo4j-arc/common'
 
 import bolt from 'services/bolt/bolt'
 import { recursivelyExtractGraphItems } from 'services/bolt/boltMappings'
@@ -51,8 +40,8 @@ export const resultHasTruncatedFields = (result: any, maxFieldItems: any) => {
     return false
   }
 
-  return some(result.records, record =>
-    some(record.keys, key => {
+  return result.records.some((record: any) =>
+    record?.keys?.some((key: any) => {
       const val = record.get(key)
 
       return Array.isArray(val) && val.length > maxFieldItems
@@ -97,7 +86,7 @@ export function getBodyAndStatusBarMessages(
     streamMessage = streamMessage[0].toUpperCase() + streamMessage.slice(1)
   }
 
-  const systemUpdatesValue = get(result, 'summary.counters._systemUpdates')
+  const systemUpdatesValue = result?.summary?.counters?._systemUpdates
   const bodyMessage =
     (!updateMessages || updateMessages.length === 0) &&
     result.records.length === 0
@@ -131,8 +120,11 @@ export const flattenArrayDeep = (arr: any) => {
   let result: any = []
 
   while (toFlatten.length > 0) {
-    result = [...result, ...filter(toFlatten, item => !Array.isArray(item))]
-    toFlatten = flatten(filter(toFlatten, Array.isArray))
+    result = [
+      ...result,
+      ...toFlatten.filter((item: any) => !Array.isArray(item))
+    ]
+    toFlatten = toFlatten.filter(Array.isArray).flat()
   }
 
   return result
@@ -325,20 +317,16 @@ const arrayifyPath = (types = neo4j.types, path: any) => {
  * @return    {*}
  */
 export function recordToJSONMapper(record: any) {
-  const keys = get(record, 'keys', [])
+  const keys = record?.keys ?? []
 
-  const recordObj = reduce(
-    keys,
-    (agg, key) => {
-      const field = record.get(key)
+  const recordObj = keys.reduce((agg: any, key: any) => {
+    const field = record.get(key)
 
-      return {
-        ...agg,
-        [key]: mapNeo4jValuesToPlainValues(field)
-      }
-    },
-    {}
-  )
+    return {
+      ...agg,
+      [key]: mapNeo4jValuesToPlainValues(field)
+    }
+  }, {})
   return recordObj
 }
 
@@ -352,12 +340,12 @@ export function mapNeo4jValuesToPlainValues(values: any): any {
     return values
   }
 
-  if (!isObjectLike(values)) {
+  if (typeof values !== 'object' || values === null) {
     return values
   }
 
   if (Array.isArray(values)) {
-    return map(values, mapNeo4jValuesToPlainValues)
+    return values.map(mapNeo4jValuesToPlainValues)
   }
 
   if (isNeo4jValue(values)) {
@@ -365,18 +353,17 @@ export function mapNeo4jValuesToPlainValues(values: any): any {
   }
 
   // could be a Node or Relationship
-  const elementType = lowerCase(get(values, 'constructor.name', ''))
+  const elementType = (values?.constructor?.name ?? '').toLowerCase()
 
-  if (includes(['relationship', 'node'], elementType)) {
+  if (['relationship', 'node'].includes(elementType)) {
     return {
       elementType,
       ...mapNeo4jValuesToPlainValues({ ...values })
     }
   }
 
-  return reduce(
-    entries(values),
-    (agg, [key, value]) => ({
+  return Object.entries(values).reduce(
+    (agg: any, [key, value]) => ({
       ...agg,
       [key]: mapNeo4jValuesToPlainValues(value)
     }),
@@ -390,7 +377,7 @@ export function mapNeo4jValuesToPlainValues(values: any): any {
  * @return    {*}
  */
 function neo4jValueToPlainValue(value: any) {
-  switch (get(value, 'constructor')) {
+  switch (value?.constructor) {
     case neo4j.types.Duration:
     case neo4j.types.Date:
     case neo4j.types.DateTime:
@@ -409,7 +396,7 @@ function neo4jValueToPlainValue(value: any) {
  * @return {boolean}
  */
 function isNeo4jValue(value: any) {
-  switch (get(value, 'constructor')) {
+  switch (value?.constructor) {
     case neo4j.types.Date:
     case neo4j.types.DateTime:
     case neo4j.types.Duration:
