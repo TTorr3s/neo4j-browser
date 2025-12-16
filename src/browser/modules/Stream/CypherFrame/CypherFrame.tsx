@@ -17,29 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { saveAs } from 'services/exporting/fileSaver'
-import { map } from 'lodash'
-import { QueryResult, Record as Neo4jRecord } from 'neo4j-driver'
+import { Record as Neo4jRecord, QueryResult } from 'neo4j-driver'
 import React, {
+  type JSX,
   useCallback,
   useEffect,
   useMemo,
   useRef,
-  useState,
-  type JSX
+  useState
 } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-
-import {
-  AlertIcon,
-  AsciiIcon,
-  CodeIcon,
-  ErrorIcon,
-  PlanIcon,
-  SpinnerIcon,
-  TableIcon,
-  VisualizationIcon
-} from 'browser-components/icons/LegacyIcons'
 
 import FrameBodyTemplate from '../../Frame/FrameBodyTemplate'
 import FrameSidebar from '../../Frame/FrameSidebar'
@@ -57,9 +44,9 @@ import RelatableView, {
 import { VisualizationConnectedBus } from './VisualizationView/VisualizationView'
 import { WarningsStatusbar, WarningsView } from './WarningsView'
 import {
-  recordToStringArray,
   initialView,
   recordToJSONMapper,
+  recordToStringArray,
   resultHasNodes,
   resultHasPlan,
   resultHasRows,
@@ -70,8 +57,19 @@ import {
 import Centered from 'browser-components/Centered'
 import Display from 'browser-components/Display'
 import { CypherFrameButton } from 'browser-components/buttons'
+import {
+  AlertIcon,
+  AsciiIcon,
+  CodeIcon,
+  ErrorIcon,
+  PlanIcon,
+  SpinnerIcon,
+  TableIcon,
+  VisualizationIcon
+} from 'browser-components/icons/LegacyIcons'
 import { StyledFrameBody } from 'browser/modules/Frame/styled'
 import { csvFormat, stringModifier } from 'services/bolt/cypherTypesFormatting'
+import { saveAs } from 'services/exporting/fileSaver'
 import { downloadPNGFromSVG, downloadSVG } from 'services/exporting/imageUtils'
 import { ExportType, GraphElement } from 'services/exporting/svgUtils'
 import { CSVSerializer } from 'services/serializer'
@@ -210,7 +208,7 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
   }, [records])
 
   const exportJSON = useCallback(async (): Promise<void> => {
-    const exportData = map(records, recordToJSONMapper)
+    const exportData = records.map(recordToJSONMapper)
     const data = stringifyMod(exportData, stringModifier, true)
     const blob = new Blob([data], {
       type: 'application/json;charset=utf-8'
