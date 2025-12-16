@@ -36,7 +36,7 @@ import { BrowserRequestResult } from 'shared/modules/requests/requestsDuck'
  * @return    {boolean}
  */
 export const resultHasTruncatedFields = (result: any, maxFieldItems: any) => {
-  if (!maxFieldItems || !result) {
+  if (!maxFieldItems || !result || !result.records) {
     return false
   }
 
