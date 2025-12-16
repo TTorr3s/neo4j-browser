@@ -17,8 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { pick } from 'lodash'
-
 import { getDiscoveryEndpoint } from 'services/bolt/boltHelpers'
 import { boltToHttp, boltUrlsHaveSameHost } from 'services/boltscheme.utils'
 import {
@@ -26,7 +24,8 @@ import {
   DiscoverableData
 } from 'shared/modules/connections/connectionsDuck'
 import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
-import { parseURLWithDefaultProtocol, isCloudHost } from 'shared/services/utils'
+import { isCloudHost, parseURLWithDefaultProtocol } from 'shared/services/utils'
+import { pick } from 'shared/utils/array-utils'
 
 const FetchError = 'FetchError'
 const Success = 'Success'

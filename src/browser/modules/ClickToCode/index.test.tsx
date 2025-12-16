@@ -18,7 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { fireEvent, render } from '@testing-library/react'
-import React from 'react'
 import { createBus } from 'suber'
 
 import { ClickToCode } from './index'
