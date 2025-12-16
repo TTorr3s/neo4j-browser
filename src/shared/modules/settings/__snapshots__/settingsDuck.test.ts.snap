@@ -19,7 +19,6 @@ exports[`settings reducer handles REPLACE 1`] = `
   "playImplicitInitCommands": true,
   "scrollToTop": true,
   "showPerformanceOverlay": false,
-  "showSampleScripts": true,
   "showWheelZoomInfo": true,
   "theme": "auto",
   "useBoltRouting": false,

@@ -17,31 +17,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { AnyAction } from 'redux'
+import { Epic, ofType } from 'redux-observable'
+import { EMPTY, ReplaySubject, of } from 'rxjs'
 import {
-  setupAutocomplete,
+  catchError,
+  delay,
+  delayWhen,
+  distinctUntilChanged,
+  filter,
+  map,
+  mapTo,
+  mergeMap,
+  take,
+  tap,
+  withLatestFrom
+} from 'rxjs/operators'
+
+import {
   initalizeCypherSupport,
+  setupAutocomplete,
   toFunction,
   toLabel,
   toProcedure,
   toRelationshipType
 } from 'neo4j-arc/cypher-language-support'
-import { AnyAction } from 'redux'
-import { Epic, ofType } from 'redux-observable'
-import { of, EMPTY, ReplaySubject } from 'rxjs'
-import {
-  mergeMap,
-  filter,
-  tap,
-  take,
-  delay,
-  withLatestFrom,
-  map,
-  mapTo,
-  distinctUntilChanged,
-  catchError,
-  delayWhen
-} from 'rxjs/operators'
 
+import { DB_META_DONE, LABELS_LOADED } from '../dbMeta/dbMetaDuck'
+import { UPDATE_PARAMS } from '../params/paramsDuck'
 import consoleCommands from 'browser/modules/Editor/consoleCommands'
 import { getUrlParamValue } from 'services/utils'
 import { GlobalState } from 'shared/globalState'
@@ -54,9 +57,7 @@ import {
   DISABLE_IMPLICIT_INIT_COMMANDS,
   getTheme
 } from 'shared/modules/settings/settingsDuck'
-import { UPDATE_PARAMS } from '../params/paramsDuck'
 import { isOfType } from 'shared/utils/typeSafeActions'
-import { DB_META_DONE, LABELS_LOADED } from '../dbMeta/dbMetaDuck'
 
 export const SET_CONTENT = 'editor/SET_CONTENT'
 export const EDIT_CONTENT = 'editor/EDIT_CONTENT'
@@ -97,25 +98,22 @@ interface EditContentAction {
   type: typeof EDIT_CONTENT
   message: string
   id: string
-  isStatic: boolean
   name: null | string
   directory: null
 }
 
 interface EditContentOptions {
   name?: string | null
-  isStatic?: boolean
 }
 
 export const editContent = (
   id = '',
   message: string,
-  { name = null, isStatic = false }: EditContentOptions = {}
+  { name = null }: EditContentOptions = {}
 ): EditContentAction => ({
   type: EDIT_CONTENT,
   message,
   id,
-  isStatic,
   name,
   directory: null
 })

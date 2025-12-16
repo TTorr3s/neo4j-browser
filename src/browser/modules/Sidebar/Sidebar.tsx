@@ -20,6 +20,17 @@
 import { type JSX } from 'react'
 import { connect } from 'react-redux'
 
+import DatabaseDrawer from '../DBMSInfo/DBMSInfo'
+import AboutDrawer from './About'
+import DocumentsDrawer from './Documents'
+import NotesDrawer from './Notes/Notes'
+import UserSettingsDrawer from './UserSettings'
+import Favorites from './favorites'
+import TabNavigation, {
+  NavItem,
+  STANDARD_DRAWER_WIDTH
+} from 'browser-components/TabNavigation/Navigation'
+import { DrawerHeader } from 'browser-components/drawer/drawer-styled'
 import {
   AboutIcon,
   DatabaseIcon,
@@ -28,19 +39,6 @@ import {
   NotesIcon,
   SettingsIcon
 } from 'browser-components/icons/LegacyIcons'
-
-import DatabaseDrawer from '../DBMSInfo/DBMSInfo'
-import AboutDrawer from './About'
-import DocumentsDrawer from './Documents'
-import NotesDrawer from './Notes/Notes'
-import UserSettingsDrawer from './UserSettings'
-import Favorites from './favorites'
-import StaticScripts from './static-scripts'
-import TabNavigation, {
-  NavItem,
-  STANDARD_DRAWER_WIDTH
-} from 'browser-components/TabNavigation/Navigation'
-import { DrawerHeader } from 'browser-components/drawer/drawer-styled'
 import { GlobalState } from 'shared/globalState'
 import {
   CONNECTED_STATE,
@@ -52,14 +50,12 @@ interface SidebarProps {
   selectedDrawerName: string
   onNavClick: () => void
   neo4jConnectionState: string
-  showStaticScripts: boolean
 }
 
 const Sidebar = ({
   selectedDrawerName,
   onNavClick,
-  neo4jConnectionState,
-  showStaticScripts
+  neo4jConnectionState
 }: SidebarProps) => {
   const topNavItems: NavItem[] = [
     {
@@ -87,7 +83,6 @@ const Sidebar = ({
           <div style={{ width: STANDARD_DRAWER_WIDTH }}>
             <DrawerHeader> Favorites </DrawerHeader>
             <Favorites />
-            {showStaticScripts && <StaticScripts />}
           </div>
         )
       }
@@ -155,8 +150,7 @@ const mapStateToProps = (state: GlobalState) => {
     }
   }
   return {
-    neo4jConnectionState: connectionState,
-    showStaticScripts: state.settings.showSampleScripts
+    neo4jConnectionState: connectionState
   }
 }
 

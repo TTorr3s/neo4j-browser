@@ -91,6 +91,18 @@ export function getAll(): Partial<GlobalState> {
           ...(current as typeof settingsInitialState),
           playImplicitInitCommands: true
         }
+      } else if (key === 'documents') {
+        // Filter out legacy static scripts (Sample Scripts)
+        const documents = current as Array<{ isStatic?: boolean }>
+        out[key] = documents.filter(
+          doc => !doc.isStatic
+        ) as GlobalState['documents']
+      } else if (key === 'folders') {
+        // Filter out legacy static folders (Sample Scripts folders)
+        const folders = current as Array<{ isStatic?: boolean }>
+        out[key] = folders.filter(
+          folder => !folder.isStatic
+        ) as GlobalState['folders']
       } else {
         Object.assign(out, { [key]: current })
       }

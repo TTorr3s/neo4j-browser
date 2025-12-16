@@ -29,12 +29,8 @@ import * as favoritesDuck from 'shared/modules/favorites/favoritesDuck'
 import * as foldersDuck from 'shared/modules/favorites/foldersDuck'
 
 const mapFavoritesStateToProps = (state: any) => {
-  const folders = foldersDuck
-    .getFolders(state)
-    .filter(folder => !folder.isStatic)
-  const scripts = favoritesDuck
-    .getFavorites(state)
-    .filter(script => !script.isStatic)
+  const folders = foldersDuck.getFolders(state)
+  const scripts = favoritesDuck.getFavorites(state)
 
   return {
     folders,

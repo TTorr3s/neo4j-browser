@@ -18,19 +18,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { AnyAction } from 'redux'
-import { Epic, ofType, StateObservable } from 'redux-observable'
+import { Epic, StateObservable, ofType } from 'redux-observable'
 import { EMPTY, merge, of } from 'rxjs'
 import { filter, map, mergeMap, withLatestFrom } from 'rxjs/operators'
 import { v4 } from 'uuid'
 
 import { USER_CLEAR } from '../app/appDuck'
 import { CONNECT, CONNECTION_SUCCESS } from '../connections/connectionsDuck'
+import { PREVIEW_EVENT } from '../preview/previewDuck'
 import { GlobalState } from 'shared/globalState'
-import { COMMAND_QUEUED } from 'shared/modules/commands/commandsDuck'
 import {
   CYPHER_FAILED,
   CYPHER_SUCCEEDED
 } from 'shared/modules/commands/actionTypes'
+import { COMMAND_QUEUED } from 'shared/modules/commands/commandsDuck'
 import {
   ADD_FAVORITE,
   LOAD_FAVORITES,
@@ -52,7 +53,6 @@ import {
   getSettings
 } from 'shared/modules/settings/settingsDuck'
 import cmdHelper from 'shared/services/commandInterpreterHelper'
-import { PREVIEW_EVENT } from '../preview/previewDuck'
 
 // Action types
 export const NAME = 'udc'
@@ -189,7 +189,6 @@ export const udcStartupEpic: Epic<AnyAction, AnyAction, GlobalState> = (
         'playImplicitInitCommands',
         'initialNodeDisplay',
         'maxNeighbours',
-        'showSampleScripts',
         'maxRows',
         'maxFieldItems',
         'autoComplete',
@@ -212,7 +211,7 @@ export const udcStartupEpic: Epic<AnyAction, AnyAction, GlobalState> = (
       const favorites = getFavorites(state)
 
       if (favorites) {
-        const count = favorites.filter(script => !script.isStatic).length
+        const count = favorites.length
         actions.push(
           metricsEvent({
             category: 'favorites',

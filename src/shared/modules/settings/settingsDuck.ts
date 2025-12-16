@@ -90,7 +90,6 @@ export type SettingsState = {
   playImplicitInitCommands: boolean
   initialNodeDisplay: string | number
   maxNeighbours: string | number
-  showSampleScripts: boolean
   maxRows: string | number
   maxFieldItems: string | number
   autoComplete: boolean
@@ -114,7 +113,6 @@ export const initialState: SettingsState = {
   playImplicitInitCommands: true,
   initialNodeDisplay: 300,
   maxNeighbours: 100,
-  showSampleScripts: true,
   maxRows: 1000,
   maxFieldItems: 500,
   autoComplete: true,

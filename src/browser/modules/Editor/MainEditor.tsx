@@ -17,27 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {
-  CypherEditor,
-  CypherEditorHandle
-} from 'neo4j-arc/cypher-language-support'
+import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
 import { QueryResult } from 'neo4j-driver'
-import { Dispatch, useEffect, useRef, useState, type JSX } from 'react'
+import { Dispatch, type JSX, useEffect, useRef, useState } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Action } from 'redux'
 import { Bus } from 'suber'
 
-import { useHistoryProvider } from 'browser-hooks/useHistoryProvider'
-
-import {
-  CloseIcon,
-  ContractIcon,
-  ExpandIcon,
-  FavoriteIcon,
-  RunIcon
-} from 'browser-components/icons/LegacyIcons'
 import { isMac } from 'neo4j-arc/common'
+import {
+  CypherEditor,
+  CypherEditorHandle
+} from 'neo4j-arc/cypher-language-support'
 
 import {
   CurrentEditIconContainer,
@@ -53,7 +45,20 @@ import {
   StyledEditorButton,
   StyledMainEditorButtonsContainer
 } from 'browser-components/buttons'
-
+import {
+  CloseIcon,
+  ContractIcon,
+  ExpandIcon,
+  FavoriteIcon,
+  RunIcon
+} from 'browser-components/icons/LegacyIcons'
+import { useHistoryProvider } from 'browser-hooks/useHistoryProvider'
+import { base } from 'browser-styles/themes'
+import {
+  FULLSCREEN_SHORTCUT,
+  printShortcut
+} from 'browser/modules/App/keyboardShortcuts'
+import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
 import { GlobalState } from 'shared/globalState'
 import {
   commandSources,
@@ -78,14 +83,6 @@ import {
   codeFontLigatures,
   shouldEnableMultiStatementMode
 } from 'shared/modules/settings/settingsDuck'
-import { base } from 'browser-styles/themes'
-import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
-
-import {
-  FULLSCREEN_SHORTCUT,
-  printShortcut
-} from 'browser/modules/App/keyboardShortcuts'
-import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
 
 type EditorFrameProps = {
   bus: Bus
@@ -102,7 +99,6 @@ type SavedScript = {
   content: string
   directory?: string
   id: string
-  isStatic: boolean
   name?: string
 }
 
@@ -150,14 +146,13 @@ export function MainEditor({
   useEffect(
     () =>
       bus &&
-      bus.take(EDIT_CONTENT, ({ message, id, name, directory, isStatic }) => {
+      bus.take(EDIT_CONTENT, ({ message, id, name, directory }) => {
         setUnsaved(false)
         setCurrentlyEditing({
           content: message,
           id,
           name,
-          directory,
-          isStatic
+          directory
         })
         editorRef.current?.setValue(message)
       }),
@@ -220,11 +215,7 @@ export function MainEditor({
     return defaultNameFromDisplayContent(content)
   }
 
-  const showUnsaved = !!(
-    unsaved &&
-    currentlyEditing &&
-    !currentlyEditing?.isStatic
-  )
+  const showUnsaved = !!(unsaved && currentlyEditing)
 
   return (
     <MainEditorWrapper isFullscreen={isFullscreen} data-testid="activeEditor">
@@ -236,7 +227,6 @@ export function MainEditor({
           {' Favorite: '}
           {getName(currentlyEditing)}
           {showUnsaved ? '*' : ''}
-          {currentlyEditing.isStatic ? ' (read-only)' : ''}
         </ScriptTitle>
       )}
       <FlexContainer>
@@ -285,7 +275,7 @@ export function MainEditor({
               }
             />
           </EditorContainer>
-          {currentlyEditing && !currentlyEditing.isStatic && (
+          {currentlyEditing && (
             <StyledEditorButton
               data-testid="editor-Favorite"
               onClick={() => {

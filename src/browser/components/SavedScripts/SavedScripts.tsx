@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { type JSX, useState } from 'react'
+import React, { type JSX, useEffect, useState } from 'react'
 import { useDrop } from 'react-dnd'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -34,7 +34,8 @@ import {
   SavedScriptsBody,
   SavedScriptsButtonWrapper,
   SavedScriptsHeader,
-  SavedScriptsNewFavorite
+  SavedScriptsNewFavorite,
+  SavedScriptsSearchInput
 } from './styled'
 import { getScriptDisplayName } from './utils'
 import { ExportFormat } from 'services/exporting/favoriteUtils'
@@ -89,11 +90,31 @@ export default function SavedScripts({
   exportScripts,
   createNewFolder
 }: SavedScriptsProps): JSX.Element {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const matchesSearch = (script: Favorite): boolean => {
+    if (!debouncedSearchTerm) return true
+    const searchLower = debouncedSearchTerm.toLowerCase()
+    const name = getScriptDisplayName(script).toLowerCase()
+    const content = script.content.toLowerCase()
+    return name.includes(searchLower) || content.includes(searchLower)
+  }
+
   const folderExists = (folderId: string) =>
     folders.find(folder => folder.id === folderId)
 
   const scriptsOutsideFolder = scripts
     .filter(script => !script.folder || !folderExists(script.folder))
+    .filter(matchesSearch)
     .sort(sortScriptsAlfabethically)
 
   const countFoldersWithName = (name: string) =>
@@ -104,6 +125,7 @@ export default function SavedScripts({
       folder,
       scripts: scripts
         .filter(script => script.folder === folder.id)
+        .filter(matchesSearch)
         .sort(sortScriptsAlfabethically)
     }))
     .filter(({ folder, scripts }) => {
@@ -112,7 +134,10 @@ export default function SavedScripts({
       const isNewFolder = folder.name === 'New Folder'
       const shouldBeRemoved =
         folderIsDuplicated && folderIsEmpty && !isNewFolder
-      return !shouldBeRemoved
+      // When searching, hide empty folders (unless they're new)
+      const hideEmptyWhileSearching =
+        debouncedSearchTerm && folderIsEmpty && !isNewFolder
+      return !shouldBeRemoved && !hideEmptyWhileSearching
     })
 
   const [unNamedFolder, setUnNamedFolder] = useState<string | null>(null)
@@ -236,6 +261,13 @@ export default function SavedScripts({
             </SavedScriptsButtonWrapper>
           )}
         </SavedScriptsHeader>
+        <SavedScriptsSearchInput
+          type="text"
+          placeholder="Search scripts..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          data-testid="savedScriptsSearch"
+        />
         {scriptsOutsideFolder.map(script => {
           const key = getUniqueScriptKey(script)
           return (

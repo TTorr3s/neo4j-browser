@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { folders } from './staticScripts'
 import { getBrowserName } from 'services/utils'
 import { APP_START, USER_CLEAR } from 'shared/modules/app/appDuck'
 
@@ -31,14 +30,12 @@ export const UPDATE_FOLDERS = 'folders/UPDATE_FOLDERS'
 export const getFolders = (state: any): Folder[] => state[NAME]
 
 export type Folder = {
-  id: string //generated id or basics|graphs|profile|procudures
+  id: string
   name: string
-  isStatic?: boolean
-  versionRange?: string
 }
 
 const versionSize = 20
-const initialState = folders
+const initialState: Folder[] = []
 
 const mergeFolders = (list1: Folder[], list2: Folder[]) => {
   return list1.concat(
@@ -91,9 +88,7 @@ export default function reducer(
 
 export const composeFoldersToSync = (store: any, syncValue: any) => {
   const folders = syncValue.syncObj.folders || []
-  const stateFolders = getFolders(store.getState()).filter(
-    (fold: any) => !fold.isStatic
-  )
+  const stateFolders = getFolders(store.getState())
 
   const newFolders = [
     {
@@ -121,7 +116,6 @@ export const foldersToLoad = (action: any, store: any) => {
     if (
       existingFolders.every(
         (exFold: any) =>
-          exFold.isStatic ||
           foldersFromSync.findIndex(
             (syncFold: any) => syncFold.id === exFold.id
           ) >= 0

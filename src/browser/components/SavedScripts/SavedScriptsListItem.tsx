@@ -17,12 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useState, type JSX } from 'react'
+import React, { type JSX, useState } from 'react'
 import { useDrag } from 'react-dnd'
 
 import { NavIcon } from '../icons/LegacyIcons'
-
-import { RunButton } from './SavedScriptsButton'
 import { useCustomBlur, useNameUpdate } from './hooks'
 import {
   ContextMenu,
@@ -169,7 +167,6 @@ function SavedScriptsListItem({
               </ContextMenu>
             )}
           </ContextMenuContainer>
-          {canRunScript && <RunButton onClick={execScript} />}
         </SavedScriptsButtonWrapper>
       </SavedScriptsListItemMain>
     </ContextMenuHoverParent>

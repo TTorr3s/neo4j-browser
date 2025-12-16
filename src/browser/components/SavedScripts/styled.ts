@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+
 import { primaryLightColor } from 'browser-styles/themes'
 
 export const SavedScriptsBody = styled.div`
@@ -45,13 +46,16 @@ border-left: 3px solid ${primaryLightColor};`
 `
 
 export const SavedScriptsNewFavorite = styled.div`
-  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
   user-select: none;
   cursor: pointer;
   color: ${props => props.theme.drawerTextMuted};
   font-size: 13px;
-  margin-left: 6px;
   margin-top: 10px;
+  padding: 5px;
   transition: color ease-in-out 0.3s;
 
   &:hover {
@@ -150,6 +154,25 @@ export const SavedScriptsInput = styled.input`
   ::selection {
     color: white;
     background-color: ${props => props.theme.linkHover};
+  }
+`
+
+export const SavedScriptsSearchInput = styled.input`
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
+  outline: none;
+  background: ${props => props.theme.inputBackground};
+  color: ${props => props.theme.inputText};
+  font-size: 13px;
+  margin-bottom: 12px;
+
+  &:focus {
+    border-color: ${props => props.theme.linkHover};
+  }
+
+  &::placeholder {
+    color: ${props => props.theme.drawerTextMuted};
   }
 `
 

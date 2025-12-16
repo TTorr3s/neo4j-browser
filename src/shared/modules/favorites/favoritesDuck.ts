@@ -19,7 +19,6 @@
  */
 import { v4 as uuidv4 } from 'uuid'
 
-import { scripts as staticScriptsList } from './staticScripts'
 import { getBrowserName } from 'services/utils'
 import {
   APP_START,
@@ -61,19 +60,14 @@ export const getFavorite = (state: any, id: string): Favorite | undefined =>
 const versionSize = 20
 
 export type Favorite = {
-  id?: string // Missing in static scripts
+  id?: string
   content: string
   folder?: string // missing if in root
   not_executable?: boolean
-  isStatic?: boolean
-  versionRange?: string
 }
 
 // reducer
-const initialState: Favorite[] = staticScriptsList.map(script => ({
-  ...script,
-  isStatic: true
-}))
+const initialState: Favorite[] = []
 
 const removeFavoriteById = (state: any, id: any) =>
   state.filter((favorite: any) => favorite.id !== id)
@@ -233,9 +227,7 @@ export function updateFavorites(favorites: Favorite[]): UpdateFavoriteAction {
 
 export const composeDocumentsToSync = (store: any, syncValue: any) => {
   const documents = syncValue.syncObj.documents || []
-  const favorites = getFavorites(store.getState()).filter(
-    (fav: any) => !fav.isStatic
-  )
+  const favorites = getFavorites(store.getState())
 
   const newDocuments = [
     {
@@ -274,7 +266,6 @@ export const favoritesToLoad = (action: any, store: any) => {
     if (
       existingFavs.every(
         (exFav: any) =>
-          exFav.isStatic ||
           favoritesFromSync.findIndex(
             (syncFav: any) => syncFav.id === exFav.id
           ) >= 0
