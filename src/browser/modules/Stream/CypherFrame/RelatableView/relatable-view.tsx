@@ -155,8 +155,9 @@ const renderCell = (entry: any, isTopLevel = true): JSX.Element => {
   } else if (typeof entry === 'object') {
     return renderObject(entry)
   } else {
+    const isString = typeof entry === 'string'
     const text = unescapeDoubleQuotesForDisplay(
-      stringifyMod(entry, stringModifier, true)
+      stringifyMod(entry, stringModifier, true, false, isString)
     )
     const content = <ClickableUrls text={text} WrappingTag={StyledPreSpan} />
 
