@@ -17,6 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
+import { QueryResult } from 'neo4j-driver'
 import React, { useEffect, useRef, useState } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
@@ -25,21 +27,27 @@ import { Bus } from 'suber'
 
 import { isMac } from 'neo4j-arc/common'
 import {
-  SaveFavoriteIcon,
-  RunIcon,
-  StopIcon
-} from 'browser-components/icons/LegacyIcons'
+  CypherEditor,
+  CypherEditorHandle
+} from 'neo4j-arc/cypher-language-support'
 
 import { MAIN_WRAPPER_DOM_ID } from '../App/App'
 import { EditorContainer, Header } from '../Editor/styled'
 import { DottedLineHover } from '../Stream/styled'
-import ExportButton, { ExportItem } from './ExportButton'
+import ExportButton, { CopyItem, ExportItem } from './ExportButton'
 import {
   StyledFrameCommand,
   StyledFrameEditorContainer,
   StyledFrameTitlebarButtonSection
 } from './styled'
 import { FrameButton, StyledEditorButton } from 'browser-components/buttons'
+import {
+  RunIcon,
+  SaveFavoriteIcon,
+  StopIcon
+} from 'browser-components/icons/LegacyIcons'
+import { base, stopIconColor } from 'browser-styles/themes'
+import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
 import { GlobalState } from 'shared/globalState'
 import * as commands from 'shared/modules/commands/commandsDuck'
 import { applyParamGraphTypes } from 'shared/modules/commands/helpers/cypher'
@@ -59,19 +67,12 @@ import {
   shouldEnableMultiStatementMode
 } from 'shared/modules/settings/settingsDuck'
 import * as sidebar from 'shared/modules/sidebar/sidebarDuck'
-import { base, stopIconColor } from 'browser-styles/themes'
-import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
-import { QueryResult } from 'neo4j-driver'
-import {
-  CypherEditor,
-  CypherEditorHandle
-} from 'neo4j-arc/cypher-language-support'
-import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
 
 type FrameEditorBaseProps = {
   frame: Frame
   fullscreenToggle: () => void
   exportItems: ExportItem[]
+  copyItems: CopyItem[]
   bus: Bus
   params: Record<string, unknown>
 }
@@ -96,6 +97,7 @@ function FrameEditor({
   frame,
   fullscreenToggle,
   exportItems,
+  copyItems,
   bus,
   params
 }: FrameEditorProps) {
@@ -260,7 +262,7 @@ function FrameEditor({
         >
           <SaveFavoriteIcon />
         </FrameButton>
-        <ExportButton exportItems={exportItems} />
+        <ExportButton exportItems={exportItems} copyItems={copyItems} />
       </StyledFrameTitlebarButtonSection>
     </StyledFrameEditorContainer>
   )

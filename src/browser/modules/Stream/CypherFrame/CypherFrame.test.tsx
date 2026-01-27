@@ -17,15 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { render, act } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import React from 'react'
 import { Provider } from 'react-redux'
 
 import CypherFrame, { CypherFrameProps } from './CypherFrame'
+import { initialState as initialExperimentalFeatureState } from 'shared/modules/experimentalFeatures/experimentalFeaturesDuck'
 import { Frame } from 'shared/modules/frames/framesDuck'
 import { BrowserRequestResult } from 'shared/modules/requests/requestsDuck'
-
-import { initialState as initialExperimentalFeatureState } from 'shared/modules/experimentalFeatures/experimentalFeaturesDuck'
 
 const REQUEST_ID = 'test-request-id'
 
@@ -34,6 +33,7 @@ const createProps = (): CypherFrameProps => ({
   isCollapsed: false,
   isFullscreen: false,
   setExportItems: () => undefined,
+  setCopyItems: () => undefined,
   stack: [],
   frame: { cmd: 'return 1', requestId: REQUEST_ID } as Frame & {
     isPinned: false

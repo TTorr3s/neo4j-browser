@@ -28,6 +28,8 @@ import React, {
 } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { copyToClipboard } from 'neo4j-arc/common'
+
 import FrameBodyTemplate from '../../Frame/FrameBodyTemplate'
 import FrameSidebar from '../../Frame/FrameSidebar'
 import { BaseFrameProps } from '../Stream'
@@ -68,7 +70,9 @@ import {
   VisualizationIcon
 } from 'browser-components/icons/LegacyIcons'
 import { StyledFrameBody } from 'browser/modules/Frame/styled'
+import bolt from 'services/bolt/bolt'
 import { csvFormat, stringModifier } from 'services/bolt/cypherTypesFormatting'
+import { planToJsonString } from 'services/bolt/planSerializer'
 import { saveAs } from 'services/exporting/fileSaver'
 import { downloadPNGFromSVG, downloadSVG } from 'services/exporting/imageUtils'
 import { ExportType, GraphElement } from 'services/exporting/svgUtils'
@@ -115,7 +119,8 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
     frame = {} as Frame,
     isCollapsed,
     isFullscreen,
-    setExportItems
+    setExportItems,
+    setCopyItems
   } = props
 
   const dispatch = useDispatch()
@@ -244,6 +249,26 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
     }
   }, [])
 
+  const exportPlanJSON = useCallback(async (): Promise<void> => {
+    const result = request?.result
+    if (!result) return
+    const plan = bolt.extractPlan(result, true)
+    if (!plan) return
+    const jsonString = planToJsonString(plan)
+    const blob = new Blob([jsonString], {
+      type: 'application/json;charset=utf-8'
+    })
+    await saveAs(blob, 'query-plan.json')
+  }, [request?.result])
+
+  const copyPlanJSON = useCallback(async (): Promise<void> => {
+    const result = request?.result
+    if (!result) return
+    const plan = bolt.extractPlan(result, true)
+    if (!plan) return
+    await copyToClipboard(planToJsonString(plan))
+  }, [request?.result])
+
   // Effect for initial view on mount
   useEffect(() => {
     const view = initialView({ request, frame, recentView }, { openView })
@@ -294,7 +319,7 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
     }
   }, [request?.status, openView, canShowViz, request, frame, recentView])
 
-  // Effect for updating export items
+  // Effect for updating export items and copy items
   useEffect(() => {
     const textDownloadEnabled = () =>
       records.length > 0 &&
@@ -311,6 +336,9 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
       openView &&
       [ViewTypes.PLAN, ViewTypes.VISUALIZATION].includes(openView)
 
+    const planJsonEnabled = () =>
+      resultHasPlan(request) && openView === ViewTypes.PLAN
+
     const downloadText = [
       { name: 'CSV', download: exportCSV },
       { name: 'JSON', download: exportJSON }
@@ -325,8 +353,15 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
       ...(hasStringPlan() && openView === ViewTypes.PLAN
         ? [{ name: 'TXT', download: exportStringPlan }]
         : []),
+      ...(planJsonEnabled()
+        ? [{ name: 'JSON', download: exportPlanJSON }]
+        : []),
       ...(graphicsDownloadEnabled() ? downloadGraphics : [])
     ])
+
+    setCopyItems(
+      planJsonEnabled() ? [{ name: 'JSON', copy: copyPlanJSON }] : []
+    )
   }, [
     openView,
     records.length,
@@ -337,15 +372,20 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
     exportPNG,
     exportSVG,
     exportStringPlan,
-    setExportItems
+    exportPlanJSON,
+    copyPlanJSON,
+    setExportItems,
+    setCopyItems,
+    request
   ])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       setExportItems([])
+      setCopyItems([])
     }
-  }, [setExportItems])
+  }, [setExportItems, setCopyItems])
 
   // Sidebar render function
   const sidebar = useCallback(

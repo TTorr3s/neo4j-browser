@@ -17,9 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useState, type JSX } from 'react'
+import React, { type JSX, useState } from 'react'
 
-import { ExportItem } from '../Frame/ExportButton'
+import { CopyItem, ExportItem } from '../Frame/ExportButton'
 import FrameEditor from '../Frame/FrameEditor'
 import FrameTitlebar from '../Frame/FrameTitlebar'
 import { ContentContainer, StyledFrame } from '../Frame/styled'
@@ -34,7 +34,9 @@ import ServerSwitchFrame from './Auth/ServerSwitchFrame'
 import UseDbFrame from './Auth/UseDbFrame'
 import CypherFrame from './CypherFrame/CypherFrame'
 import CypherScriptFrame from './CypherScriptFrame/CypherScriptFrame'
+import DebugConnectivityFrame from './DebugConnectivityFrame'
 import ErrorFrame from './ErrorFrame'
+import extras from './Extras/index'
 import HelpFrame from './HelpFrame'
 import HistoryFrame from './HistoryFrame'
 import ParamsFrame from './ParamsFrame'
@@ -46,8 +48,6 @@ import StyleFrame from './StyleFrame'
 import SysInfoFrame from './SysInfoFrame/SysInfoFrame'
 import { Connection } from 'shared/modules/connections/connectionsDuck'
 import { FrameStack } from 'shared/modules/frames/framesDuck'
-import extras from './Extras/index'
-import DebugConnectivityFrame from './DebugConnectivityFrame'
 
 const nameToFrame: Record<string, React.ComponentType<any>> = {
   error: ErrorFrame,
@@ -105,13 +105,15 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
     useSizeToggles()
   const frame = props.frameData.stack[0]
   const [exportItems, setExportItems] = useState<ExportItem[]>([])
+  const [copyItems, setCopyItems] = useState<CopyItem[]>([])
   const frameProps: BaseFrameProps = {
     frame,
     activeConnectionData: props.activeConnectionData,
     stack: props.frameData.stack,
     isFullscreen,
     isCollapsed,
-    setExportItems
+    setExportItems,
+    setCopyItems
   }
   const FrameComponent = getFrameComponent(props.frameData)
 
@@ -135,6 +137,7 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
           frame={frame}
           fullscreenToggle={toggleFullscreen}
           exportItems={exportItems}
+          copyItems={copyItems}
         />
         <FrameComponent {...frameProps} />
       </ContentContainer>

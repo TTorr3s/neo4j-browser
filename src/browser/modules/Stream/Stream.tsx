@@ -17,10 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { memo, useEffect, useRef, type JSX } from 'react'
+import React, { type JSX, memo, useEffect, useRef } from 'react'
 import { connect } from 'react-redux'
 
-import { ExportItem } from '../Frame/ExportButton'
+import { CopyItem, ExportItem } from '../Frame/ExportButton'
 import { FrameContainer } from './FrameContainer'
 import { AnimationContainer, Padding, StyledStream } from './styled'
 import { GlobalState } from 'shared/globalState'
@@ -44,6 +44,7 @@ export interface BaseFrameProps {
   isFullscreen: boolean
   isCollapsed: boolean
   setExportItems: (exportItems: ExportItem[]) => void
+  setCopyItems: (copyItems: CopyItem[]) => void
 }
 
 function Stream(props: StreamProps): JSX.Element {
