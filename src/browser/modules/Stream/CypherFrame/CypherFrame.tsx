@@ -104,6 +104,10 @@ function isQueryResult(result: BrowserRequestResult): result is QueryResult {
   return result !== null && result !== undefined && 'summary' in result
 }
 
+// Maximum number of rows to allow for clipboard copy operations
+// Prevents browser memory issues with large datasets
+const COPY_MAX_ROWS = 50_000
+
 export type CypherFrameProps = BaseFrameProps
 
 export type PlanExpand = 'EXPAND' | 'COLLAPSE'
@@ -269,6 +273,37 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
     await copyToClipboard(planToJsonString(plan))
   }, [request?.result])
 
+  const copyCSV = useCallback(async (): Promise<void> => {
+    if (records.length > COPY_MAX_ROWS) {
+      console.warn(
+        `Copy limited: ${records.length} rows exceeds ${COPY_MAX_ROWS} limit`
+      )
+      return
+    }
+    const firstRecord = records[0]
+    const keys = firstRecord?.length > 0 ? firstRecord.keys : []
+    const exportData = stringifyResultArray(
+      csvFormat,
+      [keys].concat(records.map(record => recordToStringArray(record, true)))
+    )
+    const data = exportData.slice()
+    const csv = CSVSerializer(data.shift())
+    csv.appendRows(data)
+    await copyToClipboard(csv.output())
+  }, [records])
+
+  const copyJSON = useCallback(async (): Promise<void> => {
+    if (records.length > COPY_MAX_ROWS) {
+      console.warn(
+        `Copy limited: ${records.length} rows exceeds ${COPY_MAX_ROWS} limit`
+      )
+      return
+    }
+    const exportData = records.map(recordToJSONMapper)
+    const data = stringifyMod(exportData, stringModifier, true)
+    await copyToClipboard(data)
+  }, [records])
+
   // Effect for initial view on mount
   useEffect(() => {
     const view = initialView({ request, frame, recentView }, { openView })
@@ -359,9 +394,17 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
       ...(graphicsDownloadEnabled() ? downloadGraphics : [])
     ])
 
-    setCopyItems(
-      planJsonEnabled() ? [{ name: 'JSON', copy: copyPlanJSON }] : []
-    )
+    const canCopyText = textDownloadEnabled() && records.length <= COPY_MAX_ROWS
+
+    setCopyItems([
+      ...(canCopyText
+        ? [
+            { name: 'CSV', copy: copyCSV },
+            { name: 'JSON', copy: copyJSON }
+          ]
+        : []),
+      ...(planJsonEnabled() ? [{ name: 'Plan JSON', copy: copyPlanJSON }] : [])
+    ])
   }, [
     openView,
     records.length,
@@ -374,6 +417,8 @@ function CypherFrameComponent(props: CypherFrameProps): JSX.Element {
     exportStringPlan,
     exportPlanJSON,
     copyPlanJSON,
+    copyCSV,
+    copyJSON,
     setExportItems,
     setCopyItems,
     request
