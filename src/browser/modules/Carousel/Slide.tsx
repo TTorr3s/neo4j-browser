@@ -43,7 +43,10 @@ const Slide = React.forwardRef(
 
     if (children) {
       return (
-        <SlideComponent ref={ref} className={styles.slide}>
+        <SlideComponent
+          ref={ref as React.RefCallback<HTMLDivElement>}
+          className={styles.slide}
+        >
           {children}
         </SlideComponent>
       )
@@ -51,7 +54,10 @@ const Slide = React.forwardRef(
 
     if (content) {
       return (
-        <SlideComponent ref={ref} className={styles.slide}>
+        <SlideComponent
+          ref={ref as React.RefCallback<HTMLDivElement>}
+          className={styles.slide}
+        >
           {content}
         </SlideComponent>
       )
@@ -60,7 +66,7 @@ const Slide = React.forwardRef(
     if (html) {
       return (
         <SlideComponent
-          ref={ref}
+          ref={ref as React.RefCallback<HTMLDivElement>}
           className={styles.slide}
           dangerouslySetInnerHTML={{ __html: html }}
         />

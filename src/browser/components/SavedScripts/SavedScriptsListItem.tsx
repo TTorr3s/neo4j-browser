@@ -93,7 +93,7 @@ function SavedScriptsListItem({
       <SavedScriptsListItemMain
         data-testid="savedScriptListItem"
         isSelected={isSelected}
-        ref={dragAndDropRef as unknown as React.LegacyRef<HTMLDivElement>}
+        ref={dragAndDropRef as unknown as React.RefCallback<HTMLDivElement>}
         onClick={onClick}
       >
         {isEditing ? (

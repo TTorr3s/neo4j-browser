@@ -66,7 +66,7 @@ export default function withGrouping<Data extends object = any>(
     ...rest
   } = options
   const stateParams = groupBy ? { groupBy } : {}
-  const onCustomGroupingChange: GroupSetter = useCallback(
+  const onCustomGroupingChange: GroupSetter<Data> = useCallback(
     (column, group) => {
       if (onGroupChange) {
         onGroupChange(column, group)

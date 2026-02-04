@@ -66,7 +66,7 @@ export default function withFilters<Data extends object = any>(
   const [ourFilters, setOurFilters] = useState<Filters<Data>>([])
   const filters = theirFilters || ourFilters
   const stateParams = { filters }
-  const onCustomFilterChange: FilterSetter = useCallback(
+  const onCustomFilterChange: FilterSetter<Data> = useCallback(
     (column, action, values) => {
       if (onFilterChange) {
         onFilterChange(column, action, values)

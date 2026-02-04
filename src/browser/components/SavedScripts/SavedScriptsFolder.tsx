@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useState, type JSX } from 'react'
+import React, { type JSX, useState } from 'react'
 import { useDrop } from 'react-dnd'
 
 import {
@@ -26,7 +26,6 @@ import {
   SavedScriptsCollapseMenuIcon,
   SavedScriptsExpandMenuRightIcon
 } from '../icons/LegacyIcons'
-
 import { useCustomBlur, useNameUpdate } from './hooks'
 import {
   ChildrenContainer,
@@ -146,7 +145,7 @@ function SavedScriptsFolder({
 
   return (
     <ContextMenuHoverParent
-      ref={drop as unknown as React.LegacyRef<HTMLSpanElement>}
+      ref={drop as unknown as React.RefCallback<HTMLSpanElement>}
       data-testid={`savedScriptsFolder-${folder.name}`}
       stayVisible={showOverlay}
     >
