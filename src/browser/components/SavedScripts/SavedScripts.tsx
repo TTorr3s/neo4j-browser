@@ -257,6 +257,11 @@ export default function SavedScripts({
             </>
           ) : (
             <SavedScriptsButtonWrapper>
+              {exportScripts && (
+                <ExportButton
+                  onClick={() => exportScripts(scripts, folders, 'ZIPFILE')}
+                />
+              )}
               {newFolderButton}
             </SavedScriptsButtonWrapper>
           )}

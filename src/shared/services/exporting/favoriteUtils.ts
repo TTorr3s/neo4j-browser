@@ -26,6 +26,14 @@ import { Folder } from 'shared/modules/favorites/foldersDuck'
 
 export const CYPHER_FILE_EXTENSION = '.cypher'
 export type ExportFormat = 'CYPHERFILE' | 'ZIPFILE'
+
+function formatDateForFilename(): string {
+  const now = new Date()
+  const date = now.toISOString().split('T')[0]
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${date}_${hours}-${minutes}`
+}
 export const exporters: Record<
   ExportFormat,
   (favorites: Favorite[], folders: Folder[]) => Promise<void>
@@ -44,7 +52,7 @@ export async function exportFavoritesAsBigCypherFile(
 
   await saveAs(
     new Blob([fileContent], { type: 'application/x-cypher-query' }),
-    `saved-scripts-${new Date().toISOString().split('T')[0]}.cypher`
+    `saved-scripts-${formatDateForFilename()}.cypher`
   )
 }
 
@@ -68,10 +76,7 @@ export async function exportFavoritesAsZip(
     compression: 'DEFLATE',
     compressionOptions: { level: 6 }
   })
-  await saveAs(
-    blob,
-    `saved-scripts-${new Date().toISOString().split('T')[0]}.zip`
-  )
+  await saveAs(blob, `saved-scripts-${formatDateForFilename()}.zip`)
 }
 
 function toSafefilename(name: string): string {
