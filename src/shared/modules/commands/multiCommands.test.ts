@@ -25,6 +25,7 @@ import * as commands from './commandsDuck'
 import bolt from 'services/bolt/bolt'
 import { add as addFrame } from 'shared/modules/frames/framesDuck'
 import { addHistoryAsync } from 'shared/modules/history/historyDuck'
+import { recordQueryExecution } from 'shared/modules/queryStats/queryStatsDuck'
 
 // Mock bolt module with __esModule to handle default export correctly
 jest.mock('services/bolt/bolt', () => ({
@@ -125,6 +126,7 @@ describe('handleCommandEpic', () => {
         action,
         commands.clearErrorMessage(),
         addHistoryAsync(action.cmd, maxHistory),
+        recordQueryExecution(action.cmd),
         commands.executeSingleCommand(cmd, { id, requestId })
       ])
       done()
@@ -155,6 +157,7 @@ describe('handleCommandEpic', () => {
     // Then
     expect(actions).toContainEqual(action)
     expect(actions).toContainEqual(addHistoryAsync(action.cmd, maxHistory))
+    expect(actions).toContainEqual(recordQueryExecution(action.cmd))
     expect(actions).toContainEqual(
       addFrame({
         type: 'cypher-script',
