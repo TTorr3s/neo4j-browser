@@ -52,6 +52,10 @@ import {
   initialState as notesInitialState
 } from './modules/notes/notesDuck'
 import { NAME as params } from './modules/params/paramsDuck'
+import {
+  NAME as queryStats,
+  initialState as queryStatsInitialState
+} from './modules/queryStats/queryStatsDuck'
 import { RequestState, NAME as requests } from './modules/requests/requestsDuck'
 import {
   SettingsState,
@@ -79,4 +83,5 @@ export interface GlobalState {
   [app]: AppState
   [experimentalFeatures]: typeof experimentalFeaturesInitialState
   [notes]: typeof notesInitialState
+  [queryStats]: typeof queryStatsInitialState
 }

@@ -27,6 +27,11 @@ import {
 import * as editor from 'shared/modules/editor/editorDuck'
 import * as favoritesDuck from 'shared/modules/favorites/favoritesDuck'
 import * as foldersDuck from 'shared/modules/favorites/foldersDuck'
+import {
+  clearQueryStats,
+  getRecentQueries,
+  getTopQueries
+} from 'shared/modules/queryStats/queryStatsDuck'
 
 const mapFavoritesStateToProps = (state: any) => {
   const folders = foldersDuck.getFolders(state)
@@ -35,7 +40,9 @@ const mapFavoritesStateToProps = (state: any) => {
   return {
     folders,
     scripts,
-    title: 'Local scripts'
+    title: 'Local scripts',
+    topQueries: getTopQueries(state),
+    recentQueries: getRecentQueries(state)
   }
 }
 
@@ -49,6 +56,11 @@ const mapFavoritesDispatchToProps = (dispatch: any, ownProps: any) => ({
     dispatch(
       executeCommand(favorite.content, { source: commandSources.favorite })
     ),
+  selectQuery: (query: string) =>
+    ownProps.bus.send(editor.SET_CONTENT, editor.setContent(query)),
+  execQuery: (query: string) =>
+    dispatch(executeCommand(query, { source: commandSources.sidebar })),
+  clearQueryStats: () => dispatch(clearQueryStats()),
   removeScripts: (ids: string[]) =>
     dispatch(favoritesDuck.removeFavorites(ids)),
   renameScript: (favorite: favoritesDuck.Favorite, name: string) => {

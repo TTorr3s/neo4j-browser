@@ -220,3 +220,61 @@ export const ContextMenuItem = styled.div`
 export const Separator = styled.div`
   border-bottom: 1px solid rgb(77, 74, 87, 0.3);
 `
+
+export const QueryStatsSectionContainer = styled.div`
+  margin-bottom: 12px;
+`
+
+export const QueryStatsSectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: ${props => props.theme.drawerTextMuted};
+  margin-bottom: 4px;
+`
+
+export const QueryStatsItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 5px;
+  cursor: pointer;
+  border-radius: 3px;
+
+  &:hover {
+    background-color: ${props => props.theme.hoverBackground};
+  }
+`
+
+export const QueryStatsItemText = styled.div`
+  flex: 1;
+  font-size: 13px;
+  color: ${props => props.theme.drawerTextMuted};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+
+  ${QueryStatsItem}:hover & {
+    color: ${props => props.theme.drawerText};
+  }
+`
+
+export const QueryStatsItemCount = styled.span`
+  font-size: 11px;
+  color: ${props => props.theme.drawerTextMuted};
+  margin-right: 6px;
+  flex-shrink: 0;
+`
+
+export const QueryStatsItemActions = styled.div`
+  flex-shrink: 0;
+  visibility: hidden;
+
+  ${QueryStatsItem}:hover & {
+    visibility: visible;
+  }
+`

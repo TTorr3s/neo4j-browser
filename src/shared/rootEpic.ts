@@ -57,8 +57,8 @@ import {
 } from './modules/cypher/cypherDuck'
 import {
   clearMetaOnDisconnectEpic,
-  dbMetaEpic,
   dbCountEpic,
+  dbMetaEpic,
   serverConfigEpic
 } from './modules/dbMeta/dbMetaEpics'
 import {
@@ -75,6 +75,7 @@ import { ensureMaxFramesEpic } from './modules/frames/framesDuck'
 import { historyEpics } from './modules/history/historyEpics'
 import { clearLocalstorageEpic } from './modules/localstorage/localstorageDuck'
 import { notesEpics } from './modules/notes/notesEpics'
+import { queryStatsEpics } from './modules/queryStats/queryStatsEpics'
 import { cancelRequestEpic } from './modules/requests/requestsDuck'
 import {
   trackCommandUsageEpic,
@@ -132,5 +133,6 @@ export default combineEpics(
   updateEditorSupportSchemaEpic,
   trackPreviewEpic,
   historyEpics,
-  notesEpics
+  notesEpics,
+  queryStatsEpics
 )

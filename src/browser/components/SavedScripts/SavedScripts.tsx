@@ -22,6 +22,7 @@ import { useDrop } from 'react-dnd'
 import { v4 as uuidv4 } from 'uuid'
 
 import { AddIcon } from '../icons/LegacyIcons'
+import QueryStatsSection from './QueryStatsSection'
 import {
   ExportButton,
   NewFolderButton,
@@ -41,6 +42,7 @@ import { getScriptDisplayName } from './utils'
 import { ExportFormat } from 'services/exporting/favoriteUtils'
 import { Favorite } from 'shared/modules/favorites/favoritesDuck'
 import { Folder } from 'shared/modules/favorites/foldersDuck'
+import { QueryStat } from 'shared/services/queryStatsStorage'
 
 interface SavedScriptsProps {
   title?: string
@@ -62,6 +64,11 @@ interface SavedScriptsProps {
   removeFolder?: (folderId: string) => void
   createNewFolder?: (id?: string) => void
   createNewScript?: () => void
+  topQueries?: QueryStat[]
+  recentQueries?: QueryStat[]
+  selectQuery?: (query: string) => void
+  execQuery?: (query: string) => void
+  clearQueryStats?: () => void
 }
 
 function findScriptsFromIds(ids: string[], scripts: Favorite[]): Favorite[] {
@@ -88,7 +95,12 @@ export default function SavedScripts({
   renameFolder,
   removeFolder,
   exportScripts,
-  createNewFolder
+  createNewFolder,
+  topQueries,
+  recentQueries,
+  selectQuery,
+  execQuery,
+  clearQueryStats
 }: SavedScriptsProps): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
@@ -273,6 +285,28 @@ export default function SavedScripts({
           onChange={e => setSearchTerm(e.target.value)}
           data-testid="savedScriptsSearch"
         />
+        {!debouncedSearchTerm && selectQuery && execQuery && (
+          <>
+            {topQueries && topQueries.length > 0 && (
+              <QueryStatsSection
+                title="Top Queries"
+                queries={topQueries}
+                onSelect={selectQuery}
+                onExec={execQuery}
+                showCount
+                onClear={clearQueryStats}
+              />
+            )}
+            {recentQueries && recentQueries.length > 0 && (
+              <QueryStatsSection
+                title="Recent"
+                queries={recentQueries}
+                onSelect={selectQuery}
+                onExec={execQuery}
+              />
+            )}
+          </>
+        )}
         {scriptsOutsideFolder.map(script => {
           const key = getUniqueScriptKey(script)
           return (

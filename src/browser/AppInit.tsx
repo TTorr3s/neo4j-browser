@@ -17,32 +17,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Middleware, Tuple, configureStore } from '@reduxjs/toolkit'
 import React, { type JSX } from 'react'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { Provider } from 'react-redux'
 import { BusProvider } from 'react-suber'
-import { configureStore, Middleware, Tuple } from '@reduxjs/toolkit'
-import { BusContext } from 'browser-hooks/useBus'
 import { AnyAction } from 'redux'
 import { createEpicMiddleware } from 'redux-observable'
 import {
   createBus,
   createReduxMiddleware as createSuberReduxMiddleware
 } from 'suber'
+import { URL } from 'whatwg-url'
 
 import App from './modules/App/App'
+import { BusContext } from 'browser-hooks/useBus'
 import { applyKeys, createReduxMiddleware, getAll } from 'services/localstorage'
 import { detectRuntimeEnv } from 'services/utils'
 import { GlobalState } from 'shared/globalState'
 import { APP_START } from 'shared/modules/app/appDuck'
 import { initializeHistory } from 'shared/modules/history/historyDuck'
 import { initializeNotes } from 'shared/modules/notes/notesDuck'
+import { initializeQueryStats } from 'shared/modules/queryStats/queryStatsDuck'
 import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
 import { updateUdcData } from 'shared/modules/udc/udcDuck'
 import epics from 'shared/rootEpic'
 import reducers from 'shared/rootReducer'
-import { URL } from 'whatwg-url'
 
 // Configure localstorage sync
 applyKeys(
@@ -170,6 +171,9 @@ store.dispatch(initializeHistory() as any)
 
 // Initialize notes storage (IndexedDB)
 store.dispatch(initializeNotes() as any)
+
+// Initialize query stats storage (IndexedDB)
+store.dispatch(initializeQueryStats() as any)
 
 const auraNtId = searchParams.get('ntid') ?? undefined
 if (auraNtId) {

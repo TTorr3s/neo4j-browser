@@ -26,6 +26,7 @@ import { v4 } from 'uuid'
 import { CONNECTION_SUCCESS } from '../connections/connectionsDuck'
 import { UPDATE_SETTINGS, getAvailableSettings } from '../dbMeta/dbMetaDuck'
 import { addHistoryAsync } from '../history/historyDuck'
+import { recordQueryExecution } from '../queryStats/queryStatsDuck'
 import {
   getMaxHistory,
   getPlayImplicitInitCommands,
@@ -220,6 +221,7 @@ export const handleCommandEpic: Epic<
         dispatch(clearErrorMessage())
         const maxHistory = getMaxHistory(getState())
         dispatch(addHistoryAsync(cmd, maxHistory))
+        dispatch(recordQueryExecution(cmd))
 
         // extractStatementsFromString is _very_ slow. So we check if we can
         // skip it. If there are no semi colons apart from the final character

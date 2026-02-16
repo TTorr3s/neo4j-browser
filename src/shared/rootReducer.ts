@@ -47,6 +47,9 @@ import historyReducer, {
 } from 'shared/modules/history/historyDuck'
 import notesReducer, { NAME as notes } from 'shared/modules/notes/notesDuck'
 import paramsReducer, { NAME as params } from 'shared/modules/params/paramsDuck'
+import queryStatsReducer, {
+  NAME as queryStats
+} from 'shared/modules/queryStats/queryStatsDuck'
 import requestsReducer, {
   NAME as requests
 } from 'shared/modules/requests/requestsDuck'
@@ -76,5 +79,6 @@ export default {
   [udc]: udcReducer,
   [app]: appReducer,
   [experimentalFeatures]: experimentalFeaturesReducer,
-  [notes]: notesReducer
+  [notes]: notesReducer,
+  [queryStats]: queryStatsReducer
 }
