@@ -20,8 +20,8 @@
 import neo4j, { QueryResult } from 'neo4j-driver'
 import { AnyAction } from 'redux'
 import { Epic, ofType } from 'redux-observable'
-import { of, from, forkJoin } from 'rxjs'
-import { mergeMap, map, filter } from 'rxjs/operators'
+import { forkJoin, from, of } from 'rxjs'
+import { catchError, filter, map, mergeMap } from 'rxjs/operators'
 
 import { getClusterAddresses } from './queriesProcedureHelper'
 import bolt from 'services/bolt/bolt'
@@ -146,6 +146,14 @@ export const cypherRequestEpic: Epic<
             success: false,
             error: e
           }))
+      ).pipe(
+        catchError(e =>
+          of({
+            type: action.$$responseChannel,
+            success: false,
+            error: e
+          })
+        )
       )
     })
   )
@@ -165,7 +173,15 @@ export const routedCypherReadRequestEpic: Epic<
         useDb: action.useDb
       })
 
-      return from(routedCypherQueryResultResolver(action, promise))
+      return from(routedCypherQueryResultResolver(action, promise)).pipe(
+        catchError(e =>
+          of({
+            type: action.$$responseChannel,
+            success: false,
+            error: e
+          })
+        )
+      )
     })
   )
 
@@ -188,7 +204,15 @@ export const routedCypherWriteRequestEpic: Epic<
         }
       )
 
-      return from(routedCypherQueryResultResolver(action, promise))
+      return from(routedCypherQueryResultResolver(action, promise)).pipe(
+        catchError(e =>
+          of({
+            type: action.$$responseChannel,
+            success: false,
+            error: e
+          })
+        )
+      )
     })
   )
 
@@ -206,6 +230,14 @@ export const adHocCypherRequestEpic: Epic<AnyAction, AnyAction, GlobalState> = (
       }
       return from(
         callClusterMember(tempConnection, action) as Promise<AnyAction>
+      ).pipe(
+        catchError(e =>
+          of({
+            type: action.$$responseChannel,
+            success: false,
+            error: e
+          })
+        )
       )
     })
   )

@@ -18,8 +18,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { AnyAction } from 'redux'
-import { Epic, ofType, StateObservable } from 'redux-observable'
-import { map, withLatestFrom } from 'rxjs/operators'
+import { Epic, StateObservable, ofType } from 'redux-observable'
+import { EMPTY } from 'rxjs'
+import { catchError, map, withLatestFrom } from 'rxjs/operators'
 import { v1 as uuidv1 } from 'uuid'
 
 import { Database } from '../dbMeta/dbMetaDuck'
@@ -424,5 +425,9 @@ export const ensureMaxFramesEpic: Epic<AnyAction, AnyAction, GlobalState> = (
         maxFrames
       }
       return maxFramesAction
+    }),
+    catchError(error => {
+      console.error('[Frames] ensureMaxFramesEpic error:', error)
+      return EMPTY
     })
   )

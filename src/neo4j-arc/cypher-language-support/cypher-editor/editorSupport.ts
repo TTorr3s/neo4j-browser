@@ -117,8 +117,13 @@ export function initalizeCypherSupport(
       }
       const content = model.getValue()
       if (content !== lastParsedContent) {
-        editorSupport.update(content)
-        lastParsedContent = content
+        try {
+          editorSupport.update(content)
+          lastParsedContent = content
+        } catch (error) {
+          console.warn('[Cypher Editor] Editor support update error:', error)
+          return { suggestions: [] }
+        }
       }
       let items: EditorSupportCompletionItem[] = []
       // Cypher editor support repo has internal type errors

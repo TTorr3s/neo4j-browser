@@ -255,7 +255,11 @@ export function MainEditor({
               }}
               useDb={useDb}
               sendCypherQuery={(text: string) =>
-                new Promise((res, rej) =>
+                new Promise((res, rej) => {
+                  const timeout = setTimeout(
+                    () => rej(new Error('Query timeout')),
+                    30000
+                  )
                   bus.self(
                     CYPHER_REQUEST,
                     {
@@ -264,6 +268,7 @@ export function MainEditor({
                       params: applyParamGraphTypes(params)
                     },
                     (response: { result: QueryResult; success?: boolean }) => {
+                      clearTimeout(timeout)
                       if (response.success === true) {
                         res(response.result)
                       } else {
@@ -271,7 +276,7 @@ export function MainEditor({
                       }
                     }
                   )
-                )
+                })
               }
             />
           </EditorContainer>

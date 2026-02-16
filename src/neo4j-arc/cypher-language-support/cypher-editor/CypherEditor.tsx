@@ -157,6 +157,7 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
     // and avoids the anti-pattern of nested setState calls
     const draftRef = useRef('')
     const [isEditorFocusable, setIsEditorFocusable] = useState(true)
+    const [editorError, setEditorError] = useState<string | null>(null)
 
     // Ref to keep history current for Monaco action closures
     // Monaco actions are created once on mount and capture variables by closure.
@@ -259,9 +260,12 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
             setEditorValueAtEnd(syncEntry)
           } else {
             // Async fallback - fetch from storage
-            provider.getEntry(newIndex).then(entry => {
-              if (entry) setEditorValueAtEnd(entry)
-            })
+            provider
+              .getEntry(newIndex)
+              .then(entry => {
+                if (entry) setEditorValueAtEnd(entry)
+              })
+              .catch(() => {})
           }
           // Prefetch in the direction we're navigating
           provider.prefetch(newIndex, 'back')
@@ -305,9 +309,12 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
             setEditorValueAtEnd(syncEntry)
           } else {
             // Async fallback - fetch from storage
-            provider.getEntry(newIndex).then(entry => {
-              if (entry) setEditorValueAtEnd(entry)
-            })
+            provider
+              .getEntry(newIndex)
+              .then(entry => {
+                if (entry) setEditorValueAtEnd(entry)
+              })
+              .catch(() => {})
           }
           // Prefetch in the direction we're navigating
           provider.prefetch(newIndex, 'forward')
@@ -457,7 +464,10 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
     useLayoutEffect(() => {
       const monacoId = getMonacoId()
       const container = document.getElementById(monacoId)
-      if (!container) return
+      if (!container) {
+        console.warn('[CypherEditor] Container element not found:', monacoId)
+        return
+      }
 
       containerRef.current = container
 
@@ -471,49 +481,63 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
 
       // Create debounced update function
       debouncedUpdateCodeRef.current = debounce(() => {
-        const text =
-          editorRef.current?.getModel()?.getLinesContent().join('\n') || ''
-        onChange?.(text)
-        addWarnings(parse(text).referencesListener.queriesAndCommands)
+        try {
+          const text =
+            editorRef.current?.getModel()?.getLinesContent().join('\n') || ''
+          onChange?.(text)
+          addWarnings(parse(text).referencesListener.queriesAndCommands)
+        } catch (e) {
+          console.warn('[CypherEditor] Content update error:', e)
+        }
       }, EDITOR_UPDATE_DEBOUNCE_TIME)
 
       // Create Monaco editor
-      editorRef.current = monaco.editor.create(container, {
-        autoClosingOvertype: 'always',
-        contextmenu: true,
-        cursorStyle: 'block',
-        fontFamily: '"Fira Code", Monaco, "Courier New", Terminal, monospace',
-        fontLigatures,
-        fontSize: 17,
-        fontWeight: '400',
-        hideCursorInOverviewRuler: true,
-        language: 'cypher',
-        lightbulb: { enabled: monaco.editor.ShowLightbulbIconMode.Off },
-        lineHeight: 23,
-        lineNumbers: (line: number) =>
-          (editorRef.current?.getModel()?.getLineCount() || 0) > 1
-            ? line.toString()
-            : `${useDb || ''}$`,
-        links: false,
-        minimap: { enabled: false },
-        // Disable features that can cause "Canceled" errors during disposal
-        occurrencesHighlight: 'off',
-        overviewRulerBorder: false,
-        overviewRulerLanes: 0,
-        quickSuggestions: true,
-        renderLineHighlight: 'none',
-        scrollbar: {
-          alwaysConsumeMouseWheel: false,
-          useShadows: false
-        },
-        scrollBeyondLastColumn: 0,
-        scrollBeyondLastLine: false,
-        selectionHighlight: false,
-        value,
-        wordWrap: 'on',
-        wrappingStrategy: 'advanced',
-        tabIndex
-      })
+      try {
+        editorRef.current = monaco.editor.create(container, {
+          autoClosingOvertype: 'always',
+          contextmenu: true,
+          cursorStyle: 'block',
+          fontFamily: '"Fira Code", Monaco, "Courier New", Terminal, monospace',
+          fontLigatures,
+          fontSize: 17,
+          fontWeight: '400',
+          hideCursorInOverviewRuler: true,
+          language: 'cypher',
+          lightbulb: { enabled: monaco.editor.ShowLightbulbIconMode.Off },
+          lineHeight: 23,
+          lineNumbers: (line: number) =>
+            (editorRef.current?.getModel()?.getLineCount() || 0) > 1
+              ? line.toString()
+              : `${useDb || ''}$`,
+          links: false,
+          minimap: { enabled: false },
+          // Disable features that can cause "Canceled" errors during disposal
+          occurrencesHighlight: 'off',
+          overviewRulerBorder: false,
+          overviewRulerLanes: 0,
+          quickSuggestions: true,
+          renderLineHighlight: 'none',
+          scrollbar: {
+            alwaysConsumeMouseWheel: false,
+            useShadows: false
+          },
+          scrollBeyondLastColumn: 0,
+          scrollBeyondLastLine: false,
+          selectionHighlight: false,
+          value,
+          wordWrap: 'on',
+          wrappingStrategy: 'advanced',
+          tabIndex
+        })
+      } catch (error) {
+        console.error('[CypherEditor] Monaco initialization failed:', error)
+        setEditorError(
+          error instanceof Error
+            ? error.message
+            : 'Monaco editor failed to initialize'
+        )
+        return
+      }
 
       const { KeyCode, KeyMod } = monaco
       const editorId = id
@@ -800,6 +824,33 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
         tabIndex: isEditorFocusable ? tabIndex : -1
       })
     }, [isEditorFocusable, tabIndex])
+
+    if (editorError !== null) {
+      return (
+        <div className={className} style={{ padding: '8px' }}>
+          <div
+            style={{ color: '#b00020', marginBottom: '8px', fontSize: '13px' }}
+          >
+            Editor failed to load: {editorError}
+          </div>
+          <textarea
+            defaultValue={value}
+            onChange={e => onChange?.(e.target.value)}
+            style={{
+              width: '100%',
+              minHeight: '100px',
+              fontFamily:
+                '"Fira Code", Monaco, "Courier New", Terminal, monospace',
+              fontSize: '14px',
+              padding: '8px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              resize: 'vertical'
+            }}
+          />
+        </div>
+      )
+    }
 
     return (
       <MonacoStyleWrapper

@@ -21,6 +21,7 @@ import React, { type JSX, useState } from 'react'
 
 import { CopyItem, ExportItem } from '../Frame/ExportButton'
 import FrameEditor from '../Frame/FrameEditor'
+import FrameErrorBoundary from '../Frame/FrameErrorBoundary'
 import FrameTitlebar from '../Frame/FrameTitlebar'
 import { ContentContainer, StyledFrame } from '../Frame/styled'
 import UserAdd from '../User/UserAdd'
@@ -139,7 +140,9 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
           exportItems={exportItems}
           copyItems={copyItems}
         />
-        <FrameComponent {...frameProps} />
+        <FrameErrorBoundary frame={frame}>
+          <FrameComponent {...frameProps} />
+        </FrameErrorBoundary>
       </ContentContainer>
     </StyledFrame>
   )

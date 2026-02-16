@@ -193,7 +193,7 @@ export const initializeCypherEditorEpic: Epic<
     mapTo(cypherEditorReady()),
     catchError(error => {
       console.error('[Editor] initializeCypherEditorEpic error:', error)
-      return EMPTY
+      return of(cypherEditorReady())
     })
   )
 }
@@ -246,13 +246,18 @@ export const updateEditorSupportSchemaEpic: Epic<
   if (!isEditorReadySubscribed) {
     const timestamp = new Date().toISOString().split('T')[1]
     isEditorReadySubscribed = true
-    action$.pipe(ofType(CYPHER_EDITOR_READY), take(1)).subscribe(() => {
-      if (isDebugEnabled()) {
-        console.log(
-          `[Cypher Editor ${timestamp}] ✓ Editor ready, accepting schema updates`
-        )
+    action$.pipe(ofType(CYPHER_EDITOR_READY), take(1)).subscribe({
+      next: () => {
+        if (isDebugEnabled()) {
+          console.log(
+            `[Cypher Editor ${timestamp}] ✓ Editor ready, accepting schema updates`
+          )
+        }
+        editorReadySubject.next()
+      },
+      error: err => {
+        console.error('[Editor] editorReady subscription error:', err)
       }
-      editorReadySubject.next()
     })
   }
 
@@ -288,33 +293,43 @@ export const updateEditorSupportSchemaEpic: Epic<
     })),
     distinctUntilChanged(areSchemaSourcesEqual),
     mergeMap(schemaData => {
-      if (isDebugEnabled()) {
-        const timestamp = new Date().toISOString().split('T')[1]
-        console.log(`[Cypher Editor ${timestamp}] Schema update:`, {
-          labels: schemaData.labels.length,
-          relationshipTypes: schemaData.relationshipTypes.length,
-          properties: schemaData.properties.length,
-          functions: schemaData.functions.length,
-          procedures: schemaData.procedures.length,
-          params: Object.keys(schemaData.params).length
+      try {
+        if (isDebugEnabled()) {
+          const timestamp = new Date().toISOString().split('T')[1]
+          console.log(`[Cypher Editor ${timestamp}] Schema update:`, {
+            labels: schemaData.labels.length,
+            relationshipTypes: schemaData.relationshipTypes.length,
+            properties: schemaData.properties.length,
+            functions: schemaData.functions.length,
+            procedures: schemaData.procedures.length,
+            params: Object.keys(schemaData.params).length
+          })
+        }
+        setupAutocomplete({
+          consoleCommands,
+          functions: schemaData.functions.map(toFunction),
+          labels: schemaData.labels.map(toLabel),
+          parameters: Object.keys(schemaData.params),
+          procedures: schemaData.procedures.map(toProcedure),
+          propertyKeys: schemaData.properties,
+          relationshipTypes:
+            schemaData.relationshipTypes.map(toRelationshipType)
         })
-      }
-      setupAutocomplete({
-        consoleCommands,
-        functions: schemaData.functions.map(toFunction),
-        labels: schemaData.labels.map(toLabel),
-        parameters: Object.keys(schemaData.params),
-        procedures: schemaData.procedures.map(toProcedure),
-        propertyKeys: schemaData.properties,
-        relationshipTypes: schemaData.relationshipTypes.map(toRelationshipType)
-      })
-      if (isDebugEnabled()) {
+        if (isDebugEnabled()) {
+          const timestamp = new Date().toISOString().split('T')[1]
+          console.log(
+            `[Cypher Editor ${timestamp}] ✓ Autocomplete schema updated`
+          )
+        }
+        return EMPTY
+      } catch (error) {
         const timestamp = new Date().toISOString().split('T')[1]
-        console.log(
-          `[Cypher Editor ${timestamp}] ✓ Autocomplete schema updated`
+        console.error(
+          `[Editor ${timestamp}] updateEditorSupportSchemaEpic mergeMap error:`,
+          error
         )
+        return EMPTY
       }
-      return EMPTY
     }),
     catchError(error => {
       const timestamp = new Date().toISOString().split('T')[1]

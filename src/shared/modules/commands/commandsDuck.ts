@@ -20,18 +20,18 @@
 import { AnyAction } from 'redux'
 import { Epic, ofType } from 'redux-observable'
 import { merge } from 'rxjs'
-import { map, mergeMap, tap, take, ignoreElements } from 'rxjs/operators'
+import { ignoreElements, map, mergeMap, take, tap } from 'rxjs/operators'
 import { v4 } from 'uuid'
 
-import { GlobalState } from 'shared/globalState'
 import { CONNECTION_SUCCESS } from '../connections/connectionsDuck'
-import { getAvailableSettings, UPDATE_SETTINGS } from '../dbMeta/dbMetaDuck'
+import { UPDATE_SETTINGS, getAvailableSettings } from '../dbMeta/dbMetaDuck'
 import { addHistoryAsync } from '../history/historyDuck'
 import {
   getMaxHistory,
   getPlayImplicitInitCommands,
   shouldEnableMultiStatementMode
 } from '../settings/settingsDuck'
+import { CYPHER_FAILED, CYPHER_SUCCEEDED } from './actionTypes'
 import helper from 'services/commandInterpreterHelper'
 import {
   buildCommandObject,
@@ -40,10 +40,10 @@ import {
   extractStatementsFromString
 } from 'services/commandUtils'
 import { serialExecution } from 'services/utils'
+import { GlobalState } from 'shared/globalState'
 import { APP_START, USER_CLEAR } from 'shared/modules/app/appDuck'
 import { add as addFrame } from 'shared/modules/frames/framesDuck'
 import { update as updateQueryResult } from 'shared/modules/requests/requestsDuck'
-import { CYPHER_FAILED, CYPHER_SUCCEEDED } from './actionTypes'
 
 export const NAME = 'commands'
 export const SINGLE_COMMAND_QUEUED = `${NAME}/SINGLE_COMMAND_QUEUED`
@@ -209,93 +209,99 @@ export const handleCommandEpic: Epic<
   action$.pipe(
     ofType(COMMAND_QUEUED),
     tap((action: AnyAction) => {
-      const cmdAction = action as ExecuteCommandAction
-      // Map some commands to the help command
-      let cmd = cmdAction.cmd
-      if (['?', 'help', ':'].includes(cmd)) {
-        cmd = ':help'
-      }
-
-      dispatch(clearErrorMessage())
-      const maxHistory = getMaxHistory(getState())
-      dispatch(addHistoryAsync(cmd, maxHistory))
-
-      // extractStatementsFromString is _very_ slow. So we check if we can
-      // skip it. If there are no semi colons apart from the final character
-      // it can't be a multistatement and we can bail out early
-      const couldBeMultistatement =
-        cmd.split(';').filter((a: string) => a.trim() !== '').length > 1
-
-      // Semicolons in :style grass break parsing of multiline statements from codemirror.
-      const useMultiStatement =
-        couldBeMultistatement &&
-        !cmd.startsWith(':style') &&
-        shouldEnableMultiStatementMode(getState())
-
-      const statements = useMultiStatement
-        ? extractStatementsFromString(cmd)
-        : [cmd]
-
-      if (!statements.length || !statements[0]) {
-        return
-      }
-      if (statements.length === 1) {
-        // Single command
-        dispatch(
-          executeSingleCommand(cmd, {
-            id: cmdAction.id,
-            requestId: cmdAction.requestId,
-            useDb: cmdAction.useDb,
-            isRerun: cmdAction.isRerun
-          })
-        )
-        return
-      }
-      const parentId =
-        (cmdAction.isRerun ? cmdAction.id : cmdAction.parentId) || v4()
-      dispatch(
-        addFrame({
-          type: 'cypher-script',
-          id: parentId,
-          cmd,
-          isRerun: cmdAction.isRerun
-        } as any)
-      )
-      const jobs = statements.map((stmtCmd: string) => {
-        const cleanCmd = cleanCommand(stmtCmd)
-        const requestId = v4()
-        const cmdId = v4()
-        const allowlistedCommands = allowlistedMultiCommands()
-        const isAllowlisted = allowlistedCommands.some(wcmd =>
-          cleanCmd.startsWith(wcmd)
-        )
-
-        // Ignore client commands that aren't allowlisted
-        const ignore = cleanCmd.startsWith(':') && !isAllowlisted
-
-        const { action: builtAction, interpreted } = buildCommandObject(
-          { cmd: cleanCmd, ignore },
-          helper.interpret
-        )
-        builtAction.requestId = requestId
-        builtAction.parentId = parentId
-        builtAction.id = cmdId
-        dispatch(
-          addFrame({ ...builtAction, requestId, type: interpreted.name })
-        )
-        dispatch(updateQueryResult(requestId, null, 'waiting'))
-        // Create a store-like object for interpreted.exec compatibility
-        const storeCompat = { dispatch, getState }
-        return {
-          workFn: () => interpreted.exec(builtAction, dispatch, storeCompat),
-          onStart: () => {
-            /* no op */
-          },
-          onSkip: () => dispatch(updateQueryResult(requestId, null, 'skipped'))
+      try {
+        const cmdAction = action as ExecuteCommandAction
+        // Map some commands to the help command
+        let cmd = cmdAction.cmd
+        if (['?', 'help', ':'].includes(cmd)) {
+          cmd = ':help'
         }
-      })
 
-      serialExecution(...jobs).catch(() => {})
+        dispatch(clearErrorMessage())
+        const maxHistory = getMaxHistory(getState())
+        dispatch(addHistoryAsync(cmd, maxHistory))
+
+        // extractStatementsFromString is _very_ slow. So we check if we can
+        // skip it. If there are no semi colons apart from the final character
+        // it can't be a multistatement and we can bail out early
+        const couldBeMultistatement =
+          cmd.split(';').filter((a: string) => a.trim() !== '').length > 1
+
+        // Semicolons in :style grass break parsing of multiline statements from codemirror.
+        const useMultiStatement =
+          couldBeMultistatement &&
+          !cmd.startsWith(':style') &&
+          shouldEnableMultiStatementMode(getState())
+
+        const statements = useMultiStatement
+          ? extractStatementsFromString(cmd)
+          : [cmd]
+
+        if (!statements.length || !statements[0]) {
+          return
+        }
+        if (statements.length === 1) {
+          // Single command
+          dispatch(
+            executeSingleCommand(cmd, {
+              id: cmdAction.id,
+              requestId: cmdAction.requestId,
+              useDb: cmdAction.useDb,
+              isRerun: cmdAction.isRerun
+            })
+          )
+          return
+        }
+        const parentId =
+          (cmdAction.isRerun ? cmdAction.id : cmdAction.parentId) || v4()
+        dispatch(
+          addFrame({
+            type: 'cypher-script',
+            id: parentId,
+            cmd,
+            isRerun: cmdAction.isRerun
+          } as any)
+        )
+        const jobs = statements.map((stmtCmd: string) => {
+          const cleanCmd = cleanCommand(stmtCmd)
+          const requestId = v4()
+          const cmdId = v4()
+          const allowlistedCommands = allowlistedMultiCommands()
+          const isAllowlisted = allowlistedCommands.some(wcmd =>
+            cleanCmd.startsWith(wcmd)
+          )
+
+          // Ignore client commands that aren't allowlisted
+          const ignore = cleanCmd.startsWith(':') && !isAllowlisted
+
+          const { action: builtAction, interpreted } = buildCommandObject(
+            { cmd: cleanCmd, ignore },
+            helper.interpret
+          )
+          builtAction.requestId = requestId
+          builtAction.parentId = parentId
+          builtAction.id = cmdId
+          dispatch(
+            addFrame({ ...builtAction, requestId, type: interpreted.name })
+          )
+          dispatch(updateQueryResult(requestId, null, 'waiting'))
+          // Create a store-like object for interpreted.exec compatibility
+          const storeCompat = { dispatch, getState }
+          return {
+            workFn: () => interpreted.exec(builtAction, dispatch, storeCompat),
+            onStart: () => {
+              /* no op */
+            },
+            onSkip: () =>
+              dispatch(updateQueryResult(requestId, null, 'skipped'))
+          }
+        })
+
+        serialExecution(...jobs).catch(() => {})
+      } catch (error: any) {
+        console.error('[Commands] handleCommandEpic error:', error)
+        dispatch(showErrorMessage(error.message || 'Command execution failed'))
+      }
     }),
     ignoreElements()
   )

@@ -56,7 +56,7 @@ function CypherScriptFrame({
           render={({ getChildProps }: any) => (
             <div>
               {(frame.statements || []).map((id: string, index: number) => {
-                if (!requests[frames[id].requestId]) {
+                if (!frames[id] || !requests[frames[id].requestId]) {
                   return
                 }
                 const status = requests[frames[id].requestId].status

@@ -18,35 +18,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { AnyAction } from 'redux'
-import { combineEpics, Epic } from 'redux-observable'
+import { Epic, combineEpics } from 'redux-observable'
 import { EMPTY, from, of } from 'rxjs'
 import {
-  filter,
-  switchMap,
   catchError,
+  filter,
   ignoreElements,
-  tap,
-  mergeMap
+  mergeMap,
+  switchMap,
+  tap
 } from 'rxjs/operators'
 
 import {
-  INITIALIZE_HISTORY,
   ADD_HISTORY_ASYNC,
-  PREFETCH_HISTORY,
   CLEAR,
-  setStorageMode,
-  setTotalCount,
+  INITIALIZE_HISTORY,
+  PREFETCH_HISTORY,
+  getHistoryCache,
   setCache,
   setError,
   setLoading,
-  getHistoryCache
+  setStorageMode,
+  setTotalCount
 } from './historyDuck'
-import {
-  HistoryStorageService,
-  HistoryEntry
-} from 'shared/services/historyStorage'
 import { getItem, removeItem } from 'services/localstorage'
 import { GlobalState } from 'shared/globalState'
+import {
+  HistoryEntry,
+  HistoryStorageService
+} from 'shared/services/historyStorage'
 
 const LEGACY_LOCALSTORAGE_KEY = 'history'
 
@@ -211,13 +211,17 @@ export const prefetchHistoryEpic: Epic<
   action$.pipe(
     filter(action => action.type === PREFETCH_HISTORY),
     tap(action => {
-      const { index, direction } = action
-      const service = HistoryStorageService.getInstance()
+      try {
+        const { index, direction } = action
+        const service = HistoryStorageService.getInstance()
 
-      // Fire and forget - prefetch runs in background
-      service.prefetch(index, direction).catch(error => {
-        console.error('[historyEpics] Prefetch failed:', error)
-      })
+        // Fire and forget - prefetch runs in background
+        service.prefetch(index, direction).catch(error => {
+          console.error('[historyEpics] Prefetch failed:', error)
+        })
+      } catch (error) {
+        console.error('[historyEpics] prefetchHistoryEpic error:', error)
+      }
     }),
     ignoreElements()
   )

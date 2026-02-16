@@ -178,9 +178,14 @@ export const cancelRequestEpic: Epic<
       const cancelAction = action as CancelAction
       return from(
         new Promise<CanceledAction>(resolve => {
-          bolt.cancelTransaction(cancelAction.id, () => {
+          try {
+            bolt.cancelTransaction(cancelAction.id, () => {
+              resolve(canceled(cancelAction.id))
+            })
+          } catch (error) {
+            console.error('[Requests] cancelRequestEpic error:', error)
             resolve(canceled(cancelAction.id))
-          })
+          }
         })
       )
     })

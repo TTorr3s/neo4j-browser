@@ -17,13 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useCallback, type JSX } from 'react'
+import React, { type JSX, useCallback } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Action, Dispatch } from 'redux'
+import { SemVer, gte } from 'semver'
 import { Bus } from 'suber'
 
-import { PlayIcon } from 'browser-components/icons/LegacyIcons'
+import { deepEquals } from 'neo4j-arc/common'
 
 import {
   StyledCypherErrorMessage,
@@ -36,14 +37,19 @@ import {
   StyledLinkContainer,
   StyledPreformattedArea
 } from '../../styled'
+import {
+  formatError,
+  formatErrorGqlStatusObject,
+  hasPopulatedGqlFields
+} from '../errorUtils'
 import { MissingParamsTemplateLink } from './MissingParamsTemplateLink'
+import { PlayIcon } from 'browser-components/icons/LegacyIcons'
 import { GlobalState } from 'project-root/src/shared/globalState'
 import {
   commandSources,
   executeCommand,
   listDbsCommand
 } from 'project-root/src/shared/modules/commands/commandsDuck'
-import { getListProcedureQuery } from 'shared/modules/cypher/functionsAndProceduresHelper'
 import * as editor from 'project-root/src/shared/modules/editor/editorDuck'
 import { getParams } from 'project-root/src/shared/modules/params/paramsDuck'
 import { BrowserRequestResult } from 'project-root/src/shared/modules/requests/requestsDuck'
@@ -55,16 +61,12 @@ import {
   isUnknownProcedureError
 } from 'services/cypherErrorsHelper'
 import { BrowserError } from 'services/exceptions'
-import { deepEquals } from 'neo4j-arc/common'
+import { getListProcedureQuery } from 'shared/modules/cypher/functionsAndProceduresHelper'
 import { getSemanticVersion } from 'shared/modules/dbMeta/dbMetaDuck'
-import { gte, SemVer } from 'semver'
-import {
-  formatError,
-  formatErrorGqlStatusObject,
-  hasPopulatedGqlFields
-} from '../errorUtils'
 import { FIRST_GQL_ERRORS_SUPPORT } from 'shared/modules/features/versionedFeatures'
 import { shouldShowGqlErrorsAndNotifications } from 'shared/modules/settings/settingsDuck'
+
+const MAX_ERROR_DEPTH = 10
 
 export type ErrorsViewProps = {
   result: BrowserRequestResult
@@ -122,7 +124,7 @@ const ErrorsViewComponent = React.memo(
               </StyledPreformattedArea>
             </StyledDiv>
           )}
-          {formattedError.innerError && (
+          {formattedError.innerError && depth < MAX_ERROR_DEPTH && (
             <ErrorsView result={formattedError.innerError} depth={depth + 1} />
           )}
           {isUnknownProcedureError(error) && (
