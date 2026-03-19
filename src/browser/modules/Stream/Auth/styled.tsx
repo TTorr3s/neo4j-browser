@@ -19,13 +19,13 @@
  */
 import styled from 'styled-components'
 
-import { StyledFrameAside } from '../../Frame/styled'
 import { StyledInput, StyledSelect } from 'browser-components/Form'
 
 export const StyledConnectionForm = styled.form`
   padding: 0 15px;
-
   flex: 1;
+  max-width: 500px;
+
   &.isLoading {
     opacity: 0.5;
   }
@@ -34,12 +34,16 @@ export const StyledChangePasswordForm = styled(StyledConnectionForm)`
   flex: 1;
 `
 
-export const StyledConnectionAside = styled(StyledFrameAside)``
+export const StyledConnectionAside = styled.div`
+  font-family: ${props => props.theme.primaryFontFamily};
+  font-size: 16px;
+  font-weight: 300;
+  color: ${props => props.theme.asideText};
+  padding: 0 15px 10px;
+  text-align: center;
+`
 export const StyledConnectionFormEntry = styled.div`
   padding-bottom: 15px;
-  &:hover .url-hint-text {
-    display: block;
-  }
 `
 export const StyledConnectionLabel = styled.label`
   display: block;
@@ -51,13 +55,11 @@ export const StyledConnectionLabel = styled.label`
   }
 `
 export const StyledConnectionTextInput = styled(StyledInput)`
-  min-width: 200px;
-  width: 44%;
+  width: 100%;
 `
 
 export const StyledSegment = styled.div`
-  min-width: 200px;
-  width: 44%;
+  width: 100%;
   position: relative;
   display: flex;
   justify-content: left;
@@ -88,8 +90,8 @@ export const StyledSegment = styled.div`
 
     &:focus {
       background-color: ${props => props.theme.inputBackgroundFocus};
-      border: 2px solid ${props => props.theme.inputBorderFocus};
-      box-shadow: 0 0 0 3px ${props => props.theme.inputBoxShadowFocus};
+      border-color: ${props => props.theme.inputBorderFocus};
+      box-shadow: 0 0 0 2px ${props => props.theme.inputBoxShadowFocus};
     }
 
     option {
@@ -116,11 +118,171 @@ export const StyledSegment = styled.div`
   }
 `
 
-export const StyledBoltUrlHintText = styled.span`
-  height: 0;
-  overflow: visible;
+export const StyledCredentialsRow = styled.div`
+  display: flex;
+  gap: 12px;
+
+  > div {
+    flex: 1;
+    min-width: 0;
+  }
+
+  @media (max-width: 500px) {
+    flex-direction: column;
+    gap: 0;
+  }
+`
+
+export const StyledProfileRow = styled.div`
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+
+  > div:first-child {
+    flex: 1;
+  }
+`
+
+export const StyledProfileAddButton = styled.button`
+  background: transparent;
+  border: ${props => props.theme.formButtonBorder};
+  border-radius: 6px;
+  color: ${props => props.theme.secondaryText};
+  height: 38px;
+  width: 38px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: ${props => props.theme.inputBackgroundHover};
+    border-color: ${props => props.theme.inputBorderFocus};
+    color: ${props => props.theme.primaryText};
+  }
+`
+
+export const StyledSaveProfileRow = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+
+  > input {
+    flex: 1;
+  }
+`
+
+export const StyledAuthToggle = styled.button`
+  background: transparent;
+  border: none;
+  color: ${props => props.theme.link};
   font-size: 12px;
-  display: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 12px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`
+
+export const StyledDeleteProfileAction = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+`
+
+export const StyledDeleteLink = styled.button`
+  background: transparent;
+  border: none;
+  color: ${props => props.theme.secondaryText};
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`
+
+export const StyledDeleteConfirm = styled.span`
+  color: ${props => props.theme.secondaryText};
+
+  > button {
+    background: transparent;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 4px;
+  }
+`
+
+export const StyledDeleteConfirmYes = styled.button`
+  color: ${props => props.theme.error};
+
+  &:hover {
+    text-decoration: underline;
+  }
+`
+
+export const StyledDeleteConfirmNo = styled.button`
+  color: ${props => props.theme.link};
+
+  &:hover {
+    text-decoration: underline;
+  }
+`
+
+export const StyledConnectButton = styled.button`
+  color: ${props => props.theme.primaryButtonText};
+  background-color: ${props => props.theme.primary};
+  border: 1px solid ${props => props.theme.primary};
+  font-family: ${props => props.theme.primaryFontFamily};
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  border-radius: 6px;
+  line-height: 20px;
+  width: 100%;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: ${props => props.theme.primary50};
+    border-color: ${props => props.theme.primary50};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`
+
+export const StyledFormSection = styled.div`
+  border-top: 1px solid ${props => props.theme.formButtonBorder};
+  padding-top: 12px;
+  margin-top: 4px;
+`
+
+export const StyledSectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: ${props => props.theme.secondaryText};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 `
 
 export const StyledRevealablePasswordWrapper = styled.div`
@@ -146,12 +308,19 @@ export const StyledRevealIconWrapper = styled.div`
 `
 
 export const StyledConnectionSelect = styled(StyledSelect)`
-  min-width: 200px;
-  width: 44%;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%239195a0' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
 `
 
 export const StyledConnectionBodyContainer = styled.div`
   flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
 `
 export const StyledConnectionBody = styled.div`
   flex: 1 1 auto;
@@ -178,6 +347,15 @@ export const StyledCode = styled.code`
 
 export const StyledDbsRow = styled.li``
 
+export const StyledConnectionFrameWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+`
+
 export const StyledFormContainer = styled.div`
   display: flex;
+  justify-content: center;
+  width: 100%;
 `

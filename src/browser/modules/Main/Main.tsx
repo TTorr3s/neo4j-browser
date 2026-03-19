@@ -109,7 +109,7 @@ const Main = React.memo(function Main(props: MainProps) {
             cmd="server connect"
             data-testid="disconnectedBannerCode"
           />
-          {` to establish connection. There's a graph waiting for you.`}
+          {` to establish connection.`}
         </NotAuthedBanner>
       )}
       {connectionState === PENDING_STATE && !past10Sec && (

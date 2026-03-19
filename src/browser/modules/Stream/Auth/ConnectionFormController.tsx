@@ -18,13 +18,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import React, {
-  useState,
-  useEffect,
+  ChangeEvent,
   useCallback,
+  useEffect,
   useRef,
-  ChangeEvent
+  useState
 } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import ChangePasswordForm from './ChangePasswordForm'
 import ConnectForm from './ConnectForm'
@@ -38,6 +38,7 @@ import {
   isNonSupportedRoutingSchemeError,
   toggleSchemeRouting
 } from 'services/boltscheme.utils'
+import { GlobalState } from 'shared/globalState'
 import { getAllowedBoltSchemes } from 'shared/modules/app/appDuck'
 import { CLOUD_SCHEMES } from 'shared/modules/app/appDuck'
 import { executeSystemCommand } from 'shared/modules/commands/commandsDuck'
@@ -65,10 +66,13 @@ import {
 } from 'shared/modules/settings/settingsDuck'
 import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
 import {
+  loadEncryptedProfiles,
+  saveEncryptedProfiles
+} from 'shared/services/credentialEncryption'
+import {
   AUTH_STORAGE_CONNECTION_PROFILES,
   isCloudHost
 } from 'shared/services/utils'
-import { GlobalState } from 'shared/globalState'
 
 // Helper functions (outside component)
 const isAuraHost = (host: string) => isCloudHost(host, NEO4J_CLOUD_DOMAINS)
@@ -203,22 +207,20 @@ export const ConnectionFormController = ({
   // State
   const [state, setState] = useState<ConnectionState>(initializeState)
 
-  // Load profiles from localStorage
+  // Load profiles from localStorage (encrypted)
   const loadProfiles = useCallback(() => {
-    const savedProfiles = localStorage.getItem(AUTH_STORAGE_CONNECTION_PROFILES)
-    if (savedProfiles) {
-      setState(prev => ({ ...prev, profiles: JSON.parse(savedProfiles) }))
-    }
+    loadEncryptedProfiles<ConnectionProfile>(
+      AUTH_STORAGE_CONNECTION_PROFILES
+    ).then(profiles => {
+      setState(prev => ({ ...prev, profiles }))
+    })
   }, [])
 
   // Profile management handlers
   const onProfileSave = useCallback((profile: ConnectionProfile) => {
     setState(prev => {
       const updatedProfiles = [...prev.profiles, profile]
-      localStorage.setItem(
-        AUTH_STORAGE_CONNECTION_PROFILES,
-        JSON.stringify(updatedProfiles)
-      )
+      saveEncryptedProfiles(AUTH_STORAGE_CONNECTION_PROFILES, updatedProfiles)
       return { ...prev, profiles: updatedProfiles }
     })
   }, [])

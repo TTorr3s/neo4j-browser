@@ -17,16 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useState, useCallback } from 'react'
+import { Neo4jError } from 'neo4j-driver'
+import React, { useCallback, useState } from 'react'
 
 import FrameBodyTemplate from '../../Frame/FrameBodyTemplate'
 import FrameError from '../../Frame/FrameError'
+import { BaseFrameProps } from '../Stream'
 import ConnectionForm from './ConnectionFormController'
-import { StyledConnectionAside, StyledConnectionBodyContainer } from './styled'
+import {
+  StyledConnectionAside,
+  StyledConnectionBodyContainer,
+  StyledConnectionFrameWrapper
+} from './styled'
 import { Lead } from 'browser-components/Text'
 import { H3 } from 'browser-components/headers'
-import { BaseFrameProps } from '../Stream'
-import { Neo4jError } from 'neo4j-driver'
 
 type ConnectionFrameState = { error: Partial<Neo4jError>; success?: true }
 
@@ -51,7 +55,7 @@ function ConnectionFrame(props: BaseFrameProps) {
         <FrameError code={state.error.code} message={state.error.message} />
       }
       contents={
-        <>
+        <StyledConnectionFrameWrapper>
           <StyledConnectionAside>
             {state.success ? (
               <>
@@ -74,7 +78,7 @@ function ConnectionFrame(props: BaseFrameProps) {
               error={handleError}
             />
           </StyledConnectionBodyContainer>
-        </>
+        </StyledConnectionFrameWrapper>
       }
     />
   )

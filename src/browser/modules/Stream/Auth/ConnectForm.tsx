@@ -17,32 +17,47 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-import React, { useEffect, useState, type JSX } from 'react'
+import { Neo4jError, hasReachableServer } from 'neo4j-driver'
+import React, { type JSX, useEffect, useState } from 'react'
 
 import { toKeyString } from 'neo4j-arc/common'
 
+import AutoExecButton from '../auto-exec-button'
 import {
-  StyledBoltUrlHintText,
+  StyledAuthToggle,
+  StyledConnectButton,
   StyledConnectionForm,
   StyledConnectionFormEntry,
   StyledConnectionLabel,
   StyledConnectionSelect,
   StyledConnectionTextInput,
+  StyledCredentialsRow,
+  StyledDeleteConfirm,
+  StyledDeleteConfirmNo,
+  StyledDeleteConfirmYes,
+  StyledDeleteLink,
+  StyledDeleteProfileAction,
   StyledFormContainer,
+  StyledFormSection,
+  StyledProfileAddButton,
+  StyledProfileRow,
+  StyledSaveProfileRow,
+  StyledSectionHeader,
   StyledSegment
 } from './styled'
 import { FormButton } from 'browser-components/buttons'
+import { SmallSpinnerIcon } from 'browser-components/icons/LegacyIcons'
 import { NATIVE, NO_AUTH } from 'services/bolt/boltHelpers'
 import { getScheme, stripScheme } from 'services/boltscheme.utils'
 import {
   AuthenticationMethod,
   ConnectionProfile
 } from 'shared/modules/connections/connectionsDuck'
+import {
+  loadEncryptedProfiles,
+  saveEncryptedProfiles
+} from 'shared/services/credentialEncryption'
 import { AUTH_STORAGE_CONNECTION_PROFILES } from 'shared/services/utils'
-import { hasReachableServer, Neo4jError } from 'neo4j-driver'
-import AutoExecButton from '../auto-exec-button'
-import { SmallSpinnerIcon } from 'browser-components/icons/LegacyIcons'
 
 const readableauthenticationMethods: Record<AuthenticationMethod, string> = {
   [NATIVE]: 'Username / Password',
@@ -148,10 +163,16 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
   const [profileName, setProfileName] = useState<string>('')
 
   useEffect(() => {
-    const savedProfiles = localStorage.getItem(AUTH_STORAGE_CONNECTION_PROFILES)
-    if (savedProfiles) {
-      setProfiles(JSON.parse(savedProfiles))
-    }
+    loadEncryptedProfiles<ConnectionProfile>(
+      AUTH_STORAGE_CONNECTION_PROFILES
+    ).then(loadedProfiles => {
+      setProfiles(loadedProfiles)
+      if (loadedProfiles.length === 1) {
+        const profile = loadedProfiles[0]
+        setSelectedProfile(profile.name)
+        props.onProfileSelect(profile)
+      }
+    })
   }, [])
 
   const saveProfile = () => {
@@ -165,10 +186,7 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
 
     const updatedProfiles = [...profiles, newProfile]
     setProfiles(updatedProfiles)
-    localStorage.setItem(
-      AUTH_STORAGE_CONNECTION_PROFILES,
-      JSON.stringify(updatedProfiles)
-    )
+    saveEncryptedProfiles(AUTH_STORAGE_CONNECTION_PROFILES, updatedProfiles)
     props.onProfileSave(newProfile)
     setProfileName('')
   }
@@ -177,8 +195,17 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
     const profile = profiles.find(profile => profile.name === profileName)
     if (profile) {
       setSelectedProfile(profileName)
+      setConfirmingDelete(false)
       props.onProfileSelect(profile)
     }
+  }
+
+  const deleteProfile = () => {
+    const updatedProfiles = profiles.filter(p => p.name !== selectedProfile)
+    setProfiles(updatedProfiles)
+    saveEncryptedProfiles(AUTH_STORAGE_CONNECTION_PROFILES, updatedProfiles)
+    setSelectedProfile('')
+    setConfirmingDelete(false)
   }
 
   useEffect(() => {
@@ -237,19 +264,7 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
     props.onConnectClick(() => props.setIsConnecting(false))
   }
 
-  const hasSecureSchemes = ['neo4j+s', 'bolt+s'].every(scheme =>
-    props.allowedSchemes.includes(scheme)
-  )
   const schemeRestriction = props.allowedSchemes.length > 0
-  const schemeMultiple = props.allowedSchemes.length > 1
-
-  const hoverText = schemeMultiple
-    ? `Pick neo4j${
-        hasSecureSchemes ? '+s' : ''
-      }:// for a routed connection (Aura, Cluster), bolt${
-        hasSecureSchemes ? '+s' : ''
-      }:// for a direct connection to a single instance.`
-    : ''
 
   const [reachabilityState, setReachablityState] = useState<
     'no_attempt' | 'loading' | 'probablyFailed' | 'failed' | 'succeeded'
@@ -261,16 +276,17 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
     }
   }, [])
 
+  const [showSaveProfile, setShowSaveProfile] = useState(false)
+  const [showAuthSelect, setShowAuthSelect] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+
   return (
     <StyledFormContainer>
       <StyledConnectionForm onSubmit={onConnectClick}>
         <StyledConnectionFormEntry>
-          <StyledConnectionLabel htmlFor="url-input" title={hoverText}>
+          <StyledConnectionLabel htmlFor="url-input">
             Connect URL{' '}
-            <span
-              style={{ fontStyle: 'italic' }}
-              title="" /* reset parent title */
-            >
+            <span style={{ fontStyle: 'italic' }}>
               {reachabilityState === 'loading' && <SmallSpinnerIcon />}
               {reachabilityState === 'probablyFailed' && (
                 <span style={{ color: 'orange' }}>
@@ -284,10 +300,6 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
                   {props.host.includes('localhost') &&
                     !props.host.includes('localhost:7687') &&
                     '(default port is 7687) '}
-                  <AutoExecButton
-                    displayText=":debug"
-                    cmd={`debug connectivity ${props.host}`}
-                  />
                 </>
               )}
             </span>
@@ -310,11 +322,6 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
                   })}
                 </StyledConnectionSelect>
                 <StyledConnectionTextInput
-                  style={
-                    reachabilityState === 'failed'
-                      ? { outline: 'red 1px solid' }
-                      : {}
-                  }
                   onCopy={onCopyBoltUrl}
                   data-testid="boltaddress"
                   onChange={onHostChange}
@@ -323,54 +330,93 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
                   onBlur={() => reachabilityCheck(props.host)}
                 />
               </StyledSegment>
-              <StyledBoltUrlHintText className="url-hint-text">
-                {hoverText}
-              </StyledBoltUrlHintText>
             </>
           ) : (
             <StyledConnectionTextInput
               data-testid="boltaddress"
               onChange={onHostChange}
-              defaultValue={props.host}
+              value={props.host}
               onBlur={() => reachabilityCheck(props.host)}
             />
           )}
         </StyledConnectionFormEntry>
 
-        <StyledConnectionFormEntry>
-          <StyledConnectionLabel>
-            Connection Profiles
-            <StyledConnectionSelect
-              value={selectedProfile}
-              onChange={e => loadProfile(e.target.value)}
-            >
-              <option value="">Select a profile</option>
-              {profiles.map(profile => (
-                <option key={profile.name} value={profile.name}>
-                  {profile.name}
-                </option>
-              ))}
-            </StyledConnectionSelect>
-          </StyledConnectionLabel>
-        </StyledConnectionFormEntry>
+        {props.authenticationMethod === NATIVE && (
+          <StyledConnectionFormEntry>
+            <StyledCredentialsRow>
+              <div>
+                <StyledConnectionLabel>
+                  Username
+                  <StyledConnectionTextInput
+                    data-testid="username"
+                    onChange={props.onUsernameChange}
+                    value={props.username}
+                  />
+                </StyledConnectionLabel>
+              </div>
+              <div>
+                <StyledConnectionLabel>
+                  Password
+                  <StyledConnectionTextInput
+                    data-testid="password"
+                    onChange={props.onPasswordChange}
+                    value={props.password}
+                    type="password"
+                    autoComplete="off"
+                  />
+                </StyledConnectionLabel>
+              </div>
+            </StyledCredentialsRow>
+            {props.allowedAuthMethods.length > 1 && (
+              <StyledAuthToggle
+                type="button"
+                onClick={() => setShowAuthSelect(!showAuthSelect)}
+              >
+                {readableauthenticationMethods[
+                  props.authenticationMethod as AuthenticationMethod
+                ] ?? 'Authentication'}{' '}
+                &#9662;
+              </StyledAuthToggle>
+            )}
+          </StyledConnectionFormEntry>
+        )}
 
-        <StyledConnectionFormEntry>
-          <StyledConnectionLabel>
-            Profile
-            <StyledConnectionTextInput
-              value={profileName}
-              onChange={e => setProfileName(e.target.value)}
-              placeholder="Profile name"
-            />
-          </StyledConnectionLabel>
-          <FormButton
-            onClick={saveProfile}
-            type="button"
-            style={{ marginTop: '10px' }}
-          >
-            Save Profile
-          </FormButton>
-        </StyledConnectionFormEntry>
+        {props.authenticationMethod !== NATIVE &&
+          props.allowedAuthMethods.length > 1 && (
+            <StyledConnectionFormEntry>
+              <StyledAuthToggle
+                type="button"
+                onClick={() => setShowAuthSelect(!showAuthSelect)}
+              >
+                {readableauthenticationMethods[
+                  props.authenticationMethod as AuthenticationMethod
+                ] ?? 'Authentication'}{' '}
+                &#9662;
+              </StyledAuthToggle>
+            </StyledConnectionFormEntry>
+          )}
+
+        {showAuthSelect && props.allowedAuthMethods.length > 1 && (
+          <StyledConnectionFormEntry>
+            <StyledConnectionLabel>
+              Authentication type
+              <StyledConnectionSelect
+                data-testid="authenticationMethod"
+                onChange={e => {
+                  props.onAuthenticationMethodChange(e)
+                  setShowAuthSelect(false)
+                }}
+                value={props.authenticationMethod}
+              >
+                {props.allowedAuthMethods.map(auth => (
+                  <option value={auth} key={auth}>
+                    {readableauthenticationMethods[auth]}
+                  </option>
+                ))}
+              </StyledConnectionSelect>
+            </StyledConnectionLabel>
+          </StyledConnectionFormEntry>
+        )}
 
         {props.supportsMultiDb && (
           <StyledConnectionFormEntry>
@@ -385,75 +431,94 @@ export default function ConnectForm(props: ConnectFormProps): JSX.Element {
           </StyledConnectionFormEntry>
         )}
 
-        {props.allowedAuthMethods.length > 1 && (
-          <StyledConnectionFormEntry>
-            <StyledConnectionLabel>
-              Authentication type
-              <StyledConnectionSelect
-                data-testid="authenticationMethod"
-                onChange={props.onAuthenticationMethodChange}
-                value={props.authenticationMethod}
-              >
-                {props.allowedAuthMethods.map(auth => (
-                  <option value={auth} key={auth}>
-                    {readableauthenticationMethods[auth]}
-                  </option>
-                ))}
-              </StyledConnectionSelect>
-            </StyledConnectionLabel>
-          </StyledConnectionFormEntry>
-        )}
-
-        {props.authenticationMethod === NATIVE && (
-          <StyledConnectionFormEntry>
-            <StyledConnectionLabel>
-              Username
-              <StyledConnectionTextInput
-                data-testid="username"
-                onChange={props.onUsernameChange}
-                defaultValue={props.username}
-              />
-            </StyledConnectionLabel>
-          </StyledConnectionFormEntry>
-        )}
-
-        {props.authenticationMethod === NATIVE && (
-          <StyledConnectionFormEntry>
-            <StyledConnectionLabel>
-              Password
-              <StyledConnectionTextInput
-                data-testid="password"
-                onChange={props.onPasswordChange}
-                defaultValue={props.password}
-                type="password"
-                autoComplete="off"
-              />
-            </StyledConnectionLabel>
-          </StyledConnectionFormEntry>
-        )}
-
-        {props.connecting ? (
-          'Connecting...'
-        ) : (
-          <span
+        <StyledConnectionFormEntry>
+          <StyledConnectButton
+            data-testid="connect"
+            type="submit"
+            disabled={props.connecting}
             title={
               reachabilityState === 'succeeded'
                 ? 'Connect.'
                 : 'Make sure a neo4j server is reachable at the connect URL.'
             }
+            style={{
+              opacity: props.connecting ? 0.4 : 1
+            }}
           >
-            <FormButton
-              data-testid="connect"
-              type="submit"
-              style={{
-                marginRight: 0,
-                opacity: reachabilityState === 'succeeded' ? 1 : 0.4
-              }}
+            {props.connecting ? 'Connecting...' : 'Connect'}
+          </StyledConnectButton>
+        </StyledConnectionFormEntry>
+
+        <StyledFormSection>
+          <StyledSectionHeader>
+            <span>Profiles</span>
+          </StyledSectionHeader>
+          <StyledProfileRow>
+            <div>
+              <StyledConnectionSelect
+                value={selectedProfile}
+                onChange={e => loadProfile(e.target.value)}
+              >
+                <option value="">Select a profile</option>
+                {profiles.map(profile => (
+                  <option key={profile.name} value={profile.name}>
+                    {profile.name}
+                  </option>
+                ))}
+              </StyledConnectionSelect>
+            </div>
+            <StyledProfileAddButton
+              type="button"
+              title="Save current settings as a new profile"
+              onClick={() => setShowSaveProfile(!showSaveProfile)}
             >
-              Connect
-            </FormButton>
-          </span>
-        )}
+              {showSaveProfile ? '−' : '+'}
+            </StyledProfileAddButton>
+          </StyledProfileRow>
+          {selectedProfile && (
+            <StyledDeleteProfileAction>
+              {confirmingDelete ? (
+                <StyledDeleteConfirm>
+                  Delete &quot;{selectedProfile}&quot;?
+                  <StyledDeleteConfirmYes type="button" onClick={deleteProfile}>
+                    Yes
+                  </StyledDeleteConfirmYes>
+                  <StyledDeleteConfirmNo
+                    type="button"
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    No
+                  </StyledDeleteConfirmNo>
+                </StyledDeleteConfirm>
+              ) : (
+                <StyledDeleteLink
+                  type="button"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Delete profile
+                </StyledDeleteLink>
+              )}
+            </StyledDeleteProfileAction>
+          )}
+          {showSaveProfile && (
+            <StyledSaveProfileRow>
+              <StyledConnectionTextInput
+                value={profileName}
+                onChange={e => setProfileName(e.target.value)}
+                placeholder="Profile name"
+              />
+              <FormButton
+                onClick={() => {
+                  saveProfile()
+                  setShowSaveProfile(false)
+                }}
+                type="button"
+              >
+                Save
+              </FormButton>
+            </StyledSaveProfileRow>
+          )}
+        </StyledFormSection>
       </StyledConnectionForm>
     </StyledFormContainer>
   )

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useState, ChangeEvent } from 'react'
+import React, { ChangeEvent, useState } from 'react'
 import styled from 'styled-components'
 
 export const StyledSelect = styled.select`
@@ -42,8 +42,8 @@ export const StyledSelect = styled.select`
 
   &:focus {
     background-color: ${props => props.theme.inputBackgroundFocus};
-    border: 2px solid ${props => props.theme.inputBorderFocus};
-    box-shadow: 0 0 0 3px ${props => props.theme.inputBoxShadowFocus};
+    border-color: ${props => props.theme.inputBorderFocus};
+    box-shadow: 0 0 0 2px ${props => props.theme.inputBoxShadowFocus};
   }
 
   option {
@@ -82,8 +82,8 @@ export const StyledInput = styled.input`
 
   &:focus {
     background-color: ${props => props.theme.inputBackgroundFocus};
-    border: 2px solid ${props => props.theme.inputBorderFocus};
-    box-shadow: 0 0 0 3px ${props => props.theme.inputBoxShadowFocus};
+    border-color: ${props => props.theme.inputBorderFocus};
+    box-shadow: 0 0 0 2px ${props => props.theme.inputBoxShadowFocus};
   }
 
   &[type='checkbox'] {

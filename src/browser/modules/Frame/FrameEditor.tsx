@@ -25,7 +25,6 @@ import { withBus } from 'react-suber'
 import { Action, Dispatch } from 'redux'
 import { Bus } from 'suber'
 
-import { isMac } from 'neo4j-arc/common'
 import {
   CypherEditor,
   CypherEditorHandle
@@ -52,7 +51,6 @@ import { GlobalState } from 'shared/globalState'
 import * as commands from 'shared/modules/commands/commandsDuck'
 import { applyParamGraphTypes } from 'shared/modules/commands/helpers/cypher'
 import { CYPHER_REQUEST } from 'shared/modules/cypher/cypherDuck'
-import * as editor from 'shared/modules/editor/editorDuck'
 import { addFavorite } from 'shared/modules/favorites/favoritesDuck'
 import { Frame } from 'shared/modules/frames/framesDuck'
 import { getParams } from 'shared/modules/params/paramsDuck'
@@ -113,16 +111,8 @@ function FrameEditor({
   function run(cmd: string) {
     reRun(frame, cmd)
   }
-  function onPreviewClick(e: React.MouseEvent) {
-    if (e.ctrlKey || e.metaKey) {
-      onTitlebarCmdClick(editorValue)
-    } else {
-      setRenderEditor(true)
-    }
-  }
-
-  function onTitlebarCmdClick(cmd: string) {
-    bus.send(editor.SET_CONTENT, editor.setContent(cmd))
+  function onPreviewClick() {
+    setRenderEditor(true)
   }
 
   const titleBarRef = useRef<HTMLDivElement>(null)
@@ -232,7 +222,7 @@ function FrameEditor({
             selectedDb={frame.useDb}
             onClick={onPreviewClick}
             data-testid="frameCommand"
-            title={`${isMac ? 'Cmd' : 'Ctrl'}+click to copy to main editor`}
+            title="Click to edit"
           >
             <DottedLineHover>
               {editorValue.split('\n').join(' ')}

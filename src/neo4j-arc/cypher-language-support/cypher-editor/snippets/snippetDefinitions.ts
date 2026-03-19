@@ -19,6 +19,8 @@
  */
 import type { CustomSnippet } from './types'
 
+const currentYear = new Date().getFullYear()
+
 export const snippetDefinitions: CustomSnippet[] = [
   // Date/Time snippets
   {
@@ -37,8 +39,7 @@ export const snippetDefinitions: CustomSnippet[] = [
   },
   {
     label: 'customdate',
-    insertText:
-      "datetime({ year: ${1:2025}, month: ${2:1}, day: ${3:1}, hour: ${4:0}, minute: ${5:0}, timezone: '${7:America/Mexico_City}' }).epochMillis AS dateRange",
+    insertText: `datetime({ year: \${1:${currentYear}}, month: \${2:1}, day: \${3:1}, hour: \${4:0}, minute: \${5:0}, timezone: '\${7:America/Mexico_City}' }).epochMillis AS dateRange`,
     documentation: 'Create a custom date and time as epoch milliseconds',
     detail: 'datetime() function with custom values'
   },
