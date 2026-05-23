@@ -29,6 +29,7 @@ import backArrow from './svgs/back-arrow.svg'
 import cog from './svgs/cog.svg'
 import databaseCheck from './svgs/database-check.svg'
 import editorExtend from './svgs/editor-extend.svg'
+import editorReset from './svgs/editor-reset.svg'
 import editorShrink from './svgs/editor-shrink.svg'
 import saveFavorite from './svgs/favorite.svg'
 import addFolder from './svgs/folder-add.svg'
@@ -266,6 +267,11 @@ export const EditorShrinkIcon = ({
   width = SMALL_SIZE
 }: WidthProps): JSX.Element => (
   <IconContainer icon={editorShrink} width={width} />
+)
+export const EditorResetIcon = ({
+  width = SMALL_SIZE
+}: WidthProps): JSX.Element => (
+  <IconContainer icon={editorReset} width={width} />
 )
 
 export const DoubleUpIcon = (): JSX.Element => (

@@ -88,8 +88,10 @@ export type CypherEditorProps = {
   historyProvider?: HistoryProvider
   id?: string
   isFullscreen?: boolean
-  /** When true, the editor takes max(400px, 40vh) instead of auto-growing up to 276px. */
+  /** When true, the editor takes max(250px, 24vh) instead of auto-growing up to 276px. */
   isExtended?: boolean
+  /** Explicit pixel height. Overrides isExtended/compact behavior when provided. */
+  customHeight?: number | null
   onChange?: (value: string) => void
   onDisplayHelpKeys?: () => void
   onExecute?: (value: string) => void
@@ -121,10 +123,14 @@ function computeEditorHeight(
   contentHeight: number,
   scrollHeight: number,
   isFullscreen: boolean,
-  isExtended: boolean
+  isExtended: boolean,
+  customHeight: number | null
 ): number {
   if (isFullscreen) {
     return Math.min(window.innerHeight - 20, scrollHeight)
+  }
+  if (typeof customHeight === 'number') {
+    return customHeight
   }
   if (isExtended) {
     return Math.max(
@@ -146,6 +152,7 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
       id = 'main',
       isFullscreen = false,
       isExtended = false,
+      customHeight = null,
       onChange = () => undefined,
       onDisplayHelpKeys = () => undefined,
       onExecute,
@@ -202,12 +209,16 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
     // capture their closure variables at mount time.
     const isFullscreenRef = useRef(isFullscreen)
     const isExtendedRef = useRef(isExtended)
+    const customHeightRef = useRef<number | null>(customHeight)
     useEffect(() => {
       isFullscreenRef.current = isFullscreen
     }, [isFullscreen])
     useEffect(() => {
       isExtendedRef.current = isExtended
     }, [isExtended])
+    useEffect(() => {
+      customHeightRef.current = customHeight
+    }, [customHeight])
 
     // Reset history index when history changes to prevent stale index references
     // This handles the case when a new query is executed and added to history
@@ -466,7 +477,8 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
         editorRef.current.getContentHeight(),
         containerRef.current.scrollHeight,
         isFullscreenRef.current,
-        isExtendedRef.current
+        isExtendedRef.current,
+        customHeightRef.current
       )
 
       containerRef.current.style.height = `${height}px`
@@ -773,7 +785,8 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
             editorRef.current.getContentHeight(),
             containerRef.current.scrollHeight,
             isFullscreenRef.current,
-            isExtendedRef.current
+            isExtendedRef.current,
+            customHeightRef.current
           )
 
           containerRef.current.style.height = `${height}px`
@@ -865,11 +878,11 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
     // extended/fullscreen height in sync with viewport resizes.
     useEffect(() => {
       resize()
-      if (!isExtended && !isFullscreen) return
+      if (!isExtended && !isFullscreen && customHeight === null) return
       const handleWindowResize = () => resize()
       window.addEventListener('resize', handleWindowResize)
       return () => window.removeEventListener('resize', handleWindowResize)
-    }, [isExtended, isFullscreen, resize])
+    }, [isExtended, isFullscreen, customHeight, resize])
 
     if (editorError !== null) {
       return (

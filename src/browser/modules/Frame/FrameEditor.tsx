@@ -73,7 +73,7 @@ type FrameEditorBaseProps = {
   copyItems: CopyItem[]
   bus: Bus
   params: Record<string, unknown>
-  isExtendedEditor?: boolean
+  editorHeight?: number | null
 }
 
 type FrameEditorProps = FrameEditorBaseProps & {
@@ -99,11 +99,12 @@ function FrameEditor({
   copyItems,
   bus,
   params,
-  isExtendedEditor = false
+  editorHeight = null
 }: FrameEditorProps) {
+  const hasCustomHeight = editorHeight !== null
   const [editorValue, setEditorValue] = useState(frame.cmd)
   const [renderEditor, setRenderEditor] = useState(
-    frame.isRerun || isExtendedEditor
+    frame.isRerun || hasCustomHeight
   )
 
   useEffect(() => {
@@ -112,20 +113,20 @@ function FrameEditor({
   }, [frame.cmd])
   const editorRef = useRef<CypherEditorHandle>(null)
 
-  // Keep the editor expanded while extended-editor mode is on.
+  // Keep the editor expanded while a custom editor height is active.
   useEffect(() => {
-    if (isExtendedEditor) {
+    if (hasCustomHeight) {
       setRenderEditor(true)
     }
-  }, [isExtendedEditor])
+  }, [hasCustomHeight])
 
-  // Trigger a layout recalculation when extended mode toggles while the editor
-  // is already rendered (e.g. when a frame is rerun and the editor is open).
+  // Trigger a layout recalculation when the custom height changes while the
+  // editor is already rendered (e.g. user drags the resizer).
   useEffect(() => {
     if (renderEditor) {
       editorRef.current?.resize()
     }
-  }, [isExtendedEditor, renderEditor])
+  }, [editorHeight, renderEditor])
 
   function run(cmd: string) {
     reRun(frame, cmd)
@@ -160,7 +161,7 @@ function FrameEditor({
         if (editorRefVal && editorRefVal !== editorValue) {
           setEditorValue(editorRefVal)
         }
-        if (!isExtendedEditor) {
+        if (!hasCustomHeight) {
           setRenderEditor(false)
         }
       }
@@ -193,7 +194,7 @@ function FrameEditor({
   return (
     <StyledFrameEditorContainer
       ref={titleBarRef}
-      isExtendedEditor={isExtendedEditor && renderEditor}
+      customHeight={hasCustomHeight && renderEditor ? editorHeight : undefined}
     >
       <Header>
         {renderEditor ? (
@@ -204,7 +205,7 @@ function FrameEditor({
               history={history}
               id={`editor-${frame.id}`}
               isFullscreen={false}
-              isExtended={isExtendedEditor}
+              customHeight={editorHeight}
               onChange={setEditorValue}
               onExecute={run}
               ref={editorRef}

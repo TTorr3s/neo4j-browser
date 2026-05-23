@@ -28,6 +28,7 @@ import {
   ContractIcon,
   DownIcon,
   EditorExtendIcon,
+  EditorResetIcon,
   EditorShrinkIcon,
   ExpandIcon,
   PinIcon,
@@ -58,6 +59,7 @@ type FrameTitleBarBaseProps = {
   collapseToggle: () => void
   isExtendedEditor: boolean
   extendedEditorToggle: () => void
+  resetEditorHeight: () => void
   pinned: boolean
   togglePin: () => void
 }
@@ -77,6 +79,7 @@ function FrameTitlebar({
   collapseToggle,
   isExtendedEditor,
   extendedEditorToggle,
+  resetEditorHeight,
   pinned,
   togglePin,
   onCloseClick,
@@ -129,6 +132,14 @@ function FrameTitlebar({
           pressed={isExtendedEditor}
         >
           {extendedEditorIcon}
+        </FrameControlButton>
+      )}
+      {!isFullscreen && isExtendedEditor && (
+        <FrameControlButton
+          title="Reset editor height"
+          onClick={resetEditorHeight}
+        >
+          <EditorResetIcon width={10} />
         </FrameControlButton>
       )}
       <FrameControlButton

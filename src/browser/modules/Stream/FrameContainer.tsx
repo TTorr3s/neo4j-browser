@@ -17,13 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { type JSX, useState } from 'react'
+import React, { type JSX, useCallback, useState } from 'react'
 
+import { EditorResizer } from '../Frame/EditorResizer'
 import { CopyItem, ExportItem } from '../Frame/ExportButton'
 import FrameEditor from '../Frame/FrameEditor'
 import FrameErrorBoundary from '../Frame/FrameErrorBoundary'
 import FrameTitlebar from '../Frame/FrameTitlebar'
 import { ContentContainer, StyledFrame } from '../Frame/styled'
+import { useFrameEditorHeight } from '../Frame/useFrameEditorHeight'
 import UserAdd from '../User/UserAdd'
 import UserList from '../User/UserList'
 import ChangePasswordFrame from './Auth/ChangePasswordFrame'
@@ -101,15 +103,42 @@ type FrameContainerProps = {
   activeConnectionData: Connection | null
 }
 
+const EDITOR_PRESET_MIN_PX = 250
+const EDITOR_PRESET_VIEWPORT_RATIO = 0.24
+const EDITOR_FALLBACK_HEIGHT = 80
+
+function presetEditorHeight(): number {
+  return Math.max(
+    EDITOR_PRESET_MIN_PX,
+    Math.floor(window.innerHeight * EDITOR_PRESET_VIEWPORT_RATIO)
+  )
+}
+
 export function FrameContainer(props: FrameContainerProps): JSX.Element {
+  const { isFullscreen, toggleFullscreen, isCollapsed, toggleCollapse } =
+    useSizeToggles()
   const {
-    isFullscreen,
-    toggleFullscreen,
-    isCollapsed,
-    toggleCollapse,
-    isExtendedEditor,
-    toggleExtendedEditor
-  } = useSizeToggles()
+    height: editorHeight,
+    setHeight: setEditorHeight,
+    reset: resetEditorHeight
+  } = useFrameEditorHeight()
+  const isExtendedEditor = editorHeight !== null
+
+  const toggleExtendedEditor = useCallback(() => {
+    if (editorHeight === null) {
+      setEditorHeight(presetEditorHeight())
+    } else {
+      setEditorHeight(null)
+    }
+  }, [editorHeight, setEditorHeight])
+
+  const handleResizerDrag = useCallback(
+    (next: number) => {
+      setEditorHeight(next)
+    },
+    [setEditorHeight]
+  )
+
   const frame = props.frameData.stack[0]
   const [exportItems, setExportItems] = useState<ExportItem[]>([])
   const [copyItems, setCopyItems] = useState<CopyItem[]>([])
@@ -139,6 +168,7 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
         collapseToggle={toggleCollapse}
         isExtendedEditor={isExtendedEditor}
         extendedEditorToggle={toggleExtendedEditor}
+        resetEditorHeight={resetEditorHeight}
         togglePin={() => undefined}
       />
       <ContentContainer>
@@ -147,8 +177,15 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
           fullscreenToggle={toggleFullscreen}
           exportItems={exportItems}
           copyItems={copyItems}
-          isExtendedEditor={isExtendedEditor}
+          editorHeight={editorHeight}
         />
+        {!isFullscreen && !isCollapsed && (
+          <EditorResizer
+            currentHeight={editorHeight}
+            fallbackHeight={EDITOR_FALLBACK_HEIGHT}
+            onResize={handleResizerDrag}
+          />
+        )}
         <FrameErrorBoundary frame={frame}>
           <FrameComponent {...frameProps} />
         </FrameErrorBoundary>
@@ -160,31 +197,21 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
 function useSizeToggles() {
   const [isCollapsed, setCollapsed] = useState(false)
   const [isFullscreen, setFullscreen] = useState(false)
-  const [isExtendedEditor, setExtendedEditor] = useState(false)
 
   function toggleCollapse() {
     setCollapsed(coll => !coll)
     setFullscreen(false)
-    setExtendedEditor(false)
   }
 
   function toggleFullscreen() {
     setFullscreen(full => !full)
-    setCollapsed(false)
-    setExtendedEditor(false)
-  }
-
-  function toggleExtendedEditor() {
-    setExtendedEditor(ext => !ext)
     setCollapsed(false)
   }
 
   return {
     isCollapsed,
     isFullscreen,
-    isExtendedEditor,
     toggleCollapse,
-    toggleFullscreen,
-    toggleExtendedEditor
+    toggleFullscreen
   }
 }

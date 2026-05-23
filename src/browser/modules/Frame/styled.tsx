@@ -160,7 +160,7 @@ export const StyledFrameTitlebarButtonSection = styled.ul`
 `
 
 export const StyledFrameEditorContainer = styled.div<{
-  isExtendedEditor?: boolean
+  customHeight?: number | null
 }>`
   border-bottom: transparent;
   line-height: 9px;
@@ -168,10 +168,10 @@ export const StyledFrameEditorContainer = styled.div<{
   display: flex;
   margin-bottom: 2px;
   ${props =>
-    props.isExtendedEditor &&
+    typeof props.customHeight === 'number' &&
     `
       [id^=monaco-] .monaco-editor {
-        height: max(250px, 24vh) !important;
+        height: ${props.customHeight}px !important;
       }
     `};
 `
