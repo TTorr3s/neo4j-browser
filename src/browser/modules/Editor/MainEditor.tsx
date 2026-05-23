@@ -48,6 +48,8 @@ import {
 import {
   CloseIcon,
   ContractIcon,
+  EditorExtendIcon,
+  EditorShrinkIcon,
   ExpandIcon,
   FavoriteIcon,
   RunIcon
@@ -114,6 +116,7 @@ export function MainEditor({
 }: EditorFrameProps): JSX.Element {
   const [unsaved, setUnsaved] = useState(false)
   const [isFullscreen, setFullscreen] = useState(false)
+  const [isExtended, setExtended] = useState(false)
   const [currentlyEditing, setCurrentlyEditing] = useState<SavedScript | null>(
     null
   )
@@ -126,9 +129,13 @@ export function MainEditor({
     setFullscreen(fs => !fs)
   }
 
+  const toggleExtended = () => {
+    setExtended(ex => !ex)
+  }
+
   useEffect(() => {
-    editorRef.current?.resize(isFullscreen)
-  }, [isFullscreen])
+    editorRef.current?.resize()
+  }, [isFullscreen, isExtended])
 
   useEffect(() => bus && bus.take(EXPAND, toggleFullscreen), [bus])
   useEffect(
@@ -180,9 +187,17 @@ export function MainEditor({
     editorRef.current?.setValue('')
     setCurrentlyEditing(null)
     setFullscreen(false)
+    setExtended(false)
   }
 
   const buttons = [
+    {
+      onClick: toggleExtended,
+      title: isExtended ? 'Collapse editor' : 'Extend editor',
+      icon: isExtended ? <EditorShrinkIcon /> : <EditorExtendIcon />,
+      testId: 'extended',
+      disabled: isFullscreen
+    },
     {
       onClick: toggleFullscreen,
       title: `${
@@ -205,6 +220,7 @@ export function MainEditor({
       editorRef.current?.setValue('')
       setCurrentlyEditing(null)
       setFullscreen(false)
+      setExtended(false)
     }
   }
 
@@ -218,7 +234,11 @@ export function MainEditor({
   const showUnsaved = !!(unsaved && currentlyEditing)
 
   return (
-    <MainEditorWrapper isFullscreen={isFullscreen} data-testid="activeEditor">
+    <MainEditorWrapper
+      isFullscreen={isFullscreen}
+      isExtended={isExtended}
+      data-testid="activeEditor"
+    >
       {currentlyEditing && (
         <ScriptTitle data-testid="currentlyEditing" unsaved={showUnsaved}>
           <CurrentEditIconContainer>
@@ -239,6 +259,7 @@ export function MainEditor({
               historyProvider={historyProvider}
               id={'main-editor'}
               isFullscreen={isFullscreen}
+              isExtended={isExtended}
               onChange={() => {
                 setUnsaved(true)
               }}
@@ -310,16 +331,18 @@ export function MainEditor({
           </StyledEditorButton>
         </Header>
         <StyledMainEditorButtonsContainer>
-          {buttons.map(({ onClick, icon, title, testId }) => (
-            <FrameButton
-              key={`frame-${title}`}
-              title={title}
-              onClick={onClick}
-              dataTestId={`editor-${testId}`}
-            >
-              {icon}
-            </FrameButton>
-          ))}
+          {buttons.map(({ onClick, icon, title, testId, disabled }) =>
+            disabled ? null : (
+              <FrameButton
+                key={`frame-${title}`}
+                title={title}
+                onClick={onClick}
+                dataTestId={`editor-${testId}`}
+              >
+                {icon}
+              </FrameButton>
+            )
+          )}
         </StyledMainEditorButtonsContainer>
       </FlexContainer>
     </MainEditorWrapper>

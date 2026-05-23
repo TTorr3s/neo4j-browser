@@ -159,12 +159,21 @@ export const StyledFrameTitlebarButtonSection = styled.ul`
   color: ${props => props.theme.secondaryButtonText};
 `
 
-export const StyledFrameEditorContainer = styled.div`
+export const StyledFrameEditorContainer = styled.div<{
+  isExtendedEditor?: boolean
+}>`
   border-bottom: transparent;
   line-height: 9px;
   color: ${props => props.theme.frameTitlebarText};
   display: flex;
   margin-bottom: 2px;
+  ${props =>
+    props.isExtendedEditor &&
+    `
+      [id^=monaco-] .monaco-editor {
+        height: max(250px, 24vh) !important;
+      }
+    `};
 `
 
 export const StyledFrameCommand = styled.label<{ selectedDb: string | null }>`

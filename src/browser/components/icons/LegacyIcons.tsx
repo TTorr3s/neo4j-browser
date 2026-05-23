@@ -28,6 +28,8 @@ import arrowRight from './svgs/arrow-right.svg'
 import backArrow from './svgs/back-arrow.svg'
 import cog from './svgs/cog.svg'
 import databaseCheck from './svgs/database-check.svg'
+import editorExtend from './svgs/editor-extend.svg'
+import editorShrink from './svgs/editor-shrink.svg'
 import saveFavorite from './svgs/favorite.svg'
 import addFolder from './svgs/folder-add.svg'
 import folderEmpty from './svgs/folder-empty.svg'
@@ -254,6 +256,17 @@ export const ExpandIcon = ({ width = SMALL_SIZE }: WidthProps): JSX.Element => (
 export const ContractIcon = ({
   width = SMALL_SIZE
 }: WidthProps): JSX.Element => <IconContainer icon={shrink} width={width} />
+
+export const EditorExtendIcon = ({
+  width = SMALL_SIZE
+}: WidthProps): JSX.Element => (
+  <IconContainer icon={editorExtend} width={width} />
+)
+export const EditorShrinkIcon = ({
+  width = SMALL_SIZE
+}: WidthProps): JSX.Element => (
+  <IconContainer icon={editorShrink} width={width} />
+)
 
 export const DoubleUpIcon = (): JSX.Element => (
   <IconContainer className="sl-double-up" />

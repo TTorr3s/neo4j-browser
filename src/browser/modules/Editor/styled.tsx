@@ -23,6 +23,10 @@ interface FullscreenProps {
   isFullscreen: boolean
 }
 
+interface WrapperProps extends FullscreenProps {
+  isExtended?: boolean
+}
+
 export const Header = styled.div`
   background-color: ${props => props.theme.editorBackground};
   flex-grow: 1;
@@ -33,7 +37,7 @@ export const Header = styled.div`
   border-radius: 2px;
 `
 
-export const MainEditorWrapper = styled.div<FullscreenProps>`
+export const MainEditorWrapper = styled.div<WrapperProps>`
   background-color: ${props => props.theme.frameBackground};
   border-radius: 2px;
   box-shadow: ${props => props.theme.standardShadow};
@@ -54,7 +58,15 @@ export const MainEditorWrapper = styled.div<FullscreenProps>`
       [id^=monaco-] .monaco-editor {
         height: calc(100vh - 20px) !important;
       }
-  `}};
+  `};
+  ${props =>
+    props.isExtended &&
+    !props.isFullscreen &&
+    `
+      [id^=monaco-] .monaco-editor {
+        height: max(250px, 24vh) !important;
+      }
+  `};
 `
 
 export const CurrentEditIconContainer = styled.span`

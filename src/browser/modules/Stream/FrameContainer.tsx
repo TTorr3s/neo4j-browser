@@ -102,8 +102,14 @@ type FrameContainerProps = {
 }
 
 export function FrameContainer(props: FrameContainerProps): JSX.Element {
-  const { isFullscreen, toggleFullscreen, isCollapsed, toggleCollapse } =
-    useSizeToggles()
+  const {
+    isFullscreen,
+    toggleFullscreen,
+    isCollapsed,
+    toggleCollapse,
+    isExtendedEditor,
+    toggleExtendedEditor
+  } = useSizeToggles()
   const frame = props.frameData.stack[0]
   const [exportItems, setExportItems] = useState<ExportItem[]>([])
   const [copyItems, setCopyItems] = useState<CopyItem[]>([])
@@ -131,6 +137,8 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
         fullscreenToggle={toggleFullscreen}
         isCollapsed={isCollapsed}
         collapseToggle={toggleCollapse}
+        isExtendedEditor={isExtendedEditor}
+        extendedEditorToggle={toggleExtendedEditor}
         togglePin={() => undefined}
       />
       <ContentContainer>
@@ -139,6 +147,7 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
           fullscreenToggle={toggleFullscreen}
           exportItems={exportItems}
           copyItems={copyItems}
+          isExtendedEditor={isExtendedEditor}
         />
         <FrameErrorBoundary frame={frame}>
           <FrameComponent {...frameProps} />
@@ -151,21 +160,31 @@ export function FrameContainer(props: FrameContainerProps): JSX.Element {
 function useSizeToggles() {
   const [isCollapsed, setCollapsed] = useState(false)
   const [isFullscreen, setFullscreen] = useState(false)
+  const [isExtendedEditor, setExtendedEditor] = useState(false)
 
   function toggleCollapse() {
     setCollapsed(coll => !coll)
     setFullscreen(false)
+    setExtendedEditor(false)
   }
 
   function toggleFullscreen() {
     setFullscreen(full => !full)
+    setCollapsed(false)
+    setExtendedEditor(false)
+  }
+
+  function toggleExtendedEditor() {
+    setExtendedEditor(ext => !ext)
     setCollapsed(false)
   }
 
   return {
     isCollapsed,
     isFullscreen,
+    isExtendedEditor,
     toggleCollapse,
-    toggleFullscreen
+    toggleFullscreen,
+    toggleExtendedEditor
   }
 }

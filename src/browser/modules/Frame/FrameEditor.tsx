@@ -73,6 +73,7 @@ type FrameEditorBaseProps = {
   copyItems: CopyItem[]
   bus: Bus
   params: Record<string, unknown>
+  isExtendedEditor?: boolean
 }
 
 type FrameEditorProps = FrameEditorBaseProps & {
@@ -97,16 +98,34 @@ function FrameEditor({
   exportItems,
   copyItems,
   bus,
-  params
+  params,
+  isExtendedEditor = false
 }: FrameEditorProps) {
   const [editorValue, setEditorValue] = useState(frame.cmd)
-  const [renderEditor, setRenderEditor] = useState(frame.isRerun)
+  const [renderEditor, setRenderEditor] = useState(
+    frame.isRerun || isExtendedEditor
+  )
 
   useEffect(() => {
     // makes sure the frame is updated as links in frame is followed
     editorRef.current?.setValue(frame.cmd)
   }, [frame.cmd])
   const editorRef = useRef<CypherEditorHandle>(null)
+
+  // Keep the editor expanded while extended-editor mode is on.
+  useEffect(() => {
+    if (isExtendedEditor) {
+      setRenderEditor(true)
+    }
+  }, [isExtendedEditor])
+
+  // Trigger a layout recalculation when extended mode toggles while the editor
+  // is already rendered (e.g. when a frame is rerun and the editor is open).
+  useEffect(() => {
+    if (renderEditor) {
+      editorRef.current?.resize()
+    }
+  }, [isExtendedEditor, renderEditor])
 
   function run(cmd: string) {
     reRun(frame, cmd)
@@ -141,7 +160,9 @@ function FrameEditor({
         if (editorRefVal && editorRefVal !== editorValue) {
           setEditorValue(editorRefVal)
         }
-        setRenderEditor(false)
+        if (!isExtendedEditor) {
+          setRenderEditor(false)
+        }
       }
     }
 
@@ -170,7 +191,10 @@ function FrameEditor({
   const history = (frame.history || []).slice(1)
 
   return (
-    <StyledFrameEditorContainer ref={titleBarRef}>
+    <StyledFrameEditorContainer
+      ref={titleBarRef}
+      isExtendedEditor={isExtendedEditor && renderEditor}
+    >
       <Header>
         {renderEditor ? (
           <EditorContainer onClick={onPreviewClick} data-testid="frameCommand">
@@ -180,6 +204,7 @@ function FrameEditor({
               history={history}
               id={`editor-${frame.id}`}
               isFullscreen={false}
+              isExtended={isExtendedEditor}
               onChange={setEditorValue}
               onExecute={run}
               ref={editorRef}

@@ -21,17 +21,18 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { Action, Dispatch } from 'redux'
 
+import { TitleBarHeader } from './styled'
+import { FrameControlButton } from 'browser-components/buttons'
 import {
   CloseIcon,
   ContractIcon,
   DownIcon,
+  EditorExtendIcon,
+  EditorShrinkIcon,
   ExpandIcon,
   PinIcon,
   UpIcon
 } from 'browser-components/icons/LegacyIcons'
-
-import { TitleBarHeader } from './styled'
-import { FrameControlButton } from 'browser-components/buttons'
 import { GlobalState } from 'shared/globalState'
 import {
   Frame,
@@ -55,6 +56,8 @@ type FrameTitleBarBaseProps = {
   fullscreenToggle: () => void
   isCollapsed: boolean
   collapseToggle: () => void
+  isExtendedEditor: boolean
+  extendedEditorToggle: () => void
   pinned: boolean
   togglePin: () => void
 }
@@ -72,6 +75,8 @@ function FrameTitlebar({
   fullscreenToggle,
   isCollapsed,
   collapseToggle,
+  isExtendedEditor,
+  extendedEditorToggle,
   pinned,
   togglePin,
   onCloseClick,
@@ -88,6 +93,11 @@ function FrameTitlebar({
     <DownIcon width={10} />
   ) : (
     <UpIcon width={10} />
+  )
+  const extendedEditorIcon = isExtendedEditor ? (
+    <EditorShrinkIcon width={10} />
+  ) : (
+    <EditorExtendIcon width={10} />
   )
 
   return (
@@ -112,6 +122,15 @@ function FrameTitlebar({
       >
         {expandCollapseIcon}
       </FrameControlButton>
+      {!isFullscreen && (
+        <FrameControlButton
+          title={isExtendedEditor ? 'Collapse editor' : 'Extend editor'}
+          onClick={extendedEditorToggle}
+          pressed={isExtendedEditor}
+        >
+          {extendedEditorIcon}
+        </FrameControlButton>
+      )}
       <FrameControlButton
         title={isFullscreen ? 'Close fullscreen' : 'Fullscreen'}
         onClick={() => {
