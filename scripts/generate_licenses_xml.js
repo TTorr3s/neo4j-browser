@@ -36,7 +36,7 @@ process.stdin.on('end', () => {
   const packagesList = parseJson(data)
 
   process.stdout.write(packagesList)
-  process.exit(1)
+  process.exit(0)
 })
 
 function buildDependencyObject(id, name, license) {
@@ -49,13 +49,15 @@ function buildDependencyObject(id, name, license) {
 }
 
 function parseJson(data) {
-  const parsedObj = JSON.parse(data).data.body
+  const parsedObj = parseLicenseEntries(JSON.parse(data))
 
   const resArr = [
     ...externalDependencies.map(dep =>
       buildDependencyObject(dep[0], dep[1], dep[2])
     ),
-    ...parsedObj.map(dep => buildDependencyObject(dep[0], dep[0], dep[2]))
+    ...parsedObj.map(dep =>
+      buildDependencyObject(dep.id, dep.name, dep.license)
+    )
   ]
 
   const res = {
@@ -70,4 +72,24 @@ function parseJson(data) {
   }
 
   return js2xmlparser.parse('licensing-requirements', res, js2xmlparseOptions)
+}
+
+function parseLicenseEntries(licenses) {
+  if (licenses.data && licenses.data.body) {
+    return licenses.data.body.map(dep => ({
+      id: dep[0],
+      name: dep[0],
+      license: dep[2]
+    }))
+  }
+
+  return Object.entries(licenses).flatMap(([license, dependencies]) =>
+    dependencies.flatMap(dependency =>
+      dependency.versions.map(version => ({
+        id: `${dependency.name}@${version}`,
+        name: dependency.name,
+        license: dependency.license || license
+      }))
+    )
+  )
 }

@@ -24,39 +24,39 @@ Browser has a subproject of re-usable components bundled together and exposed as
 
 ## Development
 
-Running Neo4j Browser locally requires Node.js (^12.4.0) and for dependencies we use yarn (`npm install -g yarn`).
+Running Neo4j Browser locally requires Node.js (>= 22.0.0) and pnpm.
 To install dependencies and then start the development server at `http://localhost:8080`:
 
 ```shell
-yarn install
-yarn start
+pnpm install
+pnpm start
 ```
 
 Or to run in production mode:
 
 ```shell
-yarn start-prod
+pnpm start-prod
 ```
 
 ### Testing overview
 
 Neo4j Browser has both unit and end to end tests running automatically on every pull request. To run the tests locally:
 
-`yarn test-unit` runs a linter and then our unit tests.
+`pnpm test` runs a linter and then our unit tests.
 
-`yarn test-e2e` runs our Cypress end to end tests in the easiest, slowest way. Running them with this command requires docker installed and that nothing else runs on ports 7687 and 8080.
+`pnpm test-e2e` runs our Cypress end to end tests in the easiest, slowest way. Running them with this command requires docker installed and that nothing else runs on ports 7687 and 8080.
 
 #### Cypress e2e test suite in depth
 
-`yarn e2e-open` to open the Cypress test runner (requires a **fresh** installation of Neo4j to run against, expects neo4j 3.5 by default). See details below on how to configure database version.
+`pnpm e2e-open` to open the Cypress test runner (requires a **fresh** installation of Neo4j to run against, expects neo4j 3.5 by default). See details below on how to configure database version.
 
-`yarn e2e-local-open` to run against an existing server (with a password already set). We use `newpassword` as the default password here, make sure to pass your password:
-`yarn e2e-local-open --env browser-password=<your-password-here>`
+`pnpm e2e-local-open` to run against an existing server (with a password already set). We use `newpassword` as the default password here, make sure to pass your password:
+`pnpm e2e-local-open --env browser-password=<your-password-here>`
 
-To avoid opening the Cypress test runner and just run the tests in the terminal, remove the "-open" suffix from the previous two commands (so `yarn e2e` and `yarn e2e-local` respectively).
+To avoid opening the Cypress test runner and just run the tests in the terminal, remove the "-open" suffix from the previous two commands (so `pnpm e2e` and `pnpm e2e-local` respectively).
 
 So to run tests on your existing 4.2 database with the password "hunter2" without opening the Cypress visual test runner:
-`yarn e2e-local --env browser-password=hunter2,server=4.2`
+`pnpm e2e-local --env browser-password=hunter2,server=4.2`
 
 All the available options for `--env` are:
 

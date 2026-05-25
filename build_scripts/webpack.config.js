@@ -48,7 +48,6 @@ module.exports = {
   },
   plugins: getPlugins(),
   resolve: {
-    symlinks: false,
     alias: {
       // uuid: path.resolve(__dirname, '../node_modules/uuid/dist/index.js'),
       'project-root': path.resolve(__dirname, '../'),

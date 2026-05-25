@@ -1,0 +1,33 @@
+packages:
+  - docs
+
+overrides:
+  rxjs: ^7.8.1
+  hoist-non-react-statics: ^3.3.2
+  '@types/react': 19.2.15
+  '@types/react-dom': 19.2.3
+  '@types/minimatch': 5.1.2
+
+autoInstallPeers: true
+strictPeerDependencies: false
+engineStrict: true
+
+peerDependencyRules:
+  allowedVersions:
+    react: '19'
+    react-dom: '19'
+    suber: '5'
+
+minimumReleaseAgeExclude:
+  - '@typescript-eslint/eslint-plugin@8.60.0'
+  - '@typescript-eslint/parser@8.60.0'
+  - '@typescript-eslint/project-service@8.60.0'
+  - '@typescript-eslint/scope-manager@8.60.0'
+  - '@typescript-eslint/tsconfig-utils@8.60.0'
+  - '@typescript-eslint/type-utils@8.60.0'
+  - '@typescript-eslint/types@8.60.0'
+  - '@typescript-eslint/typescript-estree@8.60.0'
+  - '@typescript-eslint/utils@8.60.0'
+  - '@typescript-eslint/visitor-keys@8.60.0'
+  - typescript-eslint@8.60.0
+  - webpack@5.107.2

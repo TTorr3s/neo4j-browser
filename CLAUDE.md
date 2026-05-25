@@ -10,33 +10,33 @@ Neo4j Browser is a React-based GUI for Neo4j databases. It's built with TypeScri
 
 ### Setup
 ```bash
-yarn install
+pnpm install
 ```
 
 ### Development Servers
 ```bash
-yarn start          # Development mode on http://localhost:8080
-yarn starts         # Development mode with HTTPS
-yarn start-prod     # Production mode locally
-yarn starts-prod    # Production mode with HTTPS
+pnpm start          # Development mode on http://localhost:8080
+pnpm starts         # Development mode with HTTPS
+pnpm start-prod     # Production mode locally
+pnpm starts-prod    # Production mode with HTTPS
 ```
 
 ### Testing
 ```bash
 # Unit tests
-yarn test           # Type check + lint + jest
-yarn jest           # Run jest only
-yarn dev            # Jest watch mode
-yarn jest-update    # Update snapshots
+pnpm test           # Type check + lint + jest
+pnpm jest           # Run jest only
+pnpm dev            # Jest watch mode
+pnpm jest-update    # Update snapshots
 
 # E2E tests (Cypress)
-yarn test-e2e       # Full e2e with docker (Neo4j 4.2.2, requires docker, uses ports 7474/7687/8080)
-yarn e2e            # Run Cypress tests (requires fresh Neo4j install)
-yarn e2e-open       # Open Cypress UI
-yarn e2e-local      # Run against existing server (default password: "newpassword")
-yarn e2e-local-open # Open Cypress UI against existing server
-yarn e2e-aura       # Run against Aura (HTTPS)
-yarn e2e-aura-open  # Open Cypress UI against Aura
+pnpm test-e2e       # Full e2e with docker (Neo4j 4.2.2, requires docker, uses ports 7474/7687/8080)
+pnpm e2e            # Run Cypress tests (requires fresh Neo4j install)
+pnpm e2e-open       # Open Cypress UI
+pnpm e2e-local      # Run against existing server (default password: "newpassword")
+pnpm e2e-local-open # Open Cypress UI against existing server
+pnpm e2e-aura       # Run against Aura (HTTPS)
+pnpm e2e-aura-open  # Open Cypress UI against Aura
 ```
 
 #### E2E Environment Variables
@@ -54,14 +54,14 @@ CYPRESS_BASE_URL=<url> (default http://localhost:8080)
 
 ### Code Quality
 ```bash
-yarn lint           # ESLint with auto-fix
-yarn lint-quiet     # ESLint with only errors
-yarn format         # Prettier-ESLint format all files
+pnpm lint           # ESLint with auto-fix
+pnpm lint-quiet     # ESLint with only errors
+pnpm format         # Prettier-ESLint format all files
 ```
 
 ### Building
 ```bash
-yarn build          # Production webpack build
+pnpm build          # Production webpack build
 ```
 
 ## Architecture
@@ -194,8 +194,8 @@ Keys synced to localStorage (configured in `src/shared/services/localstorage.ts`
 ### Running Single Test File
 
 ```bash
-yarn jest path/to/test.test.tsx
-yarn jest path/to/test.test.tsx --watch
+pnpm jest path/to/test.test.tsx
+pnpm jest path/to/test.test.tsx --watch
 ```
 
 ### Using the Bus (react-suber)
