@@ -89,6 +89,9 @@ module.exports = {
   },
   optimization: helpers.isProduction
     ? {
+        // Keep CommonJS exports intact for packages like whatwg-url, whose
+        // generated modules access implementation exports dynamically.
+        usedExports: false,
         splitChunks: {
           cacheGroups: {
             vendor: {
