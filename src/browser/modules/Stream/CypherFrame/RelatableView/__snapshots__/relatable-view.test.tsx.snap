@@ -79,7 +79,7 @@ exports[`RelatableViews RelatableView does not crash if key is empty string 1`] 
                 <span
                   class="sc-bDpDS vVhPJ"
                 >
-                  "String value"
+                  String value
                 </span>
                 <span
                   class="copy-icon"
@@ -182,7 +182,7 @@ exports[`RelatableViews RelatableView does not display bodyMessage if rows, and 
                 <span
                   class="sc-bDpDS vVhPJ"
                 >
-                  "String with HTML &lt;strong&gt;in&lt;/strong&gt; it"
+                  String with HTML &lt;strong&gt;in&lt;/strong&gt; it
                 </span>
                 <span
                   class="copy-icon"
