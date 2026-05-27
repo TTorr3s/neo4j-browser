@@ -20,25 +20,31 @@
 import { useEffect, useState } from 'react'
 
 import useAutoTheme from './useAutoTheme'
-import { AUTO_THEME, LIGHT_THEME } from 'shared/modules/settings/settingsDuck'
+import {
+  AUTO_THEME,
+  LIGHT_THEME,
+  ResolvedThemeId,
+  ThemeId,
+  isThemeId,
+  resolveTheme
+} from 'shared/modules/settings/settingsDuck'
 
 export default function useDerivedTheme(
-  selectedTheme: any,
-  defaultTheme = LIGHT_THEME
+  selectedTheme: ThemeId,
+  defaultTheme: ResolvedThemeId = LIGHT_THEME
 ) {
   const [derivedTheme, overrideAutoTheme]: any[] = useAutoTheme(defaultTheme)
-  const [environmentTheme, setEnvironmentTheme] = useState(null)
+  const [environmentTheme, setEnvironmentTheme] = useState<string | null>(null)
 
   useEffect(() => {
-    if (environmentTheme && selectedTheme === AUTO_THEME) {
-      overrideAutoTheme(environmentTheme)
+    if (selectedTheme === AUTO_THEME || !isThemeId(selectedTheme)) {
+      overrideAutoTheme(
+        environmentTheme ? resolveTheme(AUTO_THEME, environmentTheme) : null
+      )
       return
     }
-    if (selectedTheme !== AUTO_THEME) {
-      overrideAutoTheme(selectedTheme)
-    } else {
-      overrideAutoTheme(null)
-    }
+
+    overrideAutoTheme(resolveTheme(selectedTheme))
   }, [selectedTheme, environmentTheme])
-  return [derivedTheme, setEnvironmentTheme]
+  return [derivedTheme as ResolvedThemeId, setEnvironmentTheme] as const
 }

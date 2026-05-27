@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import { Palette } from 'lucide-react'
 import { type JSX } from 'react'
 import { css, keyframes } from 'styled-components'
 
@@ -185,6 +186,14 @@ export const SettingsIcon = ({
     isOpen={isOpen}
     title={title}
   />
+)
+export const ThemesIcon = ({
+  isOpen,
+  title
+}: SidebarIconProps): JSX.Element => (
+  <IconContainer useCssVar isOpen={isOpen} title={title}>
+    <Palette size={SIDEBAR_SIZE} aria-label={title} />
+  </IconContainer>
 )
 export const AboutIcon = ({ isOpen, title }: SidebarIconProps): JSX.Element => (
   <IconContainer

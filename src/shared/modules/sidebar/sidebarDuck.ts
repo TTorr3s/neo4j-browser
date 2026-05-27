@@ -46,6 +46,7 @@ type DrawerId =
   | 'favorites'
   | 'about'
   | 'settings'
+  | 'themes'
   | 'notes'
   | null
 export interface SidebarState {

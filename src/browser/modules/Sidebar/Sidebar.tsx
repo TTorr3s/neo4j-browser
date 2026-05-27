@@ -24,6 +24,7 @@ import DatabaseDrawer from '../DBMSInfo/DBMSInfo'
 import AboutDrawer from './About'
 import DocumentsDrawer from './Documents'
 import NotesDrawer from './Notes/Notes'
+import ThemesDrawer from './Themes'
 import UserSettingsDrawer from './UserSettings'
 import Favorites from './favorites'
 import TabNavigation, {
@@ -37,7 +38,8 @@ import {
   DocumentsIcon,
   FavoritesIcon,
   NotesIcon,
-  SettingsIcon
+  SettingsIcon,
+  ThemesIcon
 } from 'browser-components/icons/LegacyIcons'
 import { GlobalState } from 'shared/globalState'
 import {
@@ -105,6 +107,14 @@ const Sidebar = ({
         return <DocumentsIcon isOpen={isOpen} title="Help &amp; Resources" />
       },
       content: DocumentsDrawer
+    },
+    {
+      name: 'Themes',
+      title: 'Themes',
+      icon: function themesIcon(isOpen: boolean): JSX.Element {
+        return <ThemesIcon isOpen={isOpen} title="Themes" />
+      },
+      content: ThemesDrawer
     },
     {
       name: 'Settings',

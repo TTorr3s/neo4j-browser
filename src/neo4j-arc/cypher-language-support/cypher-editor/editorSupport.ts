@@ -27,7 +27,7 @@ import { editor, languages } from 'monaco-editor/esm/vs/editor/editor.api'
 import { CypherTokensProvider } from '../language/CypherTokensProvider'
 import cypherBaseFunctions from '../language/cypherBaseFunctions'
 import { getMonacoThemes } from './CypherMonacoThemes'
-import type { CypherColorFallback } from './CypherMonacoThemes'
+import type { CypherColorFallback, MonacoThemeId } from './CypherMonacoThemes'
 import { getCustomSnippets } from './snippets'
 
 const { CompletionItemKind } = languages
@@ -67,7 +67,7 @@ export function setupAutocomplete({
 
 export function initalizeCypherSupport(
   cypherColor?: CypherColorFallback,
-  initialTheme: 'dark' | 'light' = 'light'
+  initialTheme: MonacoThemeId = 'normal'
 ): void {
   // Prevent duplicate Monaco registrations (they are additive for completion providers)
   if (isCypherLanguageRegistered) {
@@ -174,10 +174,11 @@ export function initalizeCypherSupport(
     }
   })
 
-  const { monacoDarkTheme, monacoLightTheme } = getMonacoThemes(cypherColor)
+  const monacoThemes = getMonacoThemes(cypherColor)
 
-  editor.defineTheme('dark', monacoDarkTheme)
-  editor.defineTheme('light', monacoLightTheme)
+  Object.entries(monacoThemes).forEach(([themeId, theme]) => {
+    editor.defineTheme(themeId, theme)
+  })
   editor.setTheme(initialTheme)
 }
 
@@ -216,8 +217,6 @@ export const getText = (item: EditorSupportCompletionItem): string =>
     ? stripSurroundingBackticks(item.content)
     : item.content
 
-export function setEditorTheme(
-  theme: 'normal' | 'dark' | 'light' | 'outline'
-): void {
-  editor.setTheme(theme === 'dark' ? 'dark' : 'light')
+export function setEditorTheme(theme: MonacoThemeId | 'light'): void {
+  editor.setTheme(theme === 'light' ? 'normal' : theme)
 }

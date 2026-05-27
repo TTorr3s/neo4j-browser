@@ -55,7 +55,8 @@ import {
 } from 'shared/modules/commands/commandsDuck'
 import {
   DISABLE_IMPLICIT_INIT_COMMANDS,
-  getTheme
+  getTheme,
+  resolveTheme
 } from 'shared/modules/settings/settingsDuck'
 import { isOfType } from 'shared/utils/typeSafeActions'
 
@@ -184,8 +185,8 @@ export const initializeCypherEditorEpic: Epic<
     withLatestFrom(state$),
     tap(([, state]) => {
       const theme = getTheme(state)
-      const monacoTheme = theme === 'dark' ? 'dark' : 'light'
-      initalizeCypherSupport(undefined, monacoTheme)
+      const resolvedTheme = resolveTheme(theme)
+      initalizeCypherSupport(undefined, resolvedTheme)
       setupAutocomplete({
         consoleCommands
       })

@@ -17,25 +17,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 /* eslint-disable react/display-name */
 import { render } from '@testing-library/react'
 import React from 'react'
 import configureMockStore from 'redux-mock-store'
 
-import { App } from './App'
-
 const mockStore = configureMockStore()
 const store = mockStore({})
+let mockDerivedTheme = 'normal'
 
 // Mock components with complex dependencies
-jest.mock(
-  '../Main/Main',
-  () =>
-    function MockMain() {
-      return <div data-testid="main">Main</div>
-    }
-)
+jest.mock('../Main/Main', () => {
+  const React = require('react')
+  const { ThemeContext } = require('styled-components')
+
+  return function MockMain() {
+    const theme = React.useContext(ThemeContext)
+    return (
+      <div data-testid="main" data-theme-name={theme.name}>
+        Main
+      </div>
+    )
+  }
+})
 jest.mock(
   '../Sidebar/Sidebar',
   () =>
@@ -82,13 +86,10 @@ jest.mock('./keyboardShortcuts', () => ({
 }))
 jest.mock('browser-hooks/useDerivedTheme', () => ({
   __esModule: true,
-  default: () => ['light', jest.fn()]
+  default: () => [mockDerivedTheme, jest.fn()]
 }))
 
-// Mock neo4j-arc
-jest.mock('neo4j-arc/cypher-language-support', () => ({
-  setEditorTheme: jest.fn()
-}))
+const { App } = require('./App')
 
 const mockBus = {
   take: jest.fn(),
@@ -127,6 +128,11 @@ const baseProps = {
 }
 
 describe('App', () => {
+  beforeEach(() => {
+    mockDerivedTheme = 'normal'
+    jest.clearAllMocks()
+  })
+
   test('App loads and renders main components', async () => {
     // When
     const { getByTestId } = render(<App {...baseProps} />)
@@ -164,5 +170,16 @@ describe('App', () => {
     // Then
     const wrapper = container.querySelector('.disable-font-ligatures')
     expect(wrapper).not.toBeInTheDocument()
+  })
+
+  test('App applies the resolved UI theme', () => {
+    mockDerivedTheme = 'beardedOled'
+
+    const { getByTestId } = render(<App {...baseProps} />)
+
+    expect(getByTestId('main')).toHaveAttribute(
+      'data-theme-name',
+      'beardedOled'
+    )
   })
 })

@@ -4,12 +4,17 @@ import React from 'react'
 import { createMediaListenerMatch } from './testUtils'
 import useAutoTheme from './useAutoTheme'
 import { colorSchemes } from './useDetectColorScheme'
+import {
+  DARK_THEME,
+  LIGHT_THEME,
+  OUTLINE_THEME
+} from 'shared/modules/settings/settingsDuck'
 
 describe('useAutoTheme', () => {
   it('uses light as default theme if no default is passed in', () => {
     ;(window as any).matchMedia = undefined
     let resolvedTheme
-    const lightTheme = 'light'
+    const lightTheme = LIGHT_THEME
 
     const Comp = () => {
       const [autoTheme] = useAutoTheme()
@@ -26,8 +31,8 @@ describe('useAutoTheme', () => {
   it('uses default theme if no can be detected + it can be overridden', () => {
     let resolvedTheme
     let overrideThemeFn: any
-    const lightTheme = 'light'
-    const outlineTheme = 'outline'
+    const lightTheme = LIGHT_THEME
+    const outlineTheme = OUTLINE_THEME
     ;(window as any).matchMedia = undefined
 
     const Comp = ({ defaultTheme }: any) => {
@@ -60,9 +65,9 @@ describe('useAutoTheme', () => {
     let resolvedTheme
     let overrideThemeFn: any
     let listenerFn: any
-    const lightTheme = 'light'
-    const darkTheme = 'dark'
-    const outlineTheme = 'outline'
+    const lightTheme = LIGHT_THEME
+    const darkTheme = DARK_THEME
+    const outlineTheme = OUTLINE_THEME
     ;(window as any).matchMedia = jest.fn(() => {
       return {
         addListener: (listener: any) => {

@@ -21,6 +21,7 @@ import {
   ClientSettings,
   initialClientSettings
 } from '../modules/dbMeta/dbMetaDuck'
+import { BEARDED_OLED_THEME } from '../modules/settings/settingsDuck'
 import { HistoryEntry, HistoryState } from './historyStorage'
 import * as ls from './localstorage'
 
@@ -107,6 +108,28 @@ describe('localstorage', () => {
 
     afterEach(() => {
       jest.useRealTimers()
+    })
+
+    it('persists selected theme presets in settings', () => {
+      const setItemMock = jest.fn()
+      ls.applyKeys('settings')
+      ls.setStorage({
+        setItem: setItemMock
+      } as Partial<Storage> as Storage)
+
+      const store = {
+        getState: () => ({ settings: { theme: BEARDED_OLED_THEME } }),
+        dispatch: jest.fn()
+      }
+      const next = jest.fn(action => action)
+
+      ls.createReduxMiddleware()(store)(next)({ type: 'settings updated' })
+      jest.runAllTimers()
+
+      expect(setItemMock).toHaveBeenCalledWith(
+        'neo4j.settings',
+        JSON.stringify({ theme: BEARDED_OLED_THEME })
+      )
     })
 
     const createAndInvokeMiddlewareWithRetainConnectionFlag = (

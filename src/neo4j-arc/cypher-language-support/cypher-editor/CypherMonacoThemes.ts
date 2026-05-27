@@ -69,6 +69,15 @@ const tokyoNightLightColors = {
 }
 
 export type CypherColorFallback = typeof tokyoNightStormColors
+export type MonacoThemeId =
+  | 'normal'
+  | 'outline'
+  | 'dark'
+  | 'nord'
+  | 'solarizedLight'
+  | 'beardedVividBlack'
+  | 'beardedOled'
+  | 'beardedMelleJulietLight'
 
 const comments: string[] = ['comment']
 const strings: string[] = ['stringliteral', 'urlhex']
@@ -343,221 +352,362 @@ const tokensWithoutSyntaxHighlighting: string[] = [
 
 export const getMonacoThemes = (
   _color?: CypherColorFallback
-): {
-  monacoDarkTheme: editor.IStandaloneThemeData
-  monacoLightTheme: editor.IStandaloneThemeData
-} => {
+): Record<MonacoThemeId, editor.IStandaloneThemeData> => {
   const storm = tokyoNightStormColors
   const light = tokyoNightLightColors
+
+  type CypherMonacoPalette = {
+    base: 'vs' | 'vs-dark'
+    background: string
+    foreground: string
+    foregroundBright: string
+    foregroundMuted: string
+    comment: string
+    selection: string
+    lineHighlight: string
+    widgetBackground: string
+    widgetBorder: string
+    widgetSelectedBackground: string
+    inputBackground: string
+    dropdownBackground: string
+    string: string
+    number: string
+    keyword: string
+    label: string
+    variable: string
+    property: string
+    function: string
+    parameter: string
+    consoleCommand: string
+    procedureOutput: string
+  }
 
   const makeCypherTokenThemeRule = (token: string, foreground: string) => ({
     token: `${token}.cypher`,
     foreground
   })
 
-  // Tokyo Night Storm (Dark) theme rules for Cypher
-  const stormRules: editor.ITokenThemeRule[] = [
+  const buildRules = (
+    colors: CypherMonacoPalette
+  ): editor.ITokenThemeRule[] => [
     // Strings - green
-    ...strings.map(token => makeCypherTokenThemeRule(token, storm.green)),
-    ...stringQuotes.map(token => makeCypherTokenThemeRule(token, storm.green)),
+    ...strings.map(token => makeCypherTokenThemeRule(token, colors.string)),
+    ...stringQuotes.map(token =>
+      makeCypherTokenThemeRule(token, colors.string)
+    ),
     ...stringContents.map(token =>
-      makeCypherTokenThemeRule(token, storm.green)
+      makeCypherTokenThemeRule(token, colors.string)
     ),
 
     // Numbers - orange
-    ...numbers.map(token => makeCypherTokenThemeRule(token, storm.orange)),
+    ...numbers.map(token => makeCypherTokenThemeRule(token, colors.number)),
 
     // Keywords - purple (Control Keywords)
-    ...keywords.map(token => makeCypherTokenThemeRule(token, storm.purple)),
+    ...keywords.map(token => makeCypherTokenThemeRule(token, colors.keyword)),
 
     // Labels and relationship types - red (HTML elements style)
-    ...labels.map(token => makeCypherTokenThemeRule(token, storm.red)),
+    ...labels.map(token => makeCypherTokenThemeRule(token, colors.label)),
     ...relationshipTypes.map(token =>
-      makeCypherTokenThemeRule(token, storm.red)
+      makeCypherTokenThemeRule(token, colors.label)
     ),
 
     // Variables - white/bright foreground
-    ...variables.map(token => makeCypherTokenThemeRule(token, storm.white)),
+    ...variables.map(token => makeCypherTokenThemeRule(token, colors.variable)),
 
     // Properties - blue (Object properties)
-    ...properties.map(token => makeCypherTokenThemeRule(token, storm.blue)),
+    ...properties.map(token =>
+      makeCypherTokenThemeRule(token, colors.property)
+    ),
 
     // Functions and procedures - blue bright (Function names)
     ...procedures.map(token =>
-      makeCypherTokenThemeRule(token, storm.blueBright)
+      makeCypherTokenThemeRule(token, colors.function)
     ),
-    ...functions.map(token =>
-      makeCypherTokenThemeRule(token, storm.blueBright)
-    ),
+    ...functions.map(token => makeCypherTokenThemeRule(token, colors.function)),
 
     // Parameters - cyan bright
     ...parameters.map(token =>
-      makeCypherTokenThemeRule(token, storm.cyanBright)
+      makeCypherTokenThemeRule(token, colors.parameter)
     ),
 
     // Console commands - cyan
     ...consoleCommands.map(token =>
-      makeCypherTokenThemeRule(token, storm.cyanBright)
+      makeCypherTokenThemeRule(token, colors.consoleCommand)
     ),
 
     // Procedure output - green cyan
     ...procedureOutput.map(token =>
-      makeCypherTokenThemeRule(token, storm.greenCyan)
+      makeCypherTokenThemeRule(token, colors.procedureOutput)
     ),
 
     // Comments - muted gray
-    ...comments.map(token => makeCypherTokenThemeRule(token, storm.comment)),
+    ...comments.map(token => makeCypherTokenThemeRule(token, colors.comment)),
 
     // Operators - foreground muted
     ...operators.map(token =>
-      makeCypherTokenThemeRule(token, storm.foregroundMuted)
+      makeCypherTokenThemeRule(token, colors.foregroundMuted)
     ),
 
     // Tokens without highlighting - default foreground
     ...tokensWithoutSyntaxHighlighting.map(token =>
-      makeCypherTokenThemeRule(token, storm.foreground)
-    )
+      makeCypherTokenThemeRule(token, colors.foreground)
+    ),
+
+    { token: 'string', foreground: colors.string },
+    { token: 'string.cypher', foreground: colors.string },
+    { token: 'string.quote', foreground: colors.string },
+    { token: 'string.quote.cypher', foreground: colors.string },
+    { token: 'string.delimiter', foreground: colors.string },
+    { token: 'string.delimiter.cypher', foreground: colors.string }
   ]
 
-  // Tokyo Night Light theme rules for Cypher
-  const lightRules: editor.ITokenThemeRule[] = [
-    // Strings - green
-    ...strings.map(token => makeCypherTokenThemeRule(token, light.green)),
-    ...stringQuotes.map(token => makeCypherTokenThemeRule(token, light.green)),
-    ...stringContents.map(token =>
-      makeCypherTokenThemeRule(token, light.green)
-    ),
-
-    // Numbers - orange
-    ...numbers.map(token => makeCypherTokenThemeRule(token, light.orange)),
-
-    // Keywords - purple (Control Keywords)
-    ...keywords.map(token => makeCypherTokenThemeRule(token, light.purple)),
-
-    // Labels and relationship types - red
-    ...labels.map(token => makeCypherTokenThemeRule(token, light.red)),
-    ...relationshipTypes.map(token =>
-      makeCypherTokenThemeRule(token, light.red)
-    ),
-
-    // Variables - black/dark foreground
-    ...variables.map(token => makeCypherTokenThemeRule(token, light.black)),
-
-    // Properties - blue
-    ...properties.map(token => makeCypherTokenThemeRule(token, light.blue)),
-
-    // Functions and procedures - blue bright
-    ...procedures.map(token =>
-      makeCypherTokenThemeRule(token, light.blueBright)
-    ),
-    ...functions.map(token =>
-      makeCypherTokenThemeRule(token, light.blueBright)
-    ),
-
-    // Parameters - cyan
-    ...parameters.map(token => makeCypherTokenThemeRule(token, light.cyan)),
-
-    // Console commands - cyan
-    ...consoleCommands.map(token =>
-      makeCypherTokenThemeRule(token, light.cyan)
-    ),
-
-    // Procedure output - green cyan
-    ...procedureOutput.map(token =>
-      makeCypherTokenThemeRule(token, light.greenCyan)
-    ),
-
-    // Comments - muted gray
-    ...comments.map(token => makeCypherTokenThemeRule(token, light.comment)),
-
-    // Operators - foreground muted
-    ...operators.map(token =>
-      makeCypherTokenThemeRule(token, light.foregroundMuted)
-    ),
-
-    // Tokens without highlighting - default foreground
-    ...tokensWithoutSyntaxHighlighting.map(token =>
-      makeCypherTokenThemeRule(token, light.foreground)
-    )
-  ]
-
-  // Additional string override rules for Storm theme
-  const stormStringOverrideRules: editor.ITokenThemeRule[] = [
-    { token: 'string', foreground: storm.green },
-    { token: 'string.cypher', foreground: storm.green },
-    { token: 'string.quote', foreground: storm.green },
-    { token: 'string.quote.cypher', foreground: storm.green },
-    { token: 'string.delimiter', foreground: storm.green },
-    { token: 'string.delimiter.cypher', foreground: storm.green }
-  ]
-
-  // Additional string override rules for Light theme
-  const lightStringOverrideRules: editor.ITokenThemeRule[] = [
-    { token: 'string', foreground: light.green },
-    { token: 'string.cypher', foreground: light.green },
-    { token: 'string.quote', foreground: light.green },
-    { token: 'string.quote.cypher', foreground: light.green },
-    { token: 'string.delimiter', foreground: light.green },
-    { token: 'string.delimiter.cypher', foreground: light.green }
-  ]
-
-  const monacoDarkTheme: editor.IStandaloneThemeData = {
-    base: 'vs-dark',
+  const buildTheme = (
+    colors: CypherMonacoPalette
+  ): editor.IStandaloneThemeData => ({
+    base: colors.base,
     inherit: true,
-    rules: [...stormRules, ...stormStringOverrideRules],
+    rules: buildRules(colors),
     colors: {
-      'editor.background': storm.background,
-      'editor.foreground': storm.foreground,
-      'editor.selectionBackground': storm.selection,
-      'editor.lineHighlightBackground': '#1f2335', // Darkened from #292e42
-      'editorCursor.foreground': storm.foregroundBright,
-      'editorLineNumber.foreground': storm.comment,
-      'editorLineNumber.activeForeground': storm.foreground,
-      foreground: storm.foreground,
-      'editorWidget.background': '#16161e', // Darkened from #1f2335
-      'editorSuggestWidget.background': '#16161e', // Darkened from #1f2335
-      'editorSuggestWidget.border': storm.selection,
-      'editorSuggestWidget.foreground': storm.foreground,
-      'editorSuggestWidget.selectedBackground': storm.selection,
-      'editorHoverWidget.background': '#16161e', // Darkened from #1f2335
-      'editorHoverWidget.border': storm.selection,
-      'input.background': '#16161e', // Darkened from #1f2335
-      'input.foreground': storm.foreground,
-      'input.border': storm.selection,
-      'dropdown.background': '#16161e', // Darkened from #1f2335
-      'dropdown.foreground': storm.foreground,
-      'dropdown.border': storm.selection
+      'editor.background': colors.background,
+      'editor.foreground': colors.foreground,
+      'editor.selectionBackground': colors.selection,
+      'editor.lineHighlightBackground': colors.lineHighlight,
+      'editorCursor.foreground': colors.foregroundBright,
+      'editorLineNumber.foreground': colors.comment,
+      'editorLineNumber.activeForeground': colors.foreground,
+      foreground: colors.foreground,
+      'editorWidget.background': colors.widgetBackground,
+      'editorSuggestWidget.background': colors.widgetBackground,
+      'editorSuggestWidget.border': colors.widgetBorder,
+      'editorSuggestWidget.foreground': colors.foreground,
+      'editorSuggestWidget.selectedBackground': colors.widgetSelectedBackground,
+      'editorHoverWidget.background': colors.widgetBackground,
+      'editorHoverWidget.border': colors.widgetBorder,
+      'input.background': colors.inputBackground,
+      'input.foreground': colors.foreground,
+      'input.border': colors.widgetBorder,
+      'dropdown.background': colors.dropdownBackground,
+      'dropdown.foreground': colors.foreground,
+      'dropdown.border': colors.widgetBorder
     }
-  }
+  })
 
-  const monacoLightTheme: editor.IStandaloneThemeData = {
+  const normal: CypherMonacoPalette = {
     base: 'vs',
-    inherit: true,
-    rules: [...lightRules, ...lightStringOverrideRules],
-    colors: {
-      'editor.background': light.background,
-      'editor.foreground': light.foreground,
-      'editor.selectionBackground': light.selection,
-      'editor.lineHighlightBackground': '#f5f5f5',
-      'editorCursor.foreground': light.foreground,
-      'editorLineNumber.foreground': light.comment,
-      'editorLineNumber.activeForeground': light.foreground,
-      foreground: light.foreground,
-      'editorWidget.background': '#f5f5f5',
-      'editorSuggestWidget.background': '#f5f5f5',
-      'editorSuggestWidget.border': '#e0e0e0',
-      'editorSuggestWidget.foreground': light.foreground,
-      'editorSuggestWidget.selectedBackground': '#e8e8e8',
-      'editorHoverWidget.background': '#f5f5f5',
-      'editorHoverWidget.border': '#e0e0e0',
-      'input.background': '#f5f5f5',
-      'input.foreground': light.foreground,
-      'input.border': '#e0e0e0',
-      'dropdown.background': '#f5f5f5',
-      'dropdown.foreground': light.foreground,
-      'dropdown.border': '#e0e0e0'
-    }
+    background: light.background,
+    foreground: light.foreground,
+    foregroundBright: light.foreground,
+    foregroundMuted: light.foregroundMuted,
+    comment: light.comment,
+    selection: light.selection,
+    lineHighlight: '#f5f5f5',
+    widgetBackground: '#f5f5f5',
+    widgetBorder: '#e0e0e0',
+    widgetSelectedBackground: '#e8e8e8',
+    inputBackground: '#f5f5f5',
+    dropdownBackground: '#f5f5f5',
+    string: light.green,
+    number: light.orange,
+    keyword: light.purple,
+    label: light.red,
+    variable: light.black,
+    property: light.blue,
+    function: light.blueBright,
+    parameter: light.cyan,
+    consoleCommand: light.cyan,
+    procedureOutput: light.greenCyan
   }
 
-  return { monacoDarkTheme, monacoLightTheme }
+  const outline: CypherMonacoPalette = {
+    ...normal,
+    background: '#ffffff',
+    foreground: '#000000',
+    foregroundBright: '#000000',
+    foregroundMuted: '#000000',
+    comment: '#555555',
+    selection: '#d9d9d9',
+    lineHighlight: '#f0f0f0',
+    widgetBackground: '#ffffff',
+    widgetBorder: '#000000',
+    widgetSelectedBackground: '#d9d9d9',
+    inputBackground: '#ffffff',
+    dropdownBackground: '#ffffff',
+    string: '#000000',
+    number: '#000000',
+    keyword: '#000000',
+    label: '#000000',
+    variable: '#000000',
+    property: '#000000',
+    function: '#000000',
+    parameter: '#000000',
+    consoleCommand: '#000000',
+    procedureOutput: '#000000'
+  }
+
+  const dark: CypherMonacoPalette = {
+    base: 'vs-dark',
+    background: storm.background,
+    foreground: storm.foreground,
+    foregroundBright: storm.foregroundBright,
+    foregroundMuted: storm.foregroundMuted,
+    comment: storm.comment,
+    selection: storm.selection,
+    lineHighlight: '#1f2335',
+    widgetBackground: '#16161e',
+    widgetBorder: storm.selection,
+    widgetSelectedBackground: storm.selection,
+    inputBackground: '#16161e',
+    dropdownBackground: '#16161e',
+    string: storm.green,
+    number: storm.orange,
+    keyword: storm.purple,
+    label: storm.red,
+    variable: storm.white,
+    property: storm.blue,
+    function: storm.blueBright,
+    parameter: storm.cyanBright,
+    consoleCommand: storm.cyanBright,
+    procedureOutput: storm.greenCyan
+  }
+
+  const nord: CypherMonacoPalette = {
+    base: 'vs-dark',
+    background: '#2E3440',
+    foreground: '#D8DEE9',
+    foregroundBright: '#ECEFF4',
+    foregroundMuted: '#81A1C1',
+    comment: '#4C566A',
+    selection: '#434C5E',
+    lineHighlight: '#3B4252',
+    widgetBackground: '#242933',
+    widgetBorder: '#434C5E',
+    widgetSelectedBackground: '#434C5E',
+    inputBackground: '#242933',
+    dropdownBackground: '#242933',
+    string: '#A3BE8C',
+    number: '#D08770',
+    keyword: '#B48EAD',
+    label: '#BF616A',
+    variable: '#ECEFF4',
+    property: '#81A1C1',
+    function: '#5E81AC',
+    parameter: '#88C0D0',
+    consoleCommand: '#88C0D0',
+    procedureOutput: '#8FBCBB'
+  }
+
+  const solarizedLight: CypherMonacoPalette = {
+    base: 'vs',
+    background: '#FDF6E3',
+    foreground: '#657B83',
+    foregroundBright: '#073642',
+    foregroundMuted: '#586E75',
+    comment: '#93A1A1',
+    selection: '#EEE8D5',
+    lineHighlight: '#F7F0DC',
+    widgetBackground: '#EEE8D5',
+    widgetBorder: '#93A1A1',
+    widgetSelectedBackground: '#E8DFC8',
+    inputBackground: '#FDF6E3',
+    dropdownBackground: '#FDF6E3',
+    string: '#859900',
+    number: '#CB4B16',
+    keyword: '#6C71C4',
+    label: '#DC322F',
+    variable: '#073642',
+    property: '#268BD2',
+    function: '#268BD2',
+    parameter: '#2AA198',
+    consoleCommand: '#2AA198',
+    procedureOutput: '#859900'
+  }
+
+  const beardedVividBlack: CypherMonacoPalette = {
+    base: 'vs-dark',
+    background: '#141417',
+    foreground: '#d7d7de',
+    foregroundBright: '#f0f0f4',
+    foregroundMuted: '#888894',
+    comment: '#6d6d76',
+    selection: '#313139',
+    lineHighlight: '#202024',
+    widgetBackground: '#0f0f12',
+    widgetBorder: '#313139',
+    widgetSelectedBackground: '#313139',
+    inputBackground: '#0f0f12',
+    dropdownBackground: '#0f0f12',
+    string: '#42DD76',
+    number: '#FF7135',
+    keyword: '#A95EFF',
+    label: '#FF478D',
+    variable: '#f0f0f4',
+    property: '#28A9FF',
+    function: '#14E5D4',
+    parameter: '#FFB638',
+    consoleCommand: '#14E5D4',
+    procedureOutput: '#b7d175'
+  }
+
+  const beardedOled: CypherMonacoPalette = {
+    base: 'vs-dark',
+    background: '#000000',
+    foreground: '#d6d6d6',
+    foregroundBright: '#f2f2f2',
+    foregroundMuted: '#858585',
+    comment: '#6f6f6f',
+    selection: '#262626',
+    lineHighlight: '#151515',
+    widgetBackground: '#050505',
+    widgetBorder: '#262626',
+    widgetSelectedBackground: '#262626',
+    inputBackground: '#050505',
+    dropdownBackground: '#050505',
+    string: '#5CD4C3',
+    number: '#E79E69',
+    keyword: '#B69EDE',
+    label: '#E87474',
+    variable: '#f2f2f2',
+    property: '#63BBE5',
+    function: '#6EA7E8',
+    parameter: '#6AD3CD',
+    consoleCommand: '#6AD3CD',
+    procedureOutput: '#5CD4C3'
+  }
+
+  const beardedMelleJulietLight: CypherMonacoPalette = {
+    base: 'vs',
+    background: '#edeeee',
+    foreground: '#1f3839',
+    foregroundBright: '#102d2f',
+    foregroundMuted: '#607173',
+    comment: '#7a898b',
+    selection: '#d7dddd',
+    lineHighlight: '#e2e7e7',
+    widgetBackground: '#f7f8f8',
+    widgetBorder: '#bdcaca',
+    widgetSelectedBackground: '#d7dddd',
+    inputBackground: '#f7f8f8',
+    dropdownBackground: '#f7f8f8',
+    string: '#2aa54d',
+    number: '#c97a2a',
+    keyword: '#7c68ef',
+    label: '#d24545',
+    variable: '#1f3839',
+    property: '#1f89cf',
+    function: '#39a9b4',
+    parameter: '#23716d',
+    consoleCommand: '#23716d',
+    procedureOutput: '#81a622'
+  }
+
+  return {
+    normal: buildTheme(normal),
+    outline: buildTheme(outline),
+    dark: buildTheme(dark),
+    nord: buildTheme(nord),
+    solarizedLight: buildTheme(solarizedLight),
+    beardedVividBlack: buildTheme(beardedVividBlack),
+    beardedOled: buildTheme(beardedOled),
+    beardedMelleJulietLight: buildTheme(beardedMelleJulietLight)
+  }
 }

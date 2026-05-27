@@ -56,20 +56,6 @@ const visualSettings = [
     title: 'User Interface',
     settings: [
       {
-        theme: {
-          tooltip:
-            'Use "Auto" to have neo4j-browser detect system dark vs. light mode if available.',
-          displayName: 'Theme',
-          type: 'radio',
-          options: [
-            actions.AUTO_THEME,
-            actions.LIGHT_THEME,
-            actions.OUTLINE_THEME,
-            actions.DARK_THEME
-          ]
-        }
-      },
-      {
         codeFontLigatures: {
           displayName: 'Code font ligatures',
           tooltip: 'Use font ligatures for the command bar and cypher snippets',

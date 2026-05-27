@@ -23,9 +23,11 @@ import React from 'react'
 import useDerivedTheme from './useDerivedTheme'
 import {
   AUTO_THEME,
+  BEARDED_MELLE_JULIET_LIGHT_THEME,
   DARK_THEME,
   LIGHT_THEME,
-  OUTLINE_THEME
+  NORD_THEME,
+  SOLARIZED_LIGHT_THEME
 } from 'shared/modules/settings/settingsDuck'
 
 describe('useDerivedTheme', () => {
@@ -67,10 +69,10 @@ describe('useDerivedTheme', () => {
     expect(resolvedTheme).toEqual(LIGHT_THEME) // Default
 
     // When
-    act(() => overrideThemeFn(OUTLINE_THEME)) // Override
+    act(() => overrideThemeFn(DARK_THEME)) // Environment override
 
     // Then
-    expect(resolvedTheme).toEqual(OUTLINE_THEME)
+    expect(resolvedTheme).toEqual(DARK_THEME)
 
     // When user switches off AUTO theme and selects dark
     rerender(<Comp defaultTheme={LIGHT_THEME} selectedTheme={DARK_THEME} />)
@@ -84,5 +86,42 @@ describe('useDerivedTheme', () => {
 
     // Then
     expect(resolvedTheme).toEqual(LIGHT_THEME)
+  })
+
+  it('keeps selected preset themes when environment theme changes', () => {
+    let resolvedTheme
+    let overrideThemeFn: any
+
+    const Comp = ({ selectedTheme, defaultTheme }: any) => {
+      const [derivedTheme, setEnvTheme] = useDerivedTheme(
+        selectedTheme,
+        defaultTheme
+      )
+      resolvedTheme = derivedTheme
+      overrideThemeFn = setEnvTheme
+      return null
+    }
+
+    const { rerender } = render(
+      <Comp defaultTheme={LIGHT_THEME} selectedTheme={NORD_THEME} />
+    )
+
+    act(() => overrideThemeFn(DARK_THEME))
+    expect(resolvedTheme).toEqual(NORD_THEME)
+
+    rerender(
+      <Comp defaultTheme={LIGHT_THEME} selectedTheme={SOLARIZED_LIGHT_THEME} />
+    )
+    act(() => overrideThemeFn(DARK_THEME))
+    expect(resolvedTheme).toEqual(SOLARIZED_LIGHT_THEME)
+
+    rerender(
+      <Comp
+        defaultTheme={LIGHT_THEME}
+        selectedTheme={BEARDED_MELLE_JULIET_LIGHT_THEME}
+      />
+    )
+    act(() => overrideThemeFn(DARK_THEME))
+    expect(resolvedTheme).toEqual(BEARDED_MELLE_JULIET_LIGHT_THEME)
   })
 })

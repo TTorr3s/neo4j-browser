@@ -68,8 +68,9 @@ The command history is persisted across Browser restarts.
 | `theme`
 | `auto`
 | Neo4j Browser UI theme.
-Possible values: `auto`, `normal`, `outline`, and `dark`.
-| yes
+Possible values: `auto`, `normal`, `outline`, `dark`, `nord`, `solarizedLight`, `beardedVividBlack`, `beardedOled`, and `beardedMelleJulietLight`.
+The theme can be changed in the *Themes* drawer or with `:config`, for example `:config {theme: "nord"}`.
+| yes, in the *Themes* drawer
 
 | `initCmd`
 | `:play start`

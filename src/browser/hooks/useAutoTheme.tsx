@@ -20,11 +20,22 @@
 import { useEffect, useState } from 'react'
 
 import useDetectColorScheme from './useDetectColorScheme'
+import {
+  LIGHT_THEME,
+  ResolvedThemeId,
+  resolveTheme
+} from 'shared/modules/settings/settingsDuck'
 
-export default function useAutoTheme(defaultTheme = 'light') {
+export default function useAutoTheme(
+  defaultTheme: ResolvedThemeId = LIGHT_THEME
+) {
   const detectedScheme = useDetectColorScheme()
-  const [autoTheme, setAutoTheme] = useState(detectedScheme || defaultTheme)
-  const [overriddenTheme, overrideAutoTheme] = useState<string | null>(null)
+  const [autoTheme, setAutoTheme] = useState<ResolvedThemeId>(
+    detectedScheme ? resolveTheme('auto', detectedScheme) : defaultTheme
+  )
+  const [overriddenTheme, overrideAutoTheme] = useState<ResolvedThemeId | null>(
+    null
+  )
 
   useEffect(() => {
     if (overriddenTheme) {
@@ -35,7 +46,7 @@ export default function useAutoTheme(defaultTheme = 'light') {
       setAutoTheme(defaultTheme)
       return
     }
-    setAutoTheme(detectedScheme as string)
-  }, [detectedScheme, overriddenTheme])
+    setAutoTheme(resolveTheme('auto', detectedScheme))
+  }, [defaultTheme, detectedScheme, overriddenTheme])
   return [autoTheme, overrideAutoTheme]
 }

@@ -58,6 +58,7 @@ const editor = {
 
 const languages = {
   register: jest.fn(),
+  setTokensProvider: jest.fn(),
   setMonarchTokensProvider: jest.fn(),
   setLanguageConfiguration: jest.fn(),
   registerCompletionItemProvider: jest.fn(() => createMockDisposable()),

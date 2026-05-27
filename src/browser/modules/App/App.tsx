@@ -17,11 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { setEditorTheme } from 'neo4j-arc/cypher-language-support'
 import React, { useEffect, useRef } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { ThemeProvider } from 'styled-components'
+
+import { setEditorTheme } from 'neo4j-arc/cypher-language-support'
 
 import asTitleString from '../DocTitle/titleStringBuilder'
 import FeatureToggleProvider from '../FeatureToggle/FeatureToggleProvider'
@@ -44,7 +45,7 @@ import {
   getDesktopTheme
 } from 'browser-components/desktop-api/desktop-api.handlers'
 import useDerivedTheme from 'browser-hooks/useDerivedTheme'
-import * as themes from 'browser/styles/themes'
+import { getThemePreset, getUiTheme } from 'browser/styles/themes'
 import packageJson from 'project-root/package.json'
 import { isRunningE2ETest } from 'services/utils'
 import { GlobalState } from 'shared/globalState'
@@ -96,13 +97,13 @@ export function App(props: any) {
     props.theme,
     LIGHT_THEME
   )
-  // @ts-expect-error ts-migrate(7053) FIXME: No index signature with a parameter of type 'strin... Remove this comment to see the full error message
-  const themeData = themes[derivedTheme] || themes[LIGHT_THEME]
+  const themeData = getUiTheme(derivedTheme)
+  const monacoThemeId = getThemePreset(derivedTheme).monacoThemeId
 
   // update cypher editor theme
   useEffect(() => {
-    setEditorTheme(derivedTheme)
-  }, [derivedTheme])
+    setEditorTheme(monacoThemeId)
+  }, [monacoThemeId])
 
   useKeyboardShortcuts(props.bus)
 
@@ -188,7 +189,7 @@ export function App(props: any) {
 
           getDesktopTheme(...args)
             .then(theme => setEnvironmentTheme(theme))
-            .catch(setEnvironmentTheme(null))
+            .catch(() => setEnvironmentTheme(null))
         }}
         onGraphActive={(...args: any[]) => {
           buildConnectionCreds(...args, { defaultConnectionData })
@@ -199,7 +200,7 @@ export function App(props: any) {
         onColorSchemeUpdated={(...args: any[]) =>
           getDesktopTheme(...args)
             .then(theme => setEnvironmentTheme(theme))
-            .catch(setEnvironmentTheme(null))
+            .catch(() => setEnvironmentTheme(null))
         }
         onArgumentsChange={(argsString: any) => {
           bus.send(URL_ARGUMENTS_CHANGE, { url: `?${argsString}` })

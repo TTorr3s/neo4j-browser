@@ -18,13 +18,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import reducer, {
+  AUTO_THEME,
+  BEARDED_MELLE_JULIET_LIGHT_THEME,
+  BEARDED_OLED_THEME,
+  BEARDED_VIVID_BLACK_THEME,
+  DARK_THEME,
   DISABLE_IMPLICIT_INIT_COMMANDS,
+  LIGHT_THEME,
   NAME,
+  NORD_THEME,
   REPLACE,
+  SOLARIZED_LIGHT_THEME,
   UPDATE,
-  getInitCmd
+  getInitCmd,
+  getTheme,
+  resolveTheme
 } from './settingsDuck'
 import { dehydrate } from 'services/duckUtils'
+import { APP_START } from 'shared/modules/app/appDuck'
 
 describe('settings reducer', () => {
   test('handles UPDATE without initial state', () => {
@@ -76,6 +87,33 @@ describe('settings reducer', () => {
       reducer(undefined, { type: DISABLE_IMPLICIT_INIT_COMMANDS })
     ).toEqual(expect.objectContaining({ playImplicitInitCommands: false }))
   })
+
+  it('accepts new preset theme ids', () => {
+    const themeIds = [
+      NORD_THEME,
+      SOLARIZED_LIGHT_THEME,
+      BEARDED_VIVID_BLACK_THEME,
+      BEARDED_OLED_THEME,
+      BEARDED_MELLE_JULIET_LIGHT_THEME
+    ]
+
+    themeIds.forEach(themeId => {
+      expect(
+        reducer(undefined, { type: UPDATE, state: { theme: themeId } })
+      ).toEqual(expect.objectContaining({ theme: themeId }))
+    })
+  })
+
+  it('normalizes invalid theme ids to auto', () => {
+    expect(
+      reducer(undefined, { type: UPDATE, state: { theme: 'unknown-theme' } })
+    ).toEqual(expect.objectContaining({ theme: AUTO_THEME }))
+    expect(
+      reducer({ ...reducer(undefined, { type: 'init' }), theme: 'bad' }, {
+        type: APP_START
+      } as any)
+    ).toEqual(expect.objectContaining({ theme: AUTO_THEME }))
+  })
 })
 
 describe('Selectors', () => {
@@ -100,5 +138,30 @@ describe('Selectors', () => {
       }
       expect(getInitCmd(state)).toEqual(t.expect)
     })
+  })
+
+  test('getTheme keeps valid ids and normalizes invalid values', () => {
+    const themeIds = [
+      NORD_THEME,
+      SOLARIZED_LIGHT_THEME,
+      BEARDED_VIVID_BLACK_THEME,
+      BEARDED_OLED_THEME,
+      BEARDED_MELLE_JULIET_LIGHT_THEME
+    ]
+
+    themeIds.forEach(themeId => {
+      expect(getTheme({ [NAME]: { theme: themeId } })).toEqual(themeId)
+    })
+    expect(getTheme({ [NAME]: { theme: 'not-real' } })).toEqual(AUTO_THEME)
+  })
+
+  test('resolveTheme maps auto to normal or dark only', () => {
+    expect(resolveTheme(AUTO_THEME)).toEqual(LIGHT_THEME)
+    expect(resolveTheme(AUTO_THEME, DARK_THEME)).toEqual(DARK_THEME)
+    expect(resolveTheme(AUTO_THEME, 'light')).toEqual(LIGHT_THEME)
+    expect(resolveTheme(NORD_THEME, DARK_THEME)).toEqual(NORD_THEME)
+    expect(resolveTheme(BEARDED_OLED_THEME, LIGHT_THEME)).toEqual(
+      BEARDED_OLED_THEME
+    )
   })
 })

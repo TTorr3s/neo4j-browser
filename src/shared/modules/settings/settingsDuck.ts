@@ -31,6 +31,59 @@ export const AUTO_THEME = 'auto'
 export const LIGHT_THEME = 'normal'
 export const OUTLINE_THEME = 'outline'
 export const DARK_THEME = 'dark'
+export const NORD_THEME = 'nord'
+export const SOLARIZED_LIGHT_THEME = 'solarizedLight'
+export const BEARDED_VIVID_BLACK_THEME = 'beardedVividBlack'
+export const BEARDED_OLED_THEME = 'beardedOled'
+export const BEARDED_MELLE_JULIET_LIGHT_THEME = 'beardedMelleJulietLight'
+
+export const THEME_IDS = [
+  AUTO_THEME,
+  LIGHT_THEME,
+  OUTLINE_THEME,
+  DARK_THEME,
+  NORD_THEME,
+  SOLARIZED_LIGHT_THEME,
+  BEARDED_VIVID_BLACK_THEME,
+  BEARDED_OLED_THEME,
+  BEARDED_MELLE_JULIET_LIGHT_THEME
+] as const
+
+export const RESOLVED_THEME_IDS = [
+  LIGHT_THEME,
+  OUTLINE_THEME,
+  DARK_THEME,
+  NORD_THEME,
+  SOLARIZED_LIGHT_THEME,
+  BEARDED_VIVID_BLACK_THEME,
+  BEARDED_OLED_THEME,
+  BEARDED_MELLE_JULIET_LIGHT_THEME
+] as const
+
+export type ThemeId = (typeof THEME_IDS)[number]
+export type ResolvedThemeId = (typeof RESOLVED_THEME_IDS)[number]
+
+export const isThemeId = (theme: unknown): theme is ThemeId =>
+  typeof theme === 'string' && THEME_IDS.includes(theme as ThemeId)
+
+export const isResolvedThemeId = (theme: unknown): theme is ResolvedThemeId =>
+  typeof theme === 'string' &&
+  RESOLVED_THEME_IDS.includes(theme as ResolvedThemeId)
+
+export const normalizeTheme = (theme: unknown): ThemeId =>
+  isThemeId(theme) ? theme : AUTO_THEME
+
+export const resolveTheme = (
+  selectedTheme: unknown,
+  environmentTheme?: unknown
+): ResolvedThemeId => {
+  const normalizedTheme = normalizeTheme(selectedTheme)
+  if (normalizedTheme !== AUTO_THEME) {
+    return normalizedTheme
+  }
+
+  return environmentTheme === DARK_THEME ? DARK_THEME : LIGHT_THEME
+}
 
 export const NEO4J_CLOUD_DOMAINS = ['neo4j.io']
 
@@ -43,7 +96,8 @@ export const getMaxHistory = (state: any) =>
 export const getInitCmd = (state: any) => (state[NAME].initCmd || '').trim()
 export const getPlayImplicitInitCommands = (state: any) =>
   state[NAME].playImplicitInitCommands
-export const getTheme = (state: any) => state[NAME].theme || initialState.theme
+export const getTheme = (state: any) =>
+  normalizeTheme(state[NAME].theme || initialState.theme)
 export const getUseBoltRouting = (state: any) =>
   state[NAME].useBoltRouting || initialState.useBoltRouting
 export const getMaxNeighbours = (state: GlobalState): number =>
@@ -81,11 +135,7 @@ export const shouldShowGqlErrorsAndNotifications = (state: any) =>
 // but they're saved as strings in the settings component
 export type SettingsState = {
   maxHistory: string | number
-  theme:
-    | typeof AUTO_THEME
-    | typeof LIGHT_THEME
-    | typeof OUTLINE_THEME
-    | typeof DARK_THEME
+  theme: ThemeId
   initCmd: string
   playImplicitInitCommands: boolean
   initialNodeDisplay: string | number
@@ -104,6 +154,13 @@ export type SettingsState = {
   allowUserStats: boolean
   showWheelZoomInfo: boolean
   useReadTransactions: boolean
+}
+
+const normalizeSettingsState = (state: Record<string, any>) => {
+  if (typeof state.theme === 'undefined') {
+    return state
+  }
+  return { ...state, theme: normalizeTheme(state.theme) }
 }
 
 export const initialState: SettingsState = {
@@ -132,16 +189,16 @@ export const initialState: SettingsState = {
 export default function settings(state = initialState, action: any) {
   switch (action.type) {
     case APP_START:
-      return { ...initialState, ...state }
+      return { ...initialState, ...normalizeSettingsState(state) }
     case UPDATE:
       return {
         ...state,
-        ...action.state
+        ...normalizeSettingsState(action.state)
       }
     case REPLACE:
       return {
         ...initialState,
-        ...action.state
+        ...normalizeSettingsState(action.state)
       }
     case USER_CLEAR:
       return initialState
