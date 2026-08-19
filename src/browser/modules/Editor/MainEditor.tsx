@@ -19,7 +19,14 @@
  */
 import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
 import { QueryResult } from 'neo4j-driver'
-import { Dispatch, type JSX, useEffect, useRef, useState } from 'react'
+import {
+  Dispatch,
+  type JSX,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
 import { Action } from 'redux'
@@ -31,6 +38,7 @@ import {
   CypherEditorHandle
 } from 'neo4j-arc/cypher-language-support'
 
+import { EditorResizer } from './EditorResizer'
 import {
   CurrentEditIconContainer,
   EditorContainer,
@@ -39,6 +47,7 @@ import {
   MainEditorWrapper,
   ScriptTitle
 } from './styled'
+import { useEditorHeightMode } from './useEditorHeightMode'
 import { defaultNameFromDisplayContent } from 'browser-components/SavedScripts'
 import {
   FrameButton,
@@ -116,11 +125,18 @@ export function MainEditor({
 }: EditorFrameProps): JSX.Element {
   const [unsaved, setUnsaved] = useState(false)
   const [isFullscreen, setFullscreen] = useState(false)
-  const [isExtended, setExtended] = useState(false)
   const [currentlyEditing, setCurrentlyEditing] = useState<SavedScript | null>(
     null
   )
   const editorRef = useRef<CypherEditorHandle>(null)
+  const {
+    mode: heightMode,
+    fixedHeight,
+    isFixed,
+    setManualHeight,
+    resetToAuto,
+    togglePreset
+  } = useEditorHeightMode()
 
   // Use the history provider for IndexedDB-backed async history navigation
   const historyProvider = useHistoryProvider()
@@ -129,13 +145,10 @@ export function MainEditor({
     setFullscreen(fs => !fs)
   }
 
-  const toggleExtended = () => {
-    setExtended(ex => !ex)
-  }
-
-  useEffect(() => {
-    editorRef.current?.resize()
-  }, [isFullscreen, isExtended])
+  const getEditorHeight = useCallback(
+    () => editorRef.current?.getHeight() ?? 0,
+    []
+  )
 
   useEffect(() => bus && bus.take(EXPAND, toggleFullscreen), [bus])
   useEffect(
@@ -187,17 +200,18 @@ export function MainEditor({
     editorRef.current?.setValue('')
     setCurrentlyEditing(null)
     setFullscreen(false)
-    setExtended(false)
+    resetToAuto()
   }
 
   const buttons = [
     {
-      onClick: toggleExtended,
-      title: isExtended ? 'Collapse editor' : 'Extend editor',
-      icon: isExtended ? <EditorShrinkIcon /> : <EditorExtendIcon />,
+      onClick: togglePreset,
+      title: isFixed ? 'Fit editor to query' : 'Extend editor',
+      icon: isFixed ? <EditorShrinkIcon /> : <EditorExtendIcon />,
       testId: 'extended',
       disabled: isFullscreen
     },
+
     {
       onClick: toggleFullscreen,
       title: `${
@@ -220,7 +234,7 @@ export function MainEditor({
       editorRef.current?.setValue('')
       setCurrentlyEditing(null)
       setFullscreen(false)
-      setExtended(false)
+      resetToAuto()
     }
   }
 
@@ -234,11 +248,7 @@ export function MainEditor({
   const showUnsaved = !!(unsaved && currentlyEditing)
 
   return (
-    <MainEditorWrapper
-      isFullscreen={isFullscreen}
-      isExtended={isExtended}
-      data-testid="activeEditor"
-    >
+    <MainEditorWrapper isFullscreen={isFullscreen} data-testid="activeEditor">
       {currentlyEditing && (
         <ScriptTitle data-testid="currentlyEditing" unsaved={showUnsaved}>
           <CurrentEditIconContainer>
@@ -258,8 +268,8 @@ export function MainEditor({
               history={history}
               historyProvider={historyProvider}
               id={'main-editor'}
-              isFullscreen={isFullscreen}
-              isExtended={isExtended}
+              heightMode={isFullscreen ? 'fullscreen' : heightMode}
+              fixedHeight={fixedHeight}
               onChange={() => {
                 setUnsaved(true)
               }}
@@ -345,6 +355,13 @@ export function MainEditor({
           )}
         </StyledMainEditorButtonsContainer>
       </FlexContainer>
+      {!isFullscreen && (
+        <EditorResizer
+          getCurrentHeight={getEditorHeight}
+          onResize={setManualHeight}
+          onReset={resetToAuto}
+        />
+      )}
     </MainEditorWrapper>
   )
 }

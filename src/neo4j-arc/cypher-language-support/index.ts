@@ -18,11 +18,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export { CypherEditor } from './cypher-editor/CypherEditor'
+export {
+  CypherEditor,
+  computeEditorHeight,
+  autoMaxHeight,
+  DEFAULT_MIN_HEIGHT,
+  DEFAULT_MAX_HEIGHT_PX,
+  DEFAULT_MAX_HEIGHT_VIEWPORT_RATIO
+} from './cypher-editor/CypherEditor'
 export type {
   CypherEditorProps,
-  CypherEditorHandle
+  CypherEditorHandle,
+  EditorHeightMode,
+  EditorHeightInput
 } from './cypher-editor/CypherEditor'
+
 export {
   setupAutocomplete,
   setEditorTheme,

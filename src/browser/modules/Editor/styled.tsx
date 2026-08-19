@@ -19,12 +19,8 @@
  */
 import styled from 'styled-components'
 
-interface FullscreenProps {
+interface WrapperProps {
   isFullscreen: boolean
-}
-
-interface WrapperProps extends FullscreenProps {
-  isExtended?: boolean
 }
 
 export const Header = styled.div`
@@ -54,18 +50,6 @@ export const MainEditorWrapper = styled.div<WrapperProps>`
       border-radius: 0;
       z-index: 103;
       margin: 0;
-
-      [id^=monaco-] .monaco-editor {
-        height: calc(100vh - 20px) !important;
-      }
-  `};
-  ${props =>
-    props.isExtended &&
-    !props.isFullscreen &&
-    `
-      [id^=monaco-] .monaco-editor {
-        height: max(250px, 24vh) !important;
-      }
   `};
 `
 

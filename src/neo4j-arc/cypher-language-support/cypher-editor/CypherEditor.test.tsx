@@ -18,10 +18,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { render } from '@testing-library/react'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import React from 'react'
 
 import { CypherEditor } from './CypherEditor'
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 
 const noOp = () => undefined
 
@@ -39,7 +39,6 @@ describe('CypherEditor', () => {
         history={[]}
         onChange={noOp}
         onExecute={noOp}
-        isFullscreen={false}
         id="test-id"
         sendCypherQuery={
           (() => Promise.resolve({ summary: { notifications: [] } })) as any
@@ -59,7 +58,6 @@ describe('CypherEditor', () => {
         history={[]}
         onChange={noOp}
         onExecute={noOp}
-        isFullscreen={false}
         id="test-id"
         sendCypherQuery={
           (() => Promise.resolve({ summary: { notifications: [] } })) as any
@@ -79,7 +77,6 @@ describe('CypherEditor', () => {
         history={[]}
         onChange={noOp}
         onExecute={noOp}
-        isFullscreen={false}
         id="test-id"
         sendCypherQuery={
           (() => Promise.resolve({ summary: { notifications: [] } })) as any
@@ -106,7 +103,6 @@ describe('CypherEditor', () => {
         history={[]}
         onChange={noOp}
         onExecute={noOp}
-        isFullscreen={false}
         id="test-id"
         value={initialValue}
         sendCypherQuery={
@@ -132,7 +128,6 @@ describe('CypherEditor', () => {
         history={[]}
         onChange={noOp}
         onExecute={noOp}
-        isFullscreen={false}
         id="custom-id"
         sendCypherQuery={
           (() => Promise.resolve({ summary: { notifications: [] } })) as any
@@ -141,5 +136,97 @@ describe('CypherEditor', () => {
     )
 
     expect(container.querySelector('#monaco-custom-id')).toBeInTheDocument()
+  })
+})
+
+describe('CypherEditor auto height', () => {
+  // jsdom's viewport is 768px tall, so the auto ceiling is the 400px floor
+  const AUTO_CEILING = 400
+
+  type MockEditor = {
+    layout: jest.Mock
+    getContentHeight: jest.Mock
+    onDidContentSizeChange: jest.Mock
+  }
+
+  function renderEditor(props: Record<string, unknown> = {}) {
+    render(
+      <CypherEditor
+        enableMultiStatementMode={true}
+        fontLigatures={true}
+        useDb={null}
+        history={[]}
+        onChange={noOp}
+        onExecute={noOp}
+        id="height-test"
+        sendCypherQuery={
+          (() => Promise.resolve({ summary: { notifications: [] } })) as any
+        }
+        {...props}
+      />
+    )
+
+    const editor = (monaco.editor.create as jest.Mock).mock.results[0]
+      .value as MockEditor
+    // The handler the editor registered for Monaco's content-size events
+    const onContentSizeChange = editor.onDidContentSizeChange.mock
+      .calls[0][0] as () => void
+
+    return { editor, onContentSizeChange }
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('grows to fit the content as the query gets longer', () => {
+    const { editor, onContentSizeChange } = renderEditor()
+
+    editor.getContentHeight.mockReturnValue(230)
+    editor.layout.mockClear()
+    onContentSizeChange()
+
+    expect(editor.layout).toHaveBeenCalledWith(
+      expect.objectContaining({ height: 230 })
+    )
+  })
+
+  it('stops growing at the ceiling', () => {
+    const { editor, onContentSizeChange } = renderEditor()
+
+    editor.getContentHeight.mockReturnValue(5000)
+    editor.layout.mockClear()
+    onContentSizeChange()
+
+    expect(editor.layout).toHaveBeenCalledWith(
+      expect.objectContaining({ height: AUTO_CEILING })
+    )
+  })
+
+  it('does not lay out again when the height is unchanged', () => {
+    const { editor, onContentSizeChange } = renderEditor()
+
+    editor.getContentHeight.mockReturnValue(230)
+    onContentSizeChange()
+    editor.layout.mockClear()
+
+    // Monaco re-fires after a layout; without the guard this loops forever
+    onContentSizeChange()
+    onContentSizeChange()
+
+    expect(editor.layout).not.toHaveBeenCalled()
+  })
+
+  it('ignores content growth once a height is pinned', () => {
+    const { editor, onContentSizeChange } = renderEditor({
+      heightMode: 'fixed',
+      fixedHeight: 250
+    })
+
+    editor.getContentHeight.mockReturnValue(5000)
+    editor.layout.mockClear()
+    onContentSizeChange()
+
+    expect(editor.layout).not.toHaveBeenCalled()
   })
 })

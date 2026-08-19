@@ -56,18 +56,22 @@ const Handle = styled.div<{ active: boolean }>`
 `
 
 type Props = {
-  /** Current editor height in pixels, or null for default. */
-  currentHeight: number | null
-  /** Editor's measured height when no custom height is set — used as starting point. */
-  fallbackHeight: number
+  /**
+   * The editor's height right now, in px. Read at gesture start so a drag picks
+   * up where auto-sizing left off instead of jumping to some preset.
+   */
+  getCurrentHeight: () => number
+  /** Pin the editor to a height. */
   onResize: (next: number) => void
+  /** Hand sizing back to the content. Bound to double-click. */
+  onReset?: () => void
   ariaLabel?: string
 }
 
 export function EditorResizer({
-  currentHeight,
-  fallbackHeight,
+  getCurrentHeight,
   onResize,
+  onReset,
   ariaLabel = 'Resize editor'
 }: Props): JSX.Element {
   const isDraggingRef = useRef(false)
@@ -80,11 +84,11 @@ export function EditorResizer({
       event.preventDefault()
       isDraggingRef.current = true
       startYRef.current = event.clientY
-      startHeightRef.current = currentHeight ?? fallbackHeight
+      startHeightRef.current = getCurrentHeight()
       setActive(true)
       document.body.style.cursor = 'row-resize'
     },
-    [currentHeight, fallbackHeight]
+    [getCurrentHeight]
   )
 
   useEffect(() => {
@@ -109,16 +113,19 @@ export function EditorResizer({
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      const base = currentHeight ?? fallbackHeight
+      const base = getCurrentHeight()
       if (event.key === 'ArrowDown') {
         event.preventDefault()
         onResize(base + KEYBOARD_STEP)
       } else if (event.key === 'ArrowUp') {
         event.preventDefault()
         onResize(base - KEYBOARD_STEP)
+      } else if (onReset && (event.key === 'Escape' || event.key === 'Enter')) {
+        event.preventDefault()
+        onReset()
       }
     },
-    [currentHeight, fallbackHeight, onResize]
+    [getCurrentHeight, onResize, onReset]
   )
 
   return (
@@ -126,10 +133,12 @@ export function EditorResizer({
       role="separator"
       aria-orientation="horizontal"
       aria-label={ariaLabel}
+      title="Drag to resize, double-click to fit the query"
       tabIndex={0}
       active={active}
       data-testid="frame-editor-resizer"
       onMouseDown={handleMouseDown}
+      onDoubleClick={onReset}
       onKeyDown={handleKeyDown}
     />
   )

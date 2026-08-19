@@ -32,6 +32,7 @@ import {
 import { URL } from 'whatwg-url'
 
 import App from './modules/App/App'
+import { clearLegacyFrameEditorHeight } from './modules/Editor/editorHeightMigration'
 import { BusContext } from 'browser-hooks/useBus'
 import { applyKeys, createReduxMiddleware, getAll } from 'services/localstorage'
 import { detectRuntimeEnv } from 'services/utils'
@@ -44,6 +45,9 @@ import { NEO4J_CLOUD_DOMAINS } from 'shared/modules/settings/settingsDuck'
 import { updateUdcData } from 'shared/modules/udc/udcDuck'
 import epics from 'shared/rootEpic'
 import reducers from 'shared/rootReducer'
+
+// Drop the globally-persisted frame editor height from earlier versions
+clearLegacyFrameEditorHeight()
 
 // Configure localstorage sync
 applyKeys(

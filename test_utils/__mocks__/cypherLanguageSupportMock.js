@@ -46,8 +46,17 @@ const toLabel = jest.fn(l => ({ label: l }))
 const toProcedure = jest.fn(p => ({ name: p }))
 const toRelationshipType = jest.fn(r => ({ relationshipType: r }))
 
+// Height defaults — must mirror the real values in CypherEditor.tsx
+const DEFAULT_MIN_HEIGHT = 80
+const DEFAULT_MAX_HEIGHT_PX = 400
+const DEFAULT_MAX_HEIGHT_VIEWPORT_RATIO = 0.4
+
 module.exports = {
   CypherEditor,
+  DEFAULT_MIN_HEIGHT,
+  DEFAULT_MAX_HEIGHT_PX,
+  DEFAULT_MAX_HEIGHT_VIEWPORT_RATIO,
+
   setupAutocomplete,
   setEditorTheme,
   initalizeCypherSupport,

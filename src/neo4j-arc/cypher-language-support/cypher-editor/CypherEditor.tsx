@@ -87,12 +87,18 @@ export type CypherEditorProps = {
   /** Provider for async history storage (IndexedDB). Takes precedence over history prop. */
   historyProvider?: HistoryProvider
   id?: string
-  isFullscreen?: boolean
-  /** When true, the editor takes max(250px, 24vh) instead of auto-growing up to 276px. */
-  isExtended?: boolean
-  /** Explicit pixel height. Overrides isExtended/compact behavior when provided. */
-  customHeight?: number | null
+  /** How the editor sizes itself. Defaults to fitting the content. */
+  heightMode?: EditorHeightMode
+  /** Pixel height used when `heightMode` is `fixed`. */
+  fixedHeight?: number | null
+  /** Floor for every mode. */
+  minHeight?: number
+  /** Auto-mode ceiling, in px. Combined with `maxHeightViewportRatio`. */
+  maxHeightPx?: number
+  /** Auto-mode ceiling, as a share of the viewport. The taller of the two wins. */
+  maxHeightViewportRatio?: number
   onChange?: (value: string) => void
+
   onDisplayHelpKeys?: () => void
   onExecute?: (value: string) => void
   sendCypherQuery?: (query: string) => Promise<QueryResult>
@@ -113,32 +119,66 @@ export interface CypherEditorHandle {
   setValue: (value: string) => void
   setPosition: (pos: { lineNumber: number; column: number }) => void
   resize: () => void
+  /** Currently rendered height in px. Drag handles start their gesture from here. */
+  getHeight: () => number
 }
 
-const COMPACT_MAX_HEIGHT = 276
-const EXTENDED_MIN_HEIGHT = 250
-const EXTENDED_VIEWPORT_RATIO = 0.24
+/**
+ * How the editor decides its own height.
+ * - `auto`: grows and shrinks with the content, clamped between min and max.
+ * - `fixed`: the user picked a height (drag/preset); content no longer moves it.
+ * - `fullscreen`: fills the viewport, wins over everything else.
+ */
+export type EditorHeightMode = 'auto' | 'fixed' | 'fullscreen'
 
-function computeEditorHeight(
-  contentHeight: number,
-  scrollHeight: number,
-  isFullscreen: boolean,
-  isExtended: boolean,
-  customHeight: number | null
+/** Three lines at the editor's 23px line height, plus room for the scrollbar. */
+export const DEFAULT_MIN_HEIGHT = 80
+/** Auto mode never caps below this, however short the viewport is. */
+export const DEFAULT_MAX_HEIGHT_PX = 400
+export const DEFAULT_MAX_HEIGHT_VIEWPORT_RATIO = 0.4
+const FULLSCREEN_MARGIN = 20
+
+/** Ceiling for auto mode: the fixed floor or a slice of the viewport, whichever is taller. */
+export function autoMaxHeight(
+  maxHeightPx: number,
+  viewportRatio: number,
+  viewportHeight: number
 ): number {
-  if (isFullscreen) {
-    return Math.min(window.innerHeight - 20, scrollHeight)
+  return Math.max(maxHeightPx, Math.floor(viewportHeight * viewportRatio))
+}
+
+export type EditorHeightInput = {
+  contentHeight: number
+  mode: EditorHeightMode
+  fixedHeight: number | null
+  minHeight: number
+  maxHeightPx: number
+  maxHeightViewportRatio: number
+  viewportHeight: number
+}
+
+export function computeEditorHeight({
+  contentHeight,
+  mode,
+  fixedHeight,
+  minHeight,
+  maxHeightPx,
+  maxHeightViewportRatio,
+  viewportHeight
+}: EditorHeightInput): number {
+  if (mode === 'fullscreen') {
+    return Math.max(minHeight, viewportHeight - FULLSCREEN_MARGIN)
   }
-  if (typeof customHeight === 'number') {
-    return customHeight
+
+  // A height the user set by hand is only floored, never capped — dragging past
+  // the auto ceiling is the whole point of setting it by hand. Callers clamp the
+  // upper bound before it gets here.
+  if (mode === 'fixed' && typeof fixedHeight === 'number') {
+    return Math.max(minHeight, fixedHeight)
   }
-  if (isExtended) {
-    return Math.max(
-      EXTENDED_MIN_HEIGHT,
-      Math.floor(window.innerHeight * EXTENDED_VIEWPORT_RATIO)
-    )
-  }
-  return Math.min(COMPACT_MAX_HEIGHT, contentHeight)
+
+  const max = autoMaxHeight(maxHeightPx, maxHeightViewportRatio, viewportHeight)
+  return Math.min(Math.max(minHeight, contentHeight), max)
 }
 
 export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
@@ -150,10 +190,13 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
       history = [],
       historyProvider,
       id = 'main',
-      isFullscreen = false,
-      isExtended = false,
-      customHeight = null,
+      heightMode = 'auto',
+      fixedHeight = null,
+      minHeight = DEFAULT_MIN_HEIGHT,
+      maxHeightPx = DEFAULT_MAX_HEIGHT_PX,
+      maxHeightViewportRatio = DEFAULT_MAX_HEIGHT_VIEWPORT_RATIO,
       onChange = () => undefined,
+
       onDisplayHelpKeys = () => undefined,
       onExecute,
       sendCypherQuery = () =>
@@ -205,20 +248,34 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
       historyProviderRef.current = historyProvider
     }, [historyProvider])
 
-    // Refs to keep height-mode flags fresh inside Monaco event listeners that
+    // Refs to keep the height settings fresh inside Monaco event listeners that
     // capture their closure variables at mount time.
-    const isFullscreenRef = useRef(isFullscreen)
-    const isExtendedRef = useRef(isExtended)
-    const customHeightRef = useRef<number | null>(customHeight)
+    const heightSettingsRef = useRef({
+      heightMode,
+      fixedHeight,
+      minHeight,
+      maxHeightPx,
+      maxHeightViewportRatio
+    })
     useEffect(() => {
-      isFullscreenRef.current = isFullscreen
-    }, [isFullscreen])
-    useEffect(() => {
-      isExtendedRef.current = isExtended
-    }, [isExtended])
-    useEffect(() => {
-      customHeightRef.current = customHeight
-    }, [customHeight])
+      heightSettingsRef.current = {
+        heightMode,
+        fixedHeight,
+        minHeight,
+        maxHeightPx,
+        maxHeightViewportRatio
+      }
+    }, [
+      heightMode,
+      fixedHeight,
+      minHeight,
+      maxHeightPx,
+      maxHeightViewportRatio
+    ])
+
+    // Last height we handed to Monaco. Guards against the feedback loop where
+    // laying out re-wraps the text, which fires onDidContentSizeChange again.
+    const lastAppliedHeightRef = useRef<number | null>(null)
 
     // Reset history index when history changes to prevent stale index references
     // This handles the case when a new query is executed and added to history
@@ -469,17 +526,25 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
       }
     }, [getMonacoId, updateGutterCharWidth, useDb])
 
-    // Resize handler — reads current props via refs so callers don't need to
-    // pass them explicitly when toggling height modes.
-    const resize = useCallback((): void => {
+    // The single place that sizes the editor. Every trigger (content changes,
+    // container resizes, mode switches, viewport resizes) funnels through here
+    // so there is one source of truth for the height.
+    const applyHeight = useCallback((force = false): void => {
       if (!containerRef.current || !editorRef.current) return
-      const height = computeEditorHeight(
-        editorRef.current.getContentHeight(),
-        containerRef.current.scrollHeight,
-        isFullscreenRef.current,
-        isExtendedRef.current,
-        customHeightRef.current
-      )
+      const settings = heightSettingsRef.current
+      const height = computeEditorHeight({
+        contentHeight: editorRef.current.getContentHeight(),
+        mode: settings.heightMode,
+        fixedHeight: settings.fixedHeight,
+        minHeight: settings.minHeight,
+        maxHeightPx: settings.maxHeightPx,
+        maxHeightViewportRatio: settings.maxHeightViewportRatio,
+        viewportHeight: window.innerHeight
+      })
+
+      const last = lastAppliedHeightRef.current
+      if (!force && last !== null && Math.abs(height - last) < 1) return
+      lastAppliedHeightRef.current = height
 
       containerRef.current.style.height = `${height}px`
       editorRef.current.layout({
@@ -487,6 +552,8 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
         width: containerRef.current.offsetWidth
       })
     }, [])
+
+    const resize = useCallback((): void => applyHeight(true), [applyHeight])
 
     // Expose public API via ref
     useImperativeHandle(
@@ -505,7 +572,11 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
         setPosition: (pos: { lineNumber: number; column: number }) => {
           editorRef.current?.setPosition(pos)
         },
-        resize
+        resize,
+        getHeight: () =>
+          lastAppliedHeightRef.current ??
+          containerRef.current?.offsetHeight ??
+          0
       }),
       [internalSetValue, resize]
     )
@@ -780,20 +851,7 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
 
       editorEventDisposablesRef.current.push(
         editorRef.current.onDidContentSizeChange(() => {
-          if (!containerRef.current || !editorRef.current) return
-          const height = computeEditorHeight(
-            editorRef.current.getContentHeight(),
-            containerRef.current.scrollHeight,
-            isFullscreenRef.current,
-            isExtendedRef.current,
-            customHeightRef.current
-          )
-
-          containerRef.current.style.height = `${height}px`
-          editorRef.current.layout({
-            height,
-            width: containerRef.current.offsetWidth
-          })
+          applyHeight()
         })
       )
 
@@ -874,15 +932,22 @@ export const CypherEditor = forwardRef<CypherEditorHandle, CypherEditorProps>(
       })
     }, [isEditorFocusable, tabIndex])
 
-    // Recompute layout when height mode changes. The window listener keeps the
-    // extended/fullscreen height in sync with viewport resizes.
+    // Recompute when the height settings change. The window listener is always
+    // on because every mode now depends on the viewport: fullscreen fills it and
+    // auto's ceiling is a share of it.
     useEffect(() => {
       resize()
-      if (!isExtended && !isFullscreen && customHeight === null) return
       const handleWindowResize = () => resize()
       window.addEventListener('resize', handleWindowResize)
       return () => window.removeEventListener('resize', handleWindowResize)
-    }, [isExtended, isFullscreen, customHeight, resize])
+    }, [
+      heightMode,
+      fixedHeight,
+      minHeight,
+      maxHeightPx,
+      maxHeightViewportRatio,
+      resize
+    ])
 
     if (editorError !== null) {
       return (

@@ -27,7 +27,8 @@ import { Bus } from 'suber'
 
 import {
   CypherEditor,
-  CypherEditorHandle
+  CypherEditorHandle,
+  EditorHeightMode
 } from 'neo4j-arc/cypher-language-support'
 
 import { MAIN_WRAPPER_DOM_ID } from '../App/App'
@@ -73,7 +74,13 @@ type FrameEditorBaseProps = {
   copyItems: CopyItem[]
   bus: Bus
   params: Record<string, unknown>
-  editorHeight?: number | null
+  heightMode?: EditorHeightMode
+  fixedHeight?: number | null
+  /**
+   * Owned by the parent so the resize handle, which lives outside this
+   * component, can read the editor's current height at gesture start.
+   */
+  editorHandleRef?: React.RefObject<CypherEditorHandle | null>
 }
 
 type FrameEditorProps = FrameEditorBaseProps & {
@@ -99,34 +106,29 @@ function FrameEditor({
   copyItems,
   bus,
   params,
-  editorHeight = null
+  heightMode = 'auto',
+  fixedHeight = null,
+  editorHandleRef
 }: FrameEditorProps) {
-  const hasCustomHeight = editorHeight !== null
+  const isFixedHeight = heightMode === 'fixed'
   const [editorValue, setEditorValue] = useState(frame.cmd)
   const [renderEditor, setRenderEditor] = useState(
-    frame.isRerun || hasCustomHeight
+    frame.isRerun || isFixedHeight
   )
 
   useEffect(() => {
     // makes sure the frame is updated as links in frame is followed
     editorRef.current?.setValue(frame.cmd)
   }, [frame.cmd])
-  const editorRef = useRef<CypherEditorHandle>(null)
+  const localEditorRef = useRef<CypherEditorHandle>(null)
+  const editorRef = editorHandleRef ?? localEditorRef
 
-  // Keep the editor expanded while a custom editor height is active.
+  // A height the user pinned by hand only makes sense with the editor showing.
   useEffect(() => {
-    if (hasCustomHeight) {
+    if (isFixedHeight) {
       setRenderEditor(true)
     }
-  }, [hasCustomHeight])
-
-  // Trigger a layout recalculation when the custom height changes while the
-  // editor is already rendered (e.g. user drags the resizer).
-  useEffect(() => {
-    if (renderEditor) {
-      editorRef.current?.resize()
-    }
-  }, [editorHeight, renderEditor])
+  }, [isFixedHeight])
 
   function run(cmd: string) {
     reRun(frame, cmd)
@@ -161,7 +163,7 @@ function FrameEditor({
         if (editorRefVal && editorRefVal !== editorValue) {
           setEditorValue(editorRefVal)
         }
-        if (!hasCustomHeight) {
+        if (!isFixedHeight) {
           setRenderEditor(false)
         }
       }
@@ -192,10 +194,7 @@ function FrameEditor({
   const history = (frame.history || []).slice(1)
 
   return (
-    <StyledFrameEditorContainer
-      ref={titleBarRef}
-      customHeight={hasCustomHeight && renderEditor ? editorHeight : undefined}
-    >
+    <StyledFrameEditorContainer ref={titleBarRef}>
       <Header>
         {renderEditor ? (
           <EditorContainer onClick={onPreviewClick} data-testid="frameCommand">
@@ -204,8 +203,8 @@ function FrameEditor({
               fontLigatures={codeFontLigatures}
               history={history}
               id={`editor-${frame.id}`}
-              isFullscreen={false}
-              customHeight={editorHeight}
+              heightMode={heightMode}
+              fixedHeight={fixedHeight}
               onChange={setEditorValue}
               onExecute={run}
               ref={editorRef}
