@@ -34,7 +34,10 @@
       "neo4j-arc/cypher-language-support": [
         "neo4j-arc/cypher-language-support"
       ],
-      "icons/*": ["browser/icons/*"]
+      "icons/*": ["browser/icons/*"],
+      "monaco-editor/editor/editor.api": [
+        "../node_modules/monaco-editor/esm/vs/editor/editor.api"
+      ]
     }
   },
   "include": ["./src/**/*"],

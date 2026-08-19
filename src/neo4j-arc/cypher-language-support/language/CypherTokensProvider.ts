@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { CypherLexer } from '@neo4j-cypher/antlr4'
-import { languages } from 'monaco-editor/esm/vs/editor/editor.api'
 import { createCypherLexer } from '@neo4j-cypher/editor-support'
+import { languages } from 'monaco-editor/editor/editor.api'
 
 class CypherState implements languages.IState {
   clone() {

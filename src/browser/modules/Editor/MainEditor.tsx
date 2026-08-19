@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { KeyCode } from 'monaco-editor/esm/vs/editor/editor.api'
+import { KeyCode } from 'monaco-editor/editor/editor.api'
 import { QueryResult } from 'neo4j-driver'
 import {
   Dispatch,

@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import { render } from '@testing-library/react'
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import * as monaco from 'monaco-editor/editor/editor.api'
 import React from 'react'
 
 import { CypherEditor } from './CypherEditor'

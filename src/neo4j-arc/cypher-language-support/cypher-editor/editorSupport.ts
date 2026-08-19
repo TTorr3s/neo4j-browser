@@ -22,7 +22,7 @@ import {
   EditorSupportSchema
 } from '@neo4j-cypher/editor-support'
 import type { EditorSupportCompletionItem } from '@neo4j-cypher/editor-support'
-import { editor, languages } from 'monaco-editor/esm/vs/editor/editor.api'
+import { editor, languages } from 'monaco-editor/editor/editor.api'
 
 import { CypherTokensProvider } from '../language/CypherTokensProvider'
 import cypherBaseFunctions from '../language/cypherBaseFunctions'

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { editor } from 'monaco-editor/esm/vs/editor/editor.api'
+import { editor } from 'monaco-editor/editor/editor.api'
 
 // Tokyo Night Storm color palette for Cypher syntax highlighting
 // Inspired by enkia.tokyo-night VS Code extension

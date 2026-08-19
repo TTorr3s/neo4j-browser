@@ -139,7 +139,7 @@ src/
 - **@reduxjs/toolkit 2.11.1**
 - **neo4j-driver 6.0.1** for database connectivity
 - **styled-components 5.3.3** for styling
-- **Monaco Editor 0.55.0** for code editing
+- **Monaco Editor 0.56.0** for code editing
 - **D3 v3** (d3-force, d3-zoom, d3-selection, d3-drag, d3-color, d3-shape, d3-transition) for graph visualization
 - **Cypress 13.17.0** for E2E testing
 - **Jest 29.7.0** for unit testing

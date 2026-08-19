@@ -19,8 +19,7 @@
  */
 import { ResizeObserver } from '@juggle/resize-observer'
 import { QueryOrCommand, parse } from '@neo4j-cypher/editor-support'
-import 'monaco-editor/esm/vs/editor/editor.all.js'
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import * as monaco from 'monaco-editor/editor/editor.api'
 import { QueryResult } from 'neo4j-driver-core'
 import React, {
   forwardRef,
