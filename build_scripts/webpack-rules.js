@@ -180,6 +180,11 @@ module.exports = [
         loader: 'css-loader',
         options: {
           modules: {
+            // css-loader v7 cambió el default de namedExport a true, lo que
+            // elimina el `export default` del CSS module y rompe
+            // `import styles from './x.css'` (styles === undefined).
+            // Lo fijamos en false para conservar el default export.
+            namedExport: false,
             localIdentName: '[local]',
             exportLocalsConvention: 'camelCase'
           },
@@ -202,6 +207,11 @@ module.exports = [
         loader: 'css-loader',
         options: {
           modules: {
+            // css-loader v7 cambió el default de namedExport a true, lo que
+            // elimina el `export default` del CSS module y rompe
+            // `import styles from './x.css'` (styles === undefined).
+            // Lo fijamos en false para conservar el default export.
+            namedExport: false,
             localIdentName: '[name]__[local]___[hash:base64:5]',
             exportLocalsConvention: 'camelCase'
           },
