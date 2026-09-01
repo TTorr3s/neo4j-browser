@@ -17,15 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { connect } from 'react-redux'
 import { withBus } from 'react-suber'
+import { Action, Dispatch } from 'redux'
 import { Bus } from 'suber'
-
-import {
-  ExclamationTriangleIcon,
-  SpinnerIcon
-} from 'browser-components/icons/LegacyIcons'
 
 import {
   AutoRefreshSpan,
@@ -37,10 +33,19 @@ import { ErrorsView } from '../CypherFrame/ErrorsView/ErrorsView'
 import LegacySysInfoFrame from './LegacySysInfoFrame/LegacySysInfoFrame'
 import { SysInfoTable } from './SysInfoTable'
 import { InlineError } from './styled'
+import { SpinnerContainer } from './styled'
 import * as helpers from './sysinfoHelpers'
+import {
+  ExclamationTriangleIcon,
+  SpinnerIcon
+} from 'browser-components/icons/LegacyIcons'
 import FrameBodyTemplate from 'browser/modules/Frame/FrameBodyTemplate'
 import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
 import { GlobalState } from 'shared/globalState'
+import {
+  commandSources,
+  executeCommand
+} from 'shared/modules/commands/commandsDuck'
 import {
   getUseDb,
   isConnected
@@ -56,12 +61,6 @@ import {
 } from 'shared/modules/dbMeta/dbMetaDuck'
 import { hasMultiDbSupport } from 'shared/modules/features/versionedFeatures'
 import { Frame } from 'shared/modules/frames/framesDuck'
-import {
-  commandSources,
-  executeCommand
-} from 'shared/modules/commands/commandsDuck'
-import { Action, Dispatch } from 'redux'
-import { SpinnerContainer } from './styled'
 
 export type DatabaseMetric = { label: string; value?: string }
 export type SysInfoFrameState = {
@@ -163,7 +162,11 @@ export const SysInfoFrame = ({
   )
 
   const getSysInfo = useCallback((): void => {
-    if (hasMultiDbSupport && frame.useDb) {
+    // Metrics are Enterprise-only. On Community Edition the JMX metric beans
+    // don't exist, so the query returns nothing and SysInfoTable already shows
+    // an "Enterprise only" disclaimer. Skip the query to avoid a wasted call
+    // and a misleading "Some metrics missing" warning in the status bar.
+    if (hasMultiDbSupport && frame.useDb && enterprise) {
       runCypherQuery(
         helpers.sysinfoQuery({
           databaseName: frame.useDb,
@@ -179,7 +182,8 @@ export const SysInfoFrame = ({
     namespacesEnabled,
     metricsPrefix,
     runCypherQuery,
-    updateState
+    updateState,
+    enterprise
   ])
 
   const handleAutoRefreshChange = useCallback(

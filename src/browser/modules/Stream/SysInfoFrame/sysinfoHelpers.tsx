@@ -261,7 +261,9 @@ export const responseHandler = (setState: (newState: any) => void) =>
       idAllocation,
       transactions
     ].some(metricType =>
-      metricType.some((item: any) => item.value === undefined)
+      // Skip metrics flagged as optional (e.g. Page Cache Hit/Usage Ratio),
+      // they aren't always exposed and shouldn't trigger the warning.
+      metricType.some((item: any) => !item.optional && item.value === undefined)
     )
 
     setState({
