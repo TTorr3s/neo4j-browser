@@ -16,9 +16,6 @@ pnpm install
 ### Development Servers
 ```bash
 pnpm start          # Development mode on http://localhost:8080
-pnpm starts         # Development mode with HTTPS
-pnpm start-prod     # Production mode locally
-pnpm starts-prod    # Production mode with HTTPS
 ```
 
 ### Testing
@@ -28,28 +25,6 @@ pnpm test           # Type check + lint + jest
 pnpm jest           # Run jest only
 pnpm dev            # Jest watch mode
 pnpm jest-update    # Update snapshots
-
-# E2E tests (Cypress)
-pnpm test-e2e       # Full e2e with docker (Neo4j 4.2.2, requires docker, uses ports 7474/7687/8080)
-pnpm e2e            # Run Cypress tests (requires fresh Neo4j install)
-pnpm e2e-open       # Open Cypress UI
-pnpm e2e-local      # Run against existing server (default password: "newpassword")
-pnpm e2e-local-open # Open Cypress UI against existing server
-pnpm e2e-aura       # Run against Aura (HTTPS)
-pnpm e2e-aura-open  # Open Cypress UI against Aura
-```
-
-#### E2E Environment Variables
-```bash
---env server=3.4|3.5|4.0|4.1|4.2|4.3|4.4|5.0+ (default 4.3)
---env edition=enterprise|community|aura (default enterprise)
---env browser-password=<password> (default 'newpassword')
---env include-import-tests=true|false (default false)
---env bolt-url=<bolt-url> (default localhost:7687)
-
-# System environment variables (set before command)
-CYPRESS_E2E_TEST_ENV=local|aura|null
-CYPRESS_BASE_URL=<url> (default http://localhost:8080)
 ```
 
 ### Code Quality
